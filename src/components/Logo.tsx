@@ -27,19 +27,23 @@ export function LogoMark({ size = 24, className = "", style }: { size?: number; 
 }
 
 /*
- * The mark is a "D", so the wordmark is the mark followed by the rest of the name: [D]oorCal.
- * Sizes are in em so it scales with the surrounding text. The D's body (below the rings) is 86% of the
- * mark's height and should match the font's cap height (0.71em for Geist), so the mark is 0.71 / 0.86 =
- * 0.826em tall. As an inline-block its bottom sits on the text baseline, like the letters after it.
+ * The mark is a "D", so the wordmark is the mark followed by the rest of the name, set in Jacques Francois:
+ * [D]oorCal. Sizes are in em so it scales with the surrounding text.
+ * - Height: the D's body (top serif y=569 to bottom serifs y=4172) is 86.3% of the mark's height and matches
+ *   the font's cap height (0.718em, measured in the browser), so the mark is 0.718 / 0.863 = 0.832em tall.
+ * - Baseline: as an inline-block the mark's bottom (the bottom serifs) sits on the text baseline.
+ * - Spacing: the font's own D leaves 0.065em after its ink; the mark leaves none, so it gets 0.05em
+ *   (the font's spacing less the usual D-o kerning).
  */
-const MARK_HEIGHT_EM = 0.826;
+const MARK_HEIGHT_EM = 0.832;
 const MARK_WIDTH_EM = (MARK_HEIGHT_EM * 3699) / 4173;
+const MARK_GAP_EM = 0.05;
 
 export function Wordmark({ className = "", markClassName = "text-accent-soft" }: { className?: string; markClassName?: string }) {
   // Self-hosted instances can rename the app; only fold the mark into the name when it starts with a D.
   const rest = /^d/i.test(APP_NAME) ? APP_NAME.slice(1) : null;
   return (
-    <span className={`inline-block font-bold tracking-tight whitespace-nowrap ${className}`}>
+    <span className={`inline-block font-normal whitespace-nowrap ${className}`} style={{ fontFamily: "var(--font-wordmark)" }}>
       <span className="sr-only">{APP_NAME}</span>
       <span aria-hidden>
         <LogoMark
@@ -48,7 +52,7 @@ export function Wordmark({ className = "", markClassName = "text-accent-soft" }:
             display: "inline-block",
             height: `${MARK_HEIGHT_EM}em`,
             width: `${MARK_WIDTH_EM}em`,
-            marginRight: rest === null ? "0.3em" : "0.035em",
+            marginRight: rest === null ? "0.3em" : `${MARK_GAP_EM}em`,
             verticalAlign: "baseline",
           }}
         />
