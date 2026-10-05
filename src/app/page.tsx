@@ -58,6 +58,34 @@ export default async function Home() {
             </div>
           ))}
         </section>
+        <section className="mx-auto max-w-3xl px-6 pb-24">
+          <div className="card p-8">
+            <h2 className="text-xl font-semibold text-slate-900">How {APP_NAME} uses your Google Calendar</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              When you sign in, Google asks you to allow three things. {APP_NAME} uses them only for scheduling:
+            </p>
+            <ul className="mt-4 space-y-3 text-sm text-slate-600">
+              <li>
+                <strong className="text-slate-900">See your free/busy times</strong>, so your booking page only offers
+                times when you&apos;re actually free.
+              </li>
+              <li>
+                <strong className="text-slate-900">See the list of your calendars</strong>, so you can choose which ones
+                count for conflicts and where new bookings go.
+              </li>
+              <li>
+                <strong className="text-slate-900">View and edit events</strong>, to show your calendar in the dashboard
+                and to create, update or cancel the meetings people book with you (with a Google Meet link when
+                it&apos;s online).
+              </li>
+            </ul>
+            <p className="mt-4 text-sm text-slate-600">
+              We never sell your data, use it for ads, or use it to train AI models. You can disconnect or delete your
+              account at any time. Read the <Link href="/privacy" className="text-blue-700 underline">privacy policy</Link>{" "}
+              for details.
+            </p>
+          </div>
+        </section>
       </main>
       <SiteFooter />
     </>

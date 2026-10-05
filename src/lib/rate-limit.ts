@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { lt, sql } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { db, rateLimits } from "@/db";
@@ -23,13 +24,21 @@ export function clientIp(req: NextRequest) {
   return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
 }
 
+// Store a salted one-way hash, never the IP address itself.
+function ipKey(req: NextRequest) {
+  return createHash("sha256")
+    .update(`rate-limit:${process.env.AUTH_SECRET ?? ""}:${clientIp(req)}`)
+    .digest("base64url")
+    .slice(0, 22);
+}
+
 /** Fixed-window counter in Postgres: one atomic upsert per call. Throws RateLimitError when over the limit. */
 export async function rateLimit(req: NextRequest, bucket: keyof typeof LIMITS) {
   const { limit, windowSec } = LIMITS[bucket];
   const expired = sql`${rateLimits.windowStart} < now() - make_interval(secs => ${windowSec})`;
   const [row] = await db
     .insert(rateLimits)
-    .values({ key: `${bucket}:${clientIp(req)}`, windowStart: sql`now()`, count: 1 })
+    .values({ key: `${bucket}:${ipKey(req)}`, windowStart: sql`now()`, count: 1 })
     .onConflictDoUpdate({
       target: rateLimits.key,
       set: {
