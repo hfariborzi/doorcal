@@ -6,9 +6,17 @@ import { APP_NAME } from "@/lib/config";
  * calendar rings on top and a knob. Only the color changes (black in the file, `currentColor` here) so it
  * shows on the dark theme.
  */
-export function LogoMark({ size = 24, className = "" }: { size?: number; className?: string }) {
+export function LogoMark({ size = 24, className = "", style }: { size?: number; className?: string; style?: React.CSSProperties }) {
   return (
-    <svg viewBox="0 0 3699 4173" width={(size * 3699) / 4173} height={size} fill="none" aria-hidden className={className}>
+    <svg
+      viewBox="0 0 3699 4173"
+      width={(size * 3699) / 4173}
+      height={size}
+      fill="none"
+      aria-hidden
+      className={className}
+      style={style}
+    >
       <path d="M2324.72 2025C2324.72 1969.77 2369.49 1925 2424.72 1925H2713.72C2768.95 1925 2813.72 1969.77 2813.72 2025V2314C2813.72 2369.23 2768.95 2414 2713.72 2414H2424.72C2369.49 2414 2324.72 2369.23 2324.72 2314V2025Z" fill="currentColor" />
       <rect x="1260.22" width="489" height="489" rx="100" fill="currentColor" />
       <rect x="2324.22" width="489" height="489" rx="100" fill="currentColor" />
@@ -18,11 +26,42 @@ export function LogoMark({ size = 24, className = "" }: { size?: number; classNa
   );
 }
 
-export function Logo({ href = "/", size = 28 }: { href?: string; size?: number }) {
+/*
+ * The mark is a "D", so the wordmark is the mark followed by the rest of the name: [D]oorCal.
+ * Sizes are in em so it scales with the surrounding text. The D's body (below the rings) is 86% of the
+ * mark's height and should match the font's cap height (0.71em for Geist), so the mark is 0.71 / 0.86 =
+ * 0.826em tall. As an inline-block its bottom sits on the text baseline, like the letters after it.
+ */
+const MARK_HEIGHT_EM = 0.826;
+const MARK_WIDTH_EM = (MARK_HEIGHT_EM * 3699) / 4173;
+
+export function Wordmark({ className = "", markClassName = "text-accent-soft" }: { className?: string; markClassName?: string }) {
+  // Self-hosted instances can rename the app; only fold the mark into the name when it starts with a D.
+  const rest = /^d/i.test(APP_NAME) ? APP_NAME.slice(1) : null;
   return (
-    <Link href={href} className="inline-flex items-center gap-2.5 font-semibold tracking-tight text-ink">
-      <LogoMark size={size} className="text-accent-soft" />
-      <span className="text-lg">{APP_NAME}</span>
+    <span className={`inline-block font-bold tracking-tight whitespace-nowrap ${className}`}>
+      <span className="sr-only">{APP_NAME}</span>
+      <span aria-hidden>
+        <LogoMark
+          className={markClassName}
+          style={{
+            display: "inline-block",
+            height: `${MARK_HEIGHT_EM}em`,
+            width: `${MARK_WIDTH_EM}em`,
+            marginRight: rest === null ? "0.3em" : "0.035em",
+            verticalAlign: "baseline",
+          }}
+        />
+        {rest ?? APP_NAME}
+      </span>
+    </span>
+  );
+}
+
+export function Logo({ href = "/", className = "text-[22px]" }: { href?: string; className?: string }) {
+  return (
+    <Link href={href} className="inline-block text-ink" aria-label={`${APP_NAME} home`}>
+      <Wordmark className={className} />
     </Link>
   );
 }
