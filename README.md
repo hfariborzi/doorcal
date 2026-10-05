@@ -74,8 +74,10 @@ Vercel and Neon; both have free tiers.
    | `AUTH_SECRET` | output of `openssl rand -base64 32` |
    | `NEXT_PUBLIC_APP_NAME` | optional display name |
    | `ALLOWED_EMAILS` / `ALLOWED_DOMAINS` | optional, comma-separated, to restrict who can sign up |
+   | `MIGRATE_PREVIEWS` | optional; `true` runs migrations on preview builds (only if previews use their own database branch) |
 
-4. Redeploy. Database migrations run automatically during the build (`scripts/migrate.mjs`).
+4. Redeploy. Database migrations run automatically during production builds (`scripts/migrate.mjs`). Preview builds
+   skip them unless `MIGRATE_PREVIEWS=true`, so a preview can't change a shared production database.
 
 ### 3. Custom domain (e.g. a subdomain on Cloudflare)
 

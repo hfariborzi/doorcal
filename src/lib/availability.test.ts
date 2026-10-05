@@ -81,6 +81,14 @@ test("rescheduling ignores the booking being moved", () => {
   assert.ok(run({ bookings: [b], busy, ignoreBookingUid: "me" }).some((s) => s.start === "2026-10-05T15:00:00.000Z"));
 });
 
+test("rescheduling works when free/busy merged the booking with an adjacent event", () => {
+  const b = { start: new Date("2026-10-05T15:00:00Z"), end: new Date("2026-10-05T15:30:00Z"), eventTypeId: 1, uid: "me" };
+  const busy = [{ start: b.start.getTime(), end: Date.parse("2026-10-05T16:00:00Z") }]; // booking + 09:30-10:00 event
+  const slots = run({ bookings: [b], busy, ignoreBookingUid: "me" });
+  assert.ok(slots.some((s) => s.start === "2026-10-05T15:00:00.000Z"));
+  assert.ok(!slots.some((s) => s.start === "2026-10-05T15:30:00.000Z"));
+});
+
 test("group events stay open until seats run out", () => {
   const et = { ...baseEt, seats: 2 };
   const b = { start: new Date("2026-10-05T15:00:00Z"), end: new Date("2026-10-05T15:30:00Z"), eventTypeId: 1, uid: "a" };

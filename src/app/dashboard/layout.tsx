@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import { requireUser } from "@/lib/auth";
-import { APP_NAME, appUrl } from "@/lib/config";
+import { APP_NAME } from "@/lib/config";
+import { requestBaseUrl } from "@/lib/origin";
 import { Avatar } from "@/components/Avatar";
 import { CopyButton } from "@/components/CopyButton";
 import { GoogleButton } from "@/components/GoogleButton";
@@ -9,9 +9,7 @@ import { Nav } from "./Nav";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   const user = await requireUser();
-  const h = await headers();
-  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
-  const publicUrl = `${appUrl(origin)}/${user.username}`;
+  const publicUrl = `${await requestBaseUrl()}/${user.username}`;
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">

@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const reschedule = q.get("reschedule");
     if (reschedule) {
       const row = await getBookingByUid(reschedule);
-      if (row && row.booking.userId === user.id) ignore = row.booking.uid;
+      if (row && row.booking.userId === user.id && row.booking.eventTypeId === et.id) ignore = row.booking.uid;
     }
 
     const { slots, schedule } = await getSlots({

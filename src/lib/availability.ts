@@ -44,6 +44,14 @@ function atTime(date: DateTime, hhmm: string): DateTime {
   return date.set({ hour: h, minute: m, second: 0, millisecond: 0 });
 }
 
+function subtract(a: Interval, b: Interval): Interval[] {
+  if (b.end <= a.start || b.start >= a.end) return [a];
+  const out: Interval[] = [];
+  if (a.start < b.start) out.push({ start: a.start, end: b.start });
+  if (b.end < a.end) out.push({ start: b.end, end: a.end });
+  return out;
+}
+
 export function computeSlots(input: SlotInput): Slot[] {
   const { eventType, schedule, duration, busy, ignoreBookingUid } = input;
   const tz = schedule.timezone;
@@ -81,10 +89,13 @@ export function computeSlots(input: SlotInput): Slot[] {
     perDay.get(day)!.add(b.start.getTime());
   }
 
+  // Free/busy merges back-to-back events into one block, so cut the moved booking's time out of any
+  // busy block that covers it rather than looking for an exact match.
+  const busyLeft = ignoredBooking
+    ? busy.flatMap((i) => subtract(i, { start: ignoredBooking.start.getTime(), end: ignoredBooking.end.getTime() }))
+    : busy;
   const blocking: Interval[] = [
-    ...busy.filter(
-      (i) => !(ignoredBooking && i.start === ignoredBooking.start.getTime() && i.end === ignoredBooking.end.getTime()),
-    ),
+    ...busyLeft,
     ...bookings.map((b) => ({ start: b.start.getTime(), end: b.end.getTime() })),
   ];
 

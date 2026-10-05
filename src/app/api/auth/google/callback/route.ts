@@ -42,8 +42,22 @@ function validTimezone(tz: string) {
   }
 }
 
+function failRedirect(req: NextRequest, msg: string) {
+  return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(msg)}`, req.url));
+}
+
 export async function GET(req: NextRequest) {
-  const fail = (msg: string) => NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(msg)}`, req.url));
+  try {
+    return await handleCallback(req);
+  } catch (err) {
+    // e.g. an expired or already-used code, or a database error
+    console.error("[oauth callback]", err);
+    return failRedirect(req, "Sign-in failed. Please try again.");
+  }
+}
+
+async function handleCallback(req: NextRequest) {
+  const fail = (msg: string) => failRedirect(req, msg);
   const params = req.nextUrl.searchParams;
   if (params.get("error")) return fail("Google sign-in was cancelled.");
 

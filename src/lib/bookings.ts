@@ -1,11 +1,11 @@
 import { and, eq, ne } from "drizzle-orm";
 import { DateTime } from "luxon";
 import { db, bookings, eventTypes, users, type Booking, type BookingLocation, type EventType, type User } from "@/db";
-import { appUrl } from "./config";
 import { randomId } from "./crypto";
 import { getSlots } from "./data";
 import { createEvent, deleteEvent, getEvent, patchEvent } from "./google";
 import { bookingLocationText } from "./locations";
+import { requestBaseUrl } from "./origin";
 
 export class BookingError extends Error {
   constructor(message: string, public status = 400) {
@@ -45,6 +45,7 @@ function describe(opts: {
   et: EventType;
   booking: Pick<Booking, "uid" | "name" | "email" | "notes" | "answers" | "location">;
   includeManageLinks: boolean;
+  baseUrl: string;
 }) {
   const { et, booking } = opts;
   const lines: string[] = [];
@@ -55,7 +56,7 @@ function describe(opts: {
     lines.push(`Booked by: ${booking.name} <${booking.email}>`);
     for (const [label, a] of Object.entries(booking.answers)) lines.push(`${label}: ${a}`);
     if (booking.notes) lines.push("", "Notes:", booking.notes);
-    const url = `${appUrl()}/booking/${booking.uid}`;
+    const url = `${opts.baseUrl}/booking/${booking.uid}`;
     lines.push("", `Need to make a change? Reschedule or cancel: ${url}`);
   }
   return lines.join("\n").trim();
@@ -138,7 +139,7 @@ export async function createBooking(host: User, et: EventType, req: BookingReque
       calendarId: host.writeCalendarId,
       requestId: uid,
       summary: eventSummary(et, host, req.name),
-      description: describe({ et, booking: draft, includeManageLinks: et.seats <= 1 }),
+      description: describe({ et, booking: draft, includeManageLinks: et.seats <= 1, baseUrl: await requestBaseUrl() }),
       location:
         location.type === "google_meet"
           ? undefined

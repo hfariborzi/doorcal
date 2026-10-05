@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { getEventType, getUserByUsername } from "@/lib/data";
 import { getBookingByUid } from "@/lib/bookings";
@@ -34,6 +34,9 @@ export default async function EventPage(props: PageProps<"/[username]/[slug]">) 
   if (typeof reschedule === "string") {
     const row = await getBookingByUid(reschedule);
     if (row && row.booking.userId === user.id && row.booking.status === "confirmed") {
+      // The link was opened on another of the host's event types: send it to the booking's own type.
+      if (row.eventType && row.eventType.id !== et.id)
+        redirect(`/${user.username}/${row.eventType.slug}?reschedule=${encodeURIComponent(row.booking.uid)}`);
       rescheduleInfo = {
         uid: row.booking.uid,
         start: row.booking.start.toISOString(),

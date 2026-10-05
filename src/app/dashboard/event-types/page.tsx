@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import { requireUser } from "@/lib/auth";
 import { listEventTypes } from "@/lib/data";
-import { appUrl } from "@/lib/config";
+import { requestBaseUrl } from "@/lib/origin";
 import { locationIcon, locationLabel } from "@/lib/locations";
 import { CopyButton } from "@/components/CopyButton";
 import { EventTypeActions } from "./EventTypeActions";
@@ -12,8 +11,7 @@ export const metadata = { title: "Event types" };
 export default async function EventTypesPage() {
   const user = await requireUser();
   const types = await listEventTypes(user.id);
-  const h = await headers();
-  const base = appUrl(`${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`);
+  const base = await requestBaseUrl();
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
