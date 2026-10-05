@@ -1,5 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6573 6573"><svg x="586" y="0" width="5400" height="6573" viewBox="0 0 5400 6573" fill="none"><rect x="150" y="500" width="5100" height="5923" rx="350" stroke="#8b5cf6" stroke-width="300"/>
-<rect x="3698" width="1000" height="1000" rx="200" fill="#8b5cf6"/>
-<rect x="3698" y="2852" width="1000" height="1000" rx="200" fill="#8b5cf6"/>
-<rect x="677" width="1000" height="1000" rx="200" fill="#8b5cf6"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5967 5967"><svg x="284" y="0" width="5400" height="5967" viewBox="0 0 5400 5967" fill="none"><mask id="path-1-inside-1_64_10" fill="white">
+<rect y="443.648" width="5400" height="5523.35" rx="500"/>
+</mask>
+<rect y="443.648" width="5400" height="5523.35" rx="500" stroke="#8b5cf6" stroke-width="1600" mask="url(#path-1-inside-1_64_10)"/>
+<rect x="3430" width="1000" height="887.57" rx="200" fill="#8b5cf6"/>
+<rect x="3430" y="2705" width="1000" height="1000" rx="200" fill="#8b5cf6"/>
+<rect x="930" width="1000" height="1000" rx="200" fill="#8b5cf6"/>
 <rect x="2200" width="1000" height="1000" rx="200" fill="#8b5cf6"/></svg></svg>
