@@ -20,6 +20,7 @@ import {
 import { locationLabel } from "@/lib/locations";
 import { Avatar } from "@/components/Avatar";
 import { LocationIcon } from "@/components/LocationIcon";
+import { TimezoneOptions } from "@/components/TimezoneOptions";
 
 type Slot = { start: string; seatsLeft?: number };
 
@@ -54,15 +55,6 @@ function prefers12h() {
 
 const noopSubscribe = () => () => {};
 
-function allTimezones(current: string) {
-  let list: string[] = [];
-  try {
-    list = (Intl as unknown as { supportedValuesOf(k: string): string[] }).supportedValuesOf("timeZone");
-  } catch {}
-  if (!list.includes(current)) list = [current, ...list];
-  if (!list.includes("UTC")) list.push("UTC");
-  return list;
-}
 
 export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
   const router = useRouter();
@@ -517,9 +509,7 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
           <Globe size={18} className="shrink-0 text-faint" />
           <span className="sr-only">Time zone</span>
           <select className="input w-full border-transparent bg-transparent px-1 sm:w-80" value={tz} onChange={(e) => setTz(e.target.value)}>
-            {allTimezones(tz).map((z) => (
-              <option key={z} value={z}>{z.replace(/_/g, " ")}</option>
-            ))}
+            <TimezoneOptions value={tz} />
           </select>
         </label>
         <div className="inline-flex shrink-0 self-start rounded-lg border border-line bg-black/20 p-1 text-xs font-medium sm:self-auto" role="radiogroup" aria-label="Clock format">

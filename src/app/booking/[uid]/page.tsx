@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { DateTime } from "luxon";
 import { CalendarDays, Check, Globe, User, Video, X } from "lucide-react";
 import { getBookingByUid } from "@/lib/bookings";
-import { bookingLocationText } from "@/lib/locations";
+import { bookingLocationText, meetingLinkLabel } from "@/lib/locations";
 import { Avatar } from "@/components/Avatar";
 import { LocationIcon } from "@/components/LocationIcon";
 import { PoweredBy } from "@/components/PoweredBy";
@@ -76,7 +76,7 @@ export default async function BookingPage(props: PageProps<"/booking/[uid]">) {
             <LocationIcon type={booking.location.type} size={18} className="mt-0.5 shrink-0 text-accent-soft" />
             <dd className="min-w-0 text-muted">
               {booking.meetLink && !cancelled ? (
-                <a href={booking.meetLink} className="link" target="_blank" rel="noreferrer">Join Google Meet</a>
+                <a href={booking.meetLink} className="link" target="_blank" rel="noreferrer">Join {meetingLinkLabel(booking.meetLink)}</a>
               ) : (
                 bookingLocationText(booking.location)
               )}
@@ -93,7 +93,7 @@ export default async function BookingPage(props: PageProps<"/booking/[uid]">) {
 
         {booking.meetLink && !cancelled && !past && (
           <a href={booking.meetLink} target="_blank" rel="noreferrer" className="btn-primary mt-6 w-full py-2.5">
-            <Video size={16} /> Join with Google Meet
+            <Video size={16} /> Join with {meetingLinkLabel(booking.meetLink)}
           </a>
         )}
       </div>

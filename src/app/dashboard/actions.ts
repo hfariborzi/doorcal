@@ -5,12 +5,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
-import { db, users, schedules, eventTypes, bookings } from "@/db";
+import { db, users, schedules, eventTypes, bookings, calendarAccounts } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { cancelBooking } from "@/lib/bookings";
+import { getAccount, isConnected, listAccounts, providerFor } from "@/lib/calendar";
 import { RESERVED_USERNAMES } from "@/lib/config";
 import { decrypt } from "@/lib/crypto";
-import { oauthClient } from "@/lib/google";
+import { logError } from "@/lib/log";
 import { SESSION_COOKIE } from "@/lib/session";
 
 export type ActionResult = { error?: string; id?: number };
@@ -34,7 +35,7 @@ const timeRange = z
   .refine((r) => r.start < r.end || r.end === "24:00", "End time must be after start time");
 
 const locationSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("google_meet") }),
+  z.object({ type: z.literal("online") }),
   z.object({ type: z.literal("in_person"), address: z.string().trim().min(1, "Enter an address") }),
   z.object({ type: z.literal("phone_host_calls") }),
   z.object({ type: z.literal("phone_invitee_calls"), phone: z.string().trim().min(3, "Enter your phone number") }),
@@ -58,6 +59,8 @@ const eventTypeSchema = z.object({
   locations: z.array(locationSchema).min(1, "Add at least one location").max(6),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   scheduleId: z.number().int().nullable(),
+  // "<accountId>:<calendarId>" or null for the user's default calendar.
+  writeTarget: z.string().regex(/^\d{1,10}:.{1,300}$/).nullable(),
   bufferBefore: z.number().int().min(0).max(240),
   bufferAfter: z.number().int().min(0).max(240),
   minNotice: z.number().int().min(0).max(60 * 24 * 60),
@@ -86,8 +89,18 @@ export async function saveEventType(input: EventTypeInput): Promise<ActionResult
   const user = await requireUser();
   const parsed = eventTypeSchema.safeParse(input);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
-  const { id, ...data } = parsed.data;
+  const { id, writeTarget, ...rest } = parsed.data;
+  const data = { ...rest, writeAccountId: null as number | null, writeCalendarId: null as string | null };
   data.durations = [...new Set(data.durations)].sort((a, b) => a - b);
+
+  if (writeTarget) {
+    const sep = writeTarget.indexOf(":");
+    const accountId = writeTarget.slice(0, sep);
+    const calendarId = writeTarget.slice(sep + 1);
+    if (!(await getAccount(user.id, Number(accountId)))) return { error: "That calendar account is not connected" };
+    data.writeAccountId = Number(accountId);
+    data.writeCalendarId = calendarId;
+  }
 
   if (data.scheduleId) {
     const [s] = await db
@@ -229,13 +242,58 @@ export async function saveProfile(input: z.input<typeof profileSchema>): Promise
   return {};
 }
 
-export async function saveCalendars(input: { writeCalendarId: string; conflictCalendarIds: string[] }): Promise<ActionResult> {
+const calendarSettingsSchema = z.object({
+  accounts: z.array(z.object({ id: z.number().int(), conflictCalendarIds: z.array(z.string().min(1).max(300)).max(50) })).max(20),
+  writeAccountId: z.number().int(),
+  writeCalendarId: z.string().min(1).max(300),
+});
+
+export async function saveCalendarSettings(input: z.input<typeof calendarSettingsSchema>): Promise<ActionResult> {
   const user = await requireUser();
-  const parsed = z
-    .object({ writeCalendarId: z.string().min(1).max(300), conflictCalendarIds: z.array(z.string().max(300)).max(50) })
-    .safeParse(input);
+  const parsed = calendarSettingsSchema.safeParse(input);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
-  await db.update(users).set(parsed.data).where(eq(users.id, user.id));
+  const owned = new Set((await listAccounts(user.id)).map((a) => a.id));
+  for (const a of parsed.data.accounts) if (!owned.has(a.id)) return { error: "Unknown calendar account" };
+  if (!owned.has(parsed.data.writeAccountId)) return { error: "Unknown calendar account" };
+
+  for (const a of parsed.data.accounts) {
+    await db
+      .update(calendarAccounts)
+      .set({ conflictCalendarIds: [...new Set(a.conflictCalendarIds)] })
+      .where(and(eq(calendarAccounts.id, a.id), eq(calendarAccounts.userId, user.id)));
+  }
+  await db
+    .update(users)
+    .set({ writeAccountId: parsed.data.writeAccountId, writeCalendarId: parsed.data.writeCalendarId })
+    .where(eq(users.id, user.id));
+  revalidatePath("/dashboard", "layout");
+  return {};
+}
+
+async function revokeAccess(account: { provider: "google" | "microsoft"; refreshToken: string | null }) {
+  if (!account.refreshToken) return;
+  try {
+    await providerFor(account).revoke(decrypt(account.refreshToken));
+  } catch (err) {
+    logError("revoke", err); // the token may already be invalid; nothing else to do
+  }
+}
+
+/** Disconnect one calendar account. The last one can't go: it's how the user signs in. */
+export async function removeCalendarAccount(id: number): Promise<ActionResult> {
+  const user = await requireUser();
+  const accounts = await listAccounts(user.id);
+  const target = accounts.find((a) => a.id === id);
+  if (!target) return { error: "Unknown calendar account" };
+  if (accounts.length === 1) return { error: "You can't remove your only account. Connect another one first, or delete your DoorCal account." };
+
+  await revokeAccess(target);
+  // Bookings and event types that pointed here fall back automatically (foreign keys set null).
+  await db.delete(calendarAccounts).where(and(eq(calendarAccounts.id, id), eq(calendarAccounts.userId, user.id)));
+  if (user.writeAccountId === id) {
+    const next = accounts.find((a) => a.id !== id && isConnected(a)) ?? accounts.find((a) => a.id !== id);
+    await db.update(users).set({ writeAccountId: next?.id ?? null, writeCalendarId: "primary" }).where(eq(users.id, user.id));
+  }
   revalidatePath("/dashboard", "layout");
   return {};
 }
@@ -256,26 +314,10 @@ export async function hostCancelBooking(uid: string, reason: string): Promise<Ac
   return {};
 }
 
-async function revokeGoogle(refreshToken: string | null) {
-  if (!refreshToken) return;
-  try {
-    await oauthClient().revokeToken(decrypt(refreshToken));
-  } catch {
-    // Token may already be invalid; nothing else to do.
-  }
-}
-
-export async function disconnectGoogle() {
-  const user = await requireUser();
-  await revokeGoogle(user.googleRefreshToken);
-  await db.update(users).set({ googleRefreshToken: null, googleScopes: null }).where(eq(users.id, user.id));
-  revalidatePath("/dashboard", "layout");
-}
-
 export async function deleteAccount() {
   const user = await requireUser();
-  await revokeGoogle(user.googleRefreshToken);
-  await db.delete(users).where(eq(users.id, user.id));
+  for (const account of await listAccounts(user.id)) await revokeAccess(account);
+  await db.delete(users).where(eq(users.id, user.id)); // cascades to accounts, schedules, event types, bookings
   (await cookies()).delete(SESSION_COOKIE);
   redirect("/");
 }

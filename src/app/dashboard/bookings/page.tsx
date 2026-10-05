@@ -36,8 +36,8 @@ export default async function BookingsPage(props: PageProps<"/dashboard/bookings
     .orderBy(tab === "upcoming" ? asc(bookings.start) : desc(bookings.start))
     .limit(200);
 
-  if (tab === "upcoming" && user.googleRefreshToken) {
-    // Meetings the host deleted straight from Google Calendar: show them as cancelled, not upcoming.
+  if (tab === "upcoming") {
+    // Meetings the host deleted straight from their calendar: show them as cancelled, not upcoming.
     const gone = await syncDeletedBookings(user, rows.slice(0, 50));
     if (gone.size) rows = rows.filter((b) => !gone.has(b.uid));
   }

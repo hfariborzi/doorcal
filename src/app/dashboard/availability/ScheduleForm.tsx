@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { DateOverride, TimeRange, WeeklyHours } from "@/db/schema";
 import { saveSchedule } from "../actions";
+import { TimezoneOptions } from "@/components/TimezoneOptions";
 
 const DAYS = [
   ["7", "Sunday"],
@@ -60,14 +61,6 @@ function RangeEditor({ ranges, onChange }: { ranges: TimeRange[]; onChange: (r: 
   );
 }
 
-function allTimezones(current: string) {
-  let list: string[] = [];
-  try {
-    list = (Intl as unknown as { supportedValuesOf(k: string): string[] }).supportedValuesOf("timeZone");
-  } catch {}
-  if (!list.includes(current)) list = [current, ...list];
-  return list;
-}
 
 export function ScheduleForm({
   initial,
@@ -108,16 +101,14 @@ export function ScheduleForm({
         <div>
           <label className="label" htmlFor="stz">Time zone</label>
           <select id="stz" className="input" value={timezone} onChange={(e) => { setTimezone(e.target.value); touch(); }}>
-            {allTimezones(timezone).map((z) => (
-              <option key={z} value={z}>{z.replace(/_/g, " ")}</option>
-            ))}
+            <TimezoneOptions value={timezone} />
           </select>
         </div>
       </section>
 
       <section className="card p-6">
         <h2 className="font-semibold">Weekly hours</h2>
-        <p className="text-sm text-faint">When you&apos;re usually available. Busy times on your Google Calendar are blocked automatically.</p>
+        <p className="text-sm text-faint">When you&apos;re usually available. Busy times on your connected calendars are blocked automatically.</p>
         <div className="mt-4 divide-y divide-line">
           {DAYS.map(([key, label]) => {
             const ranges = weekly[key] ?? [];

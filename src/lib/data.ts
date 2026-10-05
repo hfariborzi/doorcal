@@ -1,7 +1,7 @@
 import { and, asc, eq, gt, lt } from "drizzle-orm";
 import { db, users, schedules, eventTypes, bookings, type EventType, type User, type Schedule } from "@/db";
 import { computeSlots, DEFAULT_WEEKLY } from "./availability";
-import { getBusy } from "./google";
+import { busyForAccounts, listAccounts } from "./calendar";
 
 export async function getUserByUsername(username: string): Promise<User | null> {
   const [u] = await db.select().from(users).where(eq(users.username, username.toLowerCase())).limit(1);
@@ -53,10 +53,10 @@ export async function ensureDefaults(user: User): Promise<{ schedule: Schedule }
         userId: user.id,
         slug: "30min",
         title: "30 Minute Meeting",
-        description: "A quick video call over Google Meet.",
+        description: "A quick video call.",
         durations: [30],
-        locations: [{ type: "google_meet" }],
-        color: "#2563eb",
+        locations: [{ type: "online" }],
+        color: "#7c3aed",
         scheduleId: schedule.id,
         position: 0,
       },
@@ -83,8 +83,9 @@ export async function confirmedBookingsInRange(userId: number, start: Date, end:
       end: bookings.end,
       eventTypeId: bookings.eventTypeId,
       uid: bookings.uid,
+      accountId: bookings.accountId,
       calendarId: bookings.calendarId,
-      googleEventId: bookings.googleEventId,
+      eventId: bookings.eventId,
     })
     .from(bookings)
     .where(
@@ -106,17 +107,18 @@ export async function getSlots(opts: {
   const pad = (Math.max(eventType.bufferBefore, eventType.bufferAfter) + duration) * 60_000 + 86_400_000;
   const from = new Date(rangeStart.getTime() - pad);
   const to = new Date(rangeEnd.getTime() + pad);
+  const accounts = await listAccounts(user.id);
   const [busy, existing] = await Promise.all([
-    getBusy(user, from, to),
+    busyForAccounts(accounts, from, to, schedule.timezone),
     confirmedBookingsInRange(user.id, from, to),
   ]);
-  // A booking whose Google event sits on a calendar we check via free/busy is already covered by `busy`.
-  // Only let the DB row block on its own when free/busy can't see it (event not created yet, or written to a
-  // calendar that isn't checked for conflicts). That way bookings deleted in Google stop blocking slots.
-  const checked = new Set(user.conflictCalendarIds.length ? user.conflictCalendarIds : ["primary"]);
+  // A booking whose calendar event sits on a calendar we check for conflicts is already covered by `busy`.
+  // Only let the DB row block on its own when the busy lookup can't see it (event not created yet, or written
+  // to a calendar that isn't checked). That way bookings deleted in the calendar stop blocking slots.
+  const checked = new Set(accounts.flatMap((a) => a.conflictCalendarIds.map((c) => `${a.id}:${c}`)));
   const rows = existing.map((b) => ({
     ...b,
-    blocks: !b.googleEventId || !b.calendarId || !checked.has(b.calendarId),
+    blocks: !b.eventId || !b.calendarId || !b.accountId || !checked.has(`${b.accountId}:${b.calendarId}`),
   }));
   return {
     schedule,

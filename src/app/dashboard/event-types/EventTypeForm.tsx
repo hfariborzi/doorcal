@@ -54,10 +54,14 @@ export function EventTypeForm({
   initial,
   schedules,
   username,
+  targets,
+  defaultTarget,
 }: {
   initial: EventTypeInput;
   schedules: { id: number; name: string; isDefault: boolean }[];
   username: string;
+  targets: { value: string; label: string; onlineMeetings: boolean }[];
+  defaultTarget: string;
 }) {
   const router = useRouter();
   const [v, setV] = useState<EventTypeInput>(initial);
@@ -78,7 +82,7 @@ export function EventTypeForm({
 
   function newLocation(type: LocationOption["type"]): LocationOption {
     switch (type) {
-      case "google_meet":
+      case "online":
         return { type };
       case "in_person":
         return { type, address: "" };
@@ -267,6 +271,21 @@ export function EventTypeForm({
             <label className="label">Max bookings per day</label>
             <input type="number" min={1} className="input w-28" placeholder="No limit" value={v.dailyLimit ?? ""} onChange={(e) => set("dailyLimit", e.target.value ? Number(e.target.value) : null)} />
           </div>
+        </div>
+      </Section>
+
+      <Section title="Calendar" desc="Which calendar the booked meetings are added to.">
+        <div>
+          <label className="label" htmlFor="write-target">Add bookings to</label>
+          <select id="write-target" className="input" value={v.writeTarget ?? ""} onChange={(e) => set("writeTarget", e.target.value || null)}>
+            <option value="">Default ({defaultTarget})</option>
+            {targets.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+          {v.locations.some((l) => l.type === "online") && targets.find((t) => t.value === (v.writeTarget ?? ""))?.onlineMeetings === false && (
+            <p className="help">This calendar can&apos;t add video-call links automatically; invitees will be told the host shares the link.</p>
+          )}
         </div>
       </Section>
 

@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { DateTime } from "luxon";
 import { ChevronLeft, ChevronRight, ExternalLink, Loader2, MapPin, Plus, Trash2, Users, Video, X } from "lucide-react";
-import type { CalendarEvent } from "@/lib/google";
+import type { CalendarEvent } from "@/lib/calendar/types";
+import { meetingLinkLabel } from "@/lib/locations";
+
+type Problem = { accountId: number; email: string; message: string };
 
 const HOUR_PX = 48;
 
@@ -45,7 +48,7 @@ function layoutDay(events: CalendarEvent[], dayStart: DateTime) {
   }));
 }
 
-/** Event blocks: a dark tint of the Google calendar's color with a solid left edge. */
+/** Event blocks: a dark tint of the calendar's color with a solid left edge. */
 function eventStyle(color: string): React.CSSProperties {
   return {
     background: `color-mix(in srgb, ${color} 30%, #1d1530)`,
@@ -67,7 +70,7 @@ export function CalendarView() {
   const [viewChoice, setView] = useState<View | null>(null);
   const view: View = viewChoice ?? (narrow ? "day" : "week");
   const [anchor, setAnchor] = useState<DateTime>(() => DateTime.now().startOf("day"));
-  const [result, setResult] = useState<{ rangeKey: string; events: CalendarEvent[]; error?: string } | null>(null);
+  const [result, setResult] = useState<{ rangeKey: string; events: CalendarEvent[]; problems: Problem[]; error?: string } | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
   const [selected, setSelected] = useState<CalendarEvent | null>(null);
   const [creating, setCreating] = useState<DateTime | null>(null);
@@ -87,6 +90,7 @@ export function CalendarView() {
 
   const events = result?.rangeKey === range.key ? result.events : null;
   const error = result?.rangeKey === range.key ? (result.error ?? null) : null;
+  const problems = result?.rangeKey === range.key ? result.problems : [];
   const load = () => setReloadTick((t) => t + 1);
 
   useEffect(() => {
@@ -96,9 +100,9 @@ export function CalendarView() {
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Could not load your calendar");
-        if (!cancelled) setResult({ rangeKey: range.key, events: data.events });
+        if (!cancelled) setResult({ rangeKey: range.key, events: data.events, problems: data.problems ?? [] });
       })
-      .catch((e) => !cancelled && setResult({ rangeKey: range.key, events: [], error: (e as Error).message }));
+      .catch((e) => !cancelled && setResult({ rangeKey: range.key, events: [], problems: [], error: (e as Error).message }));
     return () => {
       cancelled = true;
     };
@@ -145,6 +149,11 @@ export function CalendarView() {
       </div>
 
       {error && <p className="m-4 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+      {problems.length > 0 && (
+        <p className="m-4 rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning">
+          {problems.map((p) => `${p.email} ${p.message}`).join(". ")}.
+        </p>
+      )}
 
       <div className="flex border-b border-line bg-black/10">
         <div className="w-14 shrink-0" />
@@ -164,7 +173,7 @@ export function CalendarView() {
                     return s <= d && en > d;
                   })
                   .map((e) => (
-                    <button key={`${e.calendarId}-${e.id}`} onClick={() => setSelected(e)} className="block w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs text-ink" style={eventStyle(e.color)}>
+                    <button key={`${e.accountId}-${e.calendarId}-${e.id}`} onClick={() => setSelected(e)} className="block w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs text-ink" style={eventStyle(e.color)}>
                       {e.title}
                     </button>
                   ))}
@@ -210,7 +219,7 @@ export function CalendarView() {
                 )}
                 {layoutDay(dayEvents, dayStart).map((p) => (
                   <button
-                    key={`${p.e.calendarId}-${p.e.id}`}
+                    key={`${p.e.accountId}-${p.e.calendarId}-${p.e.id}`}
                     onClick={(ev) => {
                       ev.stopPropagation();
                       setSelected(p.e);
@@ -298,7 +307,7 @@ function EventDetails({ event, tz, onClose, onDeleted }: { event: CalendarEvent;
   async function remove() {
     if (!confirm("Delete this event? Guests will be notified.")) return;
     setDeleting(true);
-    const q = new URLSearchParams({ calendarId: event.calendarId, eventId: event.id });
+    const q = new URLSearchParams({ accountId: String(event.accountId), calendarId: event.calendarId, eventId: event.id });
     const res = await fetch(`/api/calendar/events?${q}`, { method: "DELETE" });
     if (!res.ok) {
       setError((await res.json()).error ?? "Could not delete");
@@ -324,7 +333,7 @@ function EventDetails({ event, tz, onClose, onDeleted }: { event: CalendarEvent;
       </div>
       <div className="mt-6 space-y-5 text-sm">
         {event.meetLink && (
-          <a href={event.meetLink} target="_blank" rel="noreferrer" className="btn-primary w-full py-2.5"><Video size={16} /> Join with Google Meet</a>
+          <a href={event.meetLink} target="_blank" rel="noreferrer" className="btn-primary w-full py-2.5"><Video size={16} /> Join with {meetingLinkLabel(event.meetLink)}</a>
         )}
         {event.location && (
           <p className="flex gap-2.5 text-muted"><MapPin size={16} className="mt-0.5 shrink-0 text-accent-soft" /> <span className="break-words">{event.location}</span></p>
@@ -351,7 +360,7 @@ function EventDetails({ event, tz, onClose, onDeleted }: { event: CalendarEvent;
           <button onClick={remove} disabled={deleting} className="btn-ghost text-danger hover:text-danger"><Trash2 size={16} /> {deleting ? "Deleting…" : "Delete"}</button>
         ) : <span />}
         {event.htmlLink && (
-          <a href={event.htmlLink} target="_blank" rel="noreferrer" className="btn-secondary"><ExternalLink size={15} /> Open in Google Calendar</a>
+          <a href={event.htmlLink} target="_blank" rel="noreferrer" className="btn-secondary"><ExternalLink size={15} /> Open in calendar</a>
         )}
       </div>
     </Modal>
@@ -364,11 +373,31 @@ function NewMeeting({ start, tz, onClose, onCreated }: { start: DateTime; tz: st
   const [from, setFrom] = useState(start.toFormat("HH:mm"));
   const [to, setTo] = useState(start.plus({ minutes: 30 }).toFormat("HH:mm"));
   const [attendees, setAttendees] = useState("");
-  const [locationType, setLocationType] = useState("google_meet");
+  const [locationType, setLocationType] = useState("online");
   const [locationValue, setLocationValue] = useState("");
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Writable calendars across all connected accounts; "" means the user's default.
+  const [targets, setTargets] = useState<{ value: string; label: string; onlineMeetings: boolean }[] | null>(null);
+  const [target, setTarget] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/calendar/calendars")
+      .then((r) => r.json())
+      .then((d: { targets?: { value: string; label: string; onlineMeetings: boolean }[]; default?: { accountId: number | null; calendarId: string } }) => {
+        if (cancelled) return;
+        const list = d.targets ?? [];
+        setTargets(list);
+        const def = `${d.default?.accountId}:${d.default?.calendarId}`;
+        setTarget(list.some((t) => t.value === def) ? def : (list[0]?.value ?? ""));
+      })
+      .catch(() => !cancelled && setTargets([]));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function submit(ev: React.FormEvent) {
     ev.preventDefault();
@@ -389,6 +418,7 @@ function NewMeeting({ start, tz, onClose, onCreated }: { start: DateTime; tz: st
         description,
         locationType,
         locationValue,
+        ...(target ? { accountId: Number(target.slice(0, target.indexOf(":"))), calendarId: target.slice(target.indexOf(":") + 1) } : {}),
       }),
     });
     if (!res.ok) {
@@ -427,7 +457,7 @@ function NewMeeting({ start, tz, onClose, onCreated }: { start: DateTime; tz: st
         <div>
           <label className="label" htmlFor="nm-loc">Location</label>
           <select id="nm-loc" className="input" value={locationType} onChange={(e) => setLocationType(e.target.value)}>
-            <option value="google_meet">Google Meet (link added automatically)</option>
+            <option value="online">Video call (Meet or Teams link added automatically)</option>
             <option value="in_person">In person</option>
             <option value="phone">Phone call</option>
             <option value="custom_link">Other video link (Zoom, Teams…)</option>
@@ -443,10 +473,20 @@ function NewMeeting({ start, tz, onClose, onCreated }: { start: DateTime; tz: st
             />
           )}
         </div>
+        {targets && targets.length > 1 && (
+          <div>
+            <label className="label" htmlFor="nm-cal">Calendar</label>
+            <select id="nm-cal" className="input" value={target} onChange={(e) => setTarget(e.target.value)}>
+              {targets.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label className="label" htmlFor="nm-guests">Guests</label>
           <textarea id="nm-guests" className="input" rows={2} value={attendees} onChange={(e) => setAttendees(e.target.value)} placeholder="alex@example.com, sam@example.com" />
-          <p className="help">Guests receive a Google Calendar invitation.</p>
+          <p className="help">Guests receive a calendar invitation.</p>
         </div>
         <div>
           <label className="label" htmlFor="nm-desc">Description</label>

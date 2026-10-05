@@ -1,21 +1,14 @@
 import { requireUser } from "@/lib/auth";
-import { listCalendars, type CalendarListItem } from "@/lib/google";
-import { GoogleButton } from "@/components/GoogleButton";
-import { CalendarsForm, DangerZone, ProfileForm } from "./SettingsForms";
+import { calendarsForAccounts, enabledProviders, listAccounts } from "@/lib/calendar";
+import { ConnectedCalendars, DangerZone, ProfileForm } from "./SettingsForms";
 
 export const metadata = { title: "Settings" };
 
-export default async function SettingsPage() {
+export default async function SettingsPage(props: PageProps<"/dashboard/settings">) {
   const user = await requireUser();
-  let calendars: CalendarListItem[] = [];
-  let calendarError: string | null = null;
-  if (user.googleRefreshToken) {
-    try {
-      calendars = await listCalendars(user);
-    } catch (err) {
-      calendarError = (err as Error).message;
-    }
-  }
+  const sp = await props.searchParams;
+  const accounts = await listAccounts(user.id);
+  const groups = await calendarsForAccounts(accounts);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -23,27 +16,22 @@ export default async function SettingsPage() {
       <ProfileForm
         initial={{ name: user.name, username: user.username, headline: user.headline, welcome: user.welcome, timezone: user.timezone }}
       />
-
-      <section className="card space-y-3 p-6">
-        <h2 className="font-semibold">Google account</h2>
-        <p className="text-sm text-muted">
-          Signed in as <strong>{user.email}</strong>.{" "}
-          {user.googleRefreshToken ? "Google Calendar is connected." : "Google Calendar is not connected."}
-        </p>
-        <div className="w-72">
-          <GoogleButton reconnect label={user.googleRefreshToken ? "Reconnect Google Calendar" : "Connect Google Calendar"} />
-        </div>
-        {calendarError && <p className="text-sm text-danger">Couldn&apos;t load your calendars: {calendarError}</p>}
-      </section>
-
-      {calendars.length > 0 && (
-        <CalendarsForm
-          calendars={calendars}
-          initial={{ writeCalendarId: user.writeCalendarId, conflictCalendarIds: user.conflictCalendarIds }}
-        />
-      )}
-
-      <DangerZone connected={!!user.googleRefreshToken} />
+      <ConnectedCalendars
+        providers={enabledProviders()}
+        accounts={groups.map(({ account, calendars, error }) => ({
+          id: account.id,
+          provider: account.provider,
+          email: account.email,
+          connected: !!account.refreshToken,
+          onlineMeetings: account.onlineMeetings,
+          conflictCalendarIds: account.conflictCalendarIds,
+          calendars,
+          error,
+        }))}
+        initialWrite={{ accountId: user.writeAccountId, calendarId: user.writeCalendarId }}
+        flash={typeof sp.error === "string" ? { kind: "error", text: sp.error } : sp.connected === "1" ? { kind: "ok", text: "Calendar connected." } : null}
+      />
+      <DangerZone />
     </div>
   );
 }

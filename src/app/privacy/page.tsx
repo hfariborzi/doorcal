@@ -16,7 +16,7 @@ export default function PrivacyPage() {
         {APP_NAME} is a free, open-source scheduling service. People connect their Google Calendar, publish booking
         links, and others use those links to book meetings with them. This policy explains what data {APP_NAME}{" "}
         collects, how it is used and shared, how it is protected, and how you can delete it. It applies to the
-        service at doorcal.com. Copies of the{" "}
+        service at doorcal.com. {APP_NAME} works with Google Calendar and with Microsoft (Outlook, Microsoft 365). Copies of the{" "}
         <a href={SOURCE_URL} target="_blank" rel="noreferrer">open-source code</a> run by other people are separate
         services with their own policies.
       </p>
@@ -26,12 +26,13 @@ export default function PrivacyPage() {
       </p>
 
       <h2>1. Information we collect</h2>
-      <h3>From hosts, through Google sign-in</h3>
+      <h3>From hosts, through Google or Microsoft sign-in</h3>
       <ul>
-        <li>Your name, email address, profile picture and Google account ID.</li>
+        <li>Your name, email address, profile picture (Google only) and the provider&apos;s account ID.</li>
         <li>
-          An OAuth refresh token that lets {APP_NAME} reach your Google Calendar while you are not on the site, for
-          example when someone books you. It is stored encrypted.
+          An OAuth refresh token that lets {APP_NAME} reach your calendar while you are not on the site, for example
+          when someone books you. It is stored encrypted. You can connect several Google and Microsoft accounts; each
+          has its own token.
         </li>
       </ul>
       <h3>From hosts, through Google Calendar</h3>
@@ -57,6 +58,13 @@ export default function PrivacyPage() {
           other events; they are fetched when you view your dashboard and not kept.
         </li>
       </ul>
+      <h3>From hosts, through Microsoft</h3>
+      <p>
+        For Microsoft accounts we ask for the <code>Calendars.ReadWrite</code> permission (plus basic profile and
+        sign-in permissions) and use it in the same three ways: to find your busy times, to list your calendars, and
+        to show, create, update and delete events for the meetings booked with you, with a Microsoft Teams link for
+        work and school accounts. Outlook sends the invitations.
+      </p>
       <h3>Settings hosts create</h3>
       <p>
         Your username, display name, headline, welcome message, time zone, availability schedules and event types,
@@ -122,7 +130,7 @@ export default function PrivacyPage() {
           instructions: Vercel (hosting) and Neon (database). Data may be processed in the United States and other
           countries where these providers operate.
         </li>
-        <li><strong>Google</strong>, to read and update your calendar as described above.</li>
+        <li><strong>Google and Microsoft</strong>, to read and update your calendars as described above.</li>
         <li><strong>When required by law</strong>, or to protect the rights, safety and security of users and the service.</li>
       </ul>
       <p>We don&apos;t sell or rent personal information to anyone.</p>
@@ -130,7 +138,7 @@ export default function PrivacyPage() {
       <h2>5. How information is protected</h2>
       <ul>
         <li>All traffic to {APP_NAME} is encrypted with HTTPS.</li>
-        <li>Google refresh tokens are encrypted at rest with AES-256-GCM. We don&apos;t store Google access tokens.</li>
+        <li>Refresh tokens are encrypted at rest with AES-256-GCM. Access tokens are kept only in memory, briefly.</li>
         <li>
           A host&apos;s dashboard, calendar and bookings are available only to that host after signing in. A
           host&apos;s public profile and event types are visible to anyone with the link, by design. Invitees can
@@ -146,11 +154,15 @@ export default function PrivacyPage() {
           <strong>Hosts:</strong> your data is kept while your account exists. You can delete your account at any
           time in <strong>Settings → Delete account</strong>. This immediately deletes your profile, settings, event
           types, schedules and booking history from our database and revokes {APP_NAME}&apos;s access to your
-          Google account. Calendar events already on your Google Calendar stay there, under your control.
+          Google accounts. Calendar events already on your calendars stay there, under your control.
         </li>
         <li>
-          <strong>Disconnecting Google</strong> (Settings → Disconnect) deletes the stored token and revokes access
-          without deleting your account. You can also revoke access at any time at{" "}
+          <strong>Removing a connected account</strong> (Settings → Connected calendars → Remove) deletes its stored
+          token and, for Google, revokes {APP_NAME}&apos;s access. Microsoft doesn&apos;t let apps revoke their own
+          access, so also remove {APP_NAME} at{" "}
+          <a href="https://account.microsoft.com/privacy/app-access" target="_blank" rel="noreferrer">account.microsoft.com/privacy/app-access</a>{" "}
+          (personal accounts) or <a href="https://myapps.microsoft.com" target="_blank" rel="noreferrer">myapps.microsoft.com</a>{" "}
+          (work and school accounts). Google access can also be revoked at{" "}
           <a href="https://myaccount.google.com/permissions" target="_blank" rel="noreferrer">myaccount.google.com/permissions</a>.
         </li>
         <li>

@@ -1,0 +1,1 @@
+ALTER TABLE "event_types" ALTER COLUMN "locations" SET DEFAULT '[{"type":"online"}]'::jsonb;

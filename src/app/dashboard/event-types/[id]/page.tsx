@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db, eventTypes } from "@/db";
 import { requireUser } from "@/lib/auth";
+import { calendarsForAccounts, isConnected, listAccounts, writeTargets } from "@/lib/calendar";
 import { listSchedules } from "@/lib/data";
 import { EventTypeForm } from "../EventTypeForm";
 
@@ -17,6 +18,9 @@ export default async function EditEventTypePage(props: PageProps<"/dashboard/eve
     .where(and(eq(eventTypes.id, Number(id) || 0), eq(eventTypes.userId, user.id)));
   if (!et) notFound();
   const schedules = await listSchedules(user.id);
+  const accounts = await listAccounts(user.id);
+  const targets = writeTargets(await calendarsForAccounts(accounts.filter(isConnected)));
+  const defaultTarget = targets.find((t) => t.value === `${user.writeAccountId}:${user.writeCalendarId}`)?.label ?? "your main calendar";
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -29,8 +33,11 @@ export default async function EditEventTypePage(props: PageProps<"/dashboard/eve
         key={et.id}
         username={user.username}
         schedules={schedules.map((s) => ({ id: s.id, name: s.name, isDefault: s.isDefault }))}
+        targets={targets}
+        defaultTarget={defaultTarget}
         initial={{
           id: et.id,
+          writeTarget: et.writeAccountId ? `${et.writeAccountId}:${et.writeCalendarId ?? "primary"}` : null,
           title: et.title,
           slug: et.slug,
           description: et.description,

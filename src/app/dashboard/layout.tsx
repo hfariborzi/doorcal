@@ -1,16 +1,20 @@
 import { Link2, LogOut } from "lucide-react";
 import { requireUser } from "@/lib/auth";
+import { enabledProviders, isConnected, listAccounts } from "@/lib/calendar";
 import { APP_NAME } from "@/lib/config";
 import { requestBaseUrl } from "@/lib/origin";
 import { Avatar } from "@/components/Avatar";
 import { CopyButton } from "@/components/CopyButton";
-import { GoogleButton } from "@/components/GoogleButton";
+import { ProviderButton } from "@/components/ProviderButton";
 import { Logo } from "@/components/Logo";
 import { Nav } from "./Nav";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   const user = await requireUser();
   const publicUrl = `${await requestBaseUrl()}/${user.username}`;
+  const accounts = await listAccounts(user.id);
+  const stale = accounts.filter((a) => !isConnected(a));
+  const noneConnected = accounts.every((a) => !isConnected(a));
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -55,15 +59,24 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             </button>
           </form>
         </div>
-        {!user.googleRefreshToken && (
+        {stale.length > 0 && (
           <div className="mx-5 mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-warning/25 bg-warning/5 px-5 py-4 sm:mx-8">
             <div className="max-w-xl text-sm text-muted">
-              <strong className="text-ink">Connect your Google Calendar.</strong> People can&apos;t book you until{" "}
-              {APP_NAME} can see when you&apos;re busy and add meetings. On Google&apos;s consent screen, tick all three
-              calendar permissions.
+              <strong className="text-ink">
+                {noneConnected ? "Connect your calendar." : `Reconnect ${stale.map((a) => a.email).join(", ")}.`}
+              </strong>{" "}
+              {noneConnected
+                ? `People can't book you until ${APP_NAME} can see when you're busy and add meetings.`
+                : stale.length === 1
+                  ? "Its access expired or was revoked. Booking pages are paused until it's reconnected or removed."
+                  : "Their access expired or was revoked. Booking pages are paused until they're reconnected or removed."}{" "}
+              Allow all calendar permissions on the consent screen.
             </div>
-            <div className="w-64">
-              <GoogleButton reconnect label="Connect Google Calendar" />
+            <div className="flex flex-wrap gap-2">
+              {stale.map((a) => (
+                <ProviderButton key={a.id} provider={a.provider} reconnect={a.id} label={`Reconnect ${a.email}`} compact />
+              ))}
+              {noneConnected && stale.length === 0 && enabledProviders().map((p) => <ProviderButton key={p} provider={p} connect compact />)}
             </div>
           </div>
         )}

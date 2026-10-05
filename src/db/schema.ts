@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   jsonb,
+  type AnyPgColumn,
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
@@ -14,8 +15,10 @@ export type TimeRange = { start: string; end: string }; // "09:00" - "17:00"
 export type WeeklyHours = Record<string, TimeRange[]>; // keys "1".."7" (Mon..Sun, ISO weekday)
 export type DateOverride = { date: string; ranges: TimeRange[] }; // empty ranges = unavailable all day
 
+export type Provider = "google" | "microsoft";
+
 export type LocationOption =
-  | { type: "google_meet" }
+  | { type: "online" } // video call; the link (Google Meet or Microsoft Teams) comes from the booking calendar
   | { type: "in_person"; address: string }
   | { type: "phone_host_calls" } // invitee provides their number
   | { type: "phone_invitee_calls"; phone: string }
@@ -43,16 +46,40 @@ export const users = pgTable(
     headline: text("headline").notNull().default(""),
     welcome: text("welcome").notNull().default(""),
     brandColor: text("brand_color").notNull().default("#2563eb"),
-    googleSub: text("google_sub").notNull(),
-    googleRefreshToken: text("google_refresh_token"), // encrypted
-    googleScopes: text("google_scopes"),
     writeCalendarId: text("write_calendar_id").notNull().default("primary"),
+    // Default calendar account that receives new bookings (event types can override it).
+    writeAccountId: integer("write_account_id").references((): AnyPgColumn => calendarAccounts.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("users_username_idx").on(t.username)],
+);
+
+/**
+ * A connected Google or Microsoft account. A user can connect several; signing in with any of them opens the
+ * same DoorCal account. `refreshToken` is encrypted; null means access was revoked and the user must reconnect.
+ * "primary" in calendar ids means the account's default calendar, whatever the provider calls it.
+ */
+export const calendarAccounts = pgTable(
+  "calendar_accounts",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").$type<Provider>().notNull(),
+    providerAccountId: text("provider_account_id").notNull(), // Google `sub`; Microsoft `tid:oid`
+    email: text("email").notNull(),
+    name: text("name").notNull().default(""),
+    refreshToken: text("refresh_token"), // encrypted
+    scopes: text("scopes"),
     conflictCalendarIds: jsonb("conflict_calendar_ids").$type<string[]>().notNull().default(["primary"]),
+    // Whether the provider can attach a video-call link to events (Teams needs a work or school account).
+    onlineMeetings: boolean("online_meetings").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex("users_username_idx").on(t.username),
-    uniqueIndex("users_google_sub_idx").on(t.googleSub),
+    uniqueIndex("calendar_accounts_provider_account_idx").on(t.provider, t.providerAccountId),
+    index("calendar_accounts_user_idx").on(t.userId),
   ],
 );
 
@@ -83,9 +110,12 @@ export const eventTypes = pgTable(
     title: text("title").notNull(),
     description: text("description").notNull().default(""),
     durations: jsonb("durations").$type<number[]>().notNull().default([30]),
-    locations: jsonb("locations").$type<LocationOption[]>().notNull().default([{ type: "google_meet" }]),
+    locations: jsonb("locations").$type<LocationOption[]>().notNull().default([{ type: "online" }]),
     color: text("color").notNull().default("#2563eb"),
     scheduleId: integer("schedule_id").references(() => schedules.id, { onDelete: "set null" }),
+    // Where bookings of this type go; null means the user's default account and calendar.
+    writeAccountId: integer("write_account_id").references(() => calendarAccounts.id, { onDelete: "set null" }),
+    writeCalendarId: text("write_calendar_id"),
     bufferBefore: integer("buffer_before").notNull().default(0),
     bufferAfter: integer("buffer_after").notNull().default(0),
     minNotice: integer("min_notice").notNull().default(240), // minutes
@@ -121,9 +151,10 @@ export const bookings = pgTable(
     notes: text("notes").notNull().default(""),
     answers: jsonb("answers").$type<Record<string, string>>().notNull().default({}),
     location: jsonb("location").$type<BookingLocation>().notNull(),
-    meetLink: text("meet_link"),
+    meetLink: text("meet_link"), // Google Meet or Microsoft Teams join link
+    accountId: integer("account_id").references(() => calendarAccounts.id, { onDelete: "set null" }),
     calendarId: text("calendar_id"),
-    googleEventId: text("google_event_id"),
+    eventId: text("event_id"), // the event's id at the provider
     status: text("status").$type<"confirmed" | "cancelled">().notNull().default("confirmed"),
     cancelReason: text("cancel_reason"),
     cancelledBy: text("cancelled_by").$type<"host" | "invitee">(),
@@ -147,6 +178,7 @@ export const rateLimits = pgTable("rate_limits", {
 });
 
 export type User = typeof users.$inferSelect;
+export type CalendarAccount = typeof calendarAccounts.$inferSelect;
 export type Schedule = typeof schedules.$inferSelect;
 export type EventType = typeof eventTypes.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;

@@ -14,15 +14,15 @@ export default function TermsPage() {
     <LegalPage title="Terms of service" updated={UPDATED}>
       <p>
         These terms govern your use of {APP_NAME} at doorcal.com, a free scheduling service built on Google
-        Calendar. By signing in, or by booking a meeting through a {APP_NAME} link, you agree to these terms and to
+        Calendar and Microsoft calendars. By signing in, or by booking a meeting through a {APP_NAME} link, you agree to these terms and to
         the <Link href="/privacy">privacy policy</Link>. If you don&apos;t agree, please don&apos;t use the service.
       </p>
 
       <h2>1. The service</h2>
       <p>
-        {APP_NAME} lets <strong>hosts</strong> connect their Google Calendar, set their availability and share
-        booking links, and lets <strong>invitees</strong> book, reschedule and cancel meetings through those links.
-        Calendar invitations and updates are sent by Google Calendar. The service is free; there are no paid plans.
+        {APP_NAME} lets <strong>hosts</strong> connect their Google or Microsoft calendars, set their availability
+        and share booking links, and lets <strong>invitees</strong> book, reschedule and cancel meetings through
+        those links. Calendar invitations and updates are sent by Google Calendar or Outlook. The service is free; there are no paid plans.
       </p>
 
       <h2>2. Who can use it</h2>
@@ -31,16 +31,16 @@ export default function TermsPage() {
         {APP_NAME} for an organization, you confirm you are allowed to accept these terms for it.
       </p>
 
-      <h2>3. Your account and Google Calendar</h2>
+      <h2>3. Your account and your calendars</h2>
       <ul>
-        <li>Hosts sign in with a Google account and are responsible for activity under their account.</li>
+        <li>Hosts sign in with a Google or Microsoft account and are responsible for activity under their account.</li>
         <li>
-          By connecting Google Calendar you allow {APP_NAME} to check your free/busy times, list your calendars, and
+          By connecting a calendar you allow {APP_NAME} to check your free/busy times, list your calendars, and
           view, create, update and delete events as described in the privacy policy. You can disconnect at any time.
         </li>
-        <li>Your use of Google services is also subject to Google&apos;s own terms.</li>
+        <li>Your use of Google and Microsoft services is also subject to their own terms.</li>
         <li>
-          Your Google Calendar remains the source of truth. Check important meetings there; {APP_NAME} is a tool to
+          Your calendar remains the source of truth. Check important meetings there; {APP_NAME} is a tool to
           help you schedule them, not a record you should rely on alone.
         </li>
       </ul>

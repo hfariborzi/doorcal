@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
-  description: "Open-source scheduling that syncs with your Google Calendar.",
+  description: "Open-source scheduling that syncs with your Google or Microsoft calendar.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

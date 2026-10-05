@@ -1,19 +1,20 @@
 # DoorCal
 
-Open-source scheduling that runs on your Google Calendar. People sign in with Google once, set when they're
+Open-source scheduling that runs on your Google or Microsoft calendar. People sign in once, set when they're
 free, and share a link. Invitees pick a time, and the meeting goes straight onto the host's calendar, with a
-Google Meet link if it's an online meeting.
+Google Meet or Microsoft Teams link if it's an online meeting.
 
 Think Calendly, but self-hostable and MIT-licensed.
 
 ## Features
 
-- **Google sign-in with calendar access.** One consent screen. Any number of users, each with their own page at `/{username}`.
-- **Live conflict checking.** Uses Google free/busy across whichever calendars you choose, so you're never double-booked.
-- **Your calendar in the dashboard.** Week and day views of your Google Calendar. Click an empty slot to create a meeting.
+- **Sign in with Google or Microsoft.** One consent screen. Any number of users, each with their own page at `/{username}`.
+- **Several accounts per user.** Connect any mix of Google and Microsoft accounts (work and personal); sign in with any of them. Every ticked calendar blocks your availability, and you choose which calendar each kind of booking goes to.
+- **Live conflict checking** across all connected calendars, so you're never double-booked.
+- **Your calendars in the dashboard.** Week and day views across your accounts. Click an empty slot to create a meeting.
 - **Event types**, each with its own link:
   - one or more durations the invitee can choose from (15 / 30 / 60 min…)
-  - locations: **Google Meet** (link created automatically), **in person**, **phone** (you call them, or they call you), or **any custom link** (Zoom, Teams…). Offer several and let the invitee choose.
+  - locations: **video call** (a Google Meet or Microsoft Teams link, created automatically), **in person**, **phone** (you call them, or they call you), or **any custom link** (Zoom…). Offer several and let the invitee choose.
   - **one-on-one** or **group** events with a seat limit (office hours, workshops)
   - buffers before and after, minimum notice, booking window, start-time interval, daily cap
   - custom invitee questions (text, long text, phone, dropdown)
@@ -22,17 +23,17 @@ Think Calendly, but self-hostable and MIT-licensed.
 - **Self-serve reschedule and cancel** for invitees. Google Calendar updates and everyone gets notified.
 - **Host tools.** Upcoming, past and cancelled bookings; cancel with a reason; pick which calendar bookings are written to.
 - Time zone detection and a picker for invitees, a 12h/24h toggle, and layouts that work on mobile.
-- Invitations, updates and cancellations are sent by Google Calendar itself, so there's no email service to set up.
+- Invitations, updates and cancellations are sent by Google Calendar or Outlook itself, so there's no email service to set up.
 
 ## Stack
 
-Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Postgres (Neon) via Drizzle ORM · Google Calendar API · Luxon.
+Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Postgres via Drizzle ORM · Google Calendar API · Microsoft Graph · Luxon.
 It runs entirely on serverless functions (Vercel), with no server to maintain.
 
 ## Self-hosting
 
-You need a Google Cloud project for OAuth, a Postgres database and a place to run Next.js. The steps below use
-Vercel and Neon; both have free tiers.
+You need a Google Cloud project for OAuth (and optionally a Microsoft app registration), a Postgres database and
+a place to run Next.js. The steps below use Vercel and Neon; both have free tiers.
 
 ### 1. Google Cloud
 
@@ -64,6 +65,24 @@ Vercel and Neon; both have free tiers.
 > says "access blocked", ask your Workspace admin to trust the OAuth client ID under
 > *Admin console → Security → API controls → App access control*.
 
+### 1b. Microsoft (optional)
+
+Skip this to offer Google sign-in only; the Microsoft button appears once both variables below are set.
+
+1. In the [Microsoft Entra admin center](https://entra.microsoft.com) go to **App registrations → New registration**.
+   - Supported account types: **Accounts in any organizational directory and personal Microsoft accounts**.
+   - Redirect URI (Web): `https://your-domain/api/auth/microsoft/callback` (add `http://localhost:3000/api/auth/microsoft/callback` for development).
+2. **Certificates & secrets → New client secret.** Copy the value; it expires (24 months at most), so note the date.
+3. **API permissions → Add → Microsoft Graph → Delegated:** `openid`, `email`, `profile`, `offline_access`, `User.Read`, `Calendars.ReadWrite`.
+4. Copy the **Application (client) ID** into `MICROSOFT_CLIENT_ID` and the secret into `MICROSOFT_CLIENT_SECRET`.
+5. Optional: complete **publisher verification** (Branding & properties) so users don't see an "unverified" label.
+6. Only if you restrict sign-up with `ALLOWED_EMAILS` / `ALLOWED_DOMAINS`: under **Token configuration → Add
+   optional claim → ID**, add `xms_edov`. With an allow-list set, DoorCal only accepts Microsoft accounts whose
+   email domain Microsoft has verified, because a tenant can otherwise claim any address.
+
+> Organizations often require an admin to approve third-party apps. If sign-in says approval is needed, the
+> user's IT department has to allow the app once for the whole organization.
+
 ### 2. Deploy to Vercel
 
 1. Fork or push this repo to GitHub, then **Import** it at <https://vercel.com/new>.
@@ -75,6 +94,7 @@ Vercel and Neon; both have free tiers.
    | `APP_URL` | `https://your-domain` (no trailing slash) |
    | `GOOGLE_CLIENT_ID` | from step 1 |
    | `GOOGLE_CLIENT_SECRET` | from step 1 |
+   | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | optional, from step 1b |
    | `AUTH_SECRET` | output of `openssl rand -base64 32` |
    | `NEXT_PUBLIC_APP_NAME` | optional display name |
    | `CONTACT_EMAIL` | contact address shown in the footer, privacy policy and terms (recommended for public instances) |
@@ -90,7 +110,7 @@ Vercel and Neon; both have free tiers.
 2. Cloudflare → **DNS** → add a record:
    - Type `CNAME`, Name `book`, Target `cname.vercel-dns.com`
    - Proxy status: **DNS only** (grey cloud). Vercel issues the TLS certificate itself.
-3. Set `APP_URL=https://book.example.com` and make sure the same URL is in the Google OAuth redirect URIs.
+3. Set `APP_URL=https://book.example.com` and make sure the same URL is in the Google (and Microsoft) redirect URIs.
 
 ## Local development
 
@@ -118,11 +138,15 @@ Other scripts: `npm test` (slot engine tests), `npm run typecheck`, `npm run lin
 
 - `src/lib/availability.ts` is the pure slot engine. It takes weekly hours, overrides, busy times, buffers,
   notice, limits and seats, and returns bookable start times. Unit tests live next to it.
-- `src/lib/google.ts` wraps the Calendar API: free/busy, listing events, and creating, patching and deleting events.
-  It also requests Meet links via `conferenceData`.
+- `src/lib/calendar/` holds one module per provider (Google Calendar API, Microsoft Graph) behind a shared
+  interface: busy times, calendar list, events, and creating, moving and deleting events with Meet or Teams links.
+  `index.ts` resolves which of a user's connected accounts to use for what.
+- Sign-in and "connect another account" share `src/lib/oauth.ts`: PKCE, a nonce, and a signed state cookie that
+  binds a connect flow to the user who started it. Accounts are matched by the provider's stable account id,
+  never by email address, so nobody can attach someone else's account to theirs.
 - `src/lib/bookings.ts` handles creating, cancelling and rescheduling bookings. Each action re-checks the slot on the
   server and keeps the Google event in sync. Group events share one Google event and add or remove attendees.
-- Google refresh tokens are encrypted at rest with AES-256-GCM, using a key derived from `AUTH_SECRET`.
+- Refresh tokens are encrypted at rest with AES-256-GCM, using a key derived from `AUTH_SECRET`.
 - Sessions are signed JWT cookies. `src/proxy.ts` guards `/dashboard`.
 - A Postgres exclusion constraint stops two people booking overlapping one-on-one slots at the same moment.
 - Public endpoints (slots, booking, cancel, reschedule) are rate-limited per IP with a small Postgres table, so
@@ -134,7 +158,7 @@ Contributions are welcome. Some ideas:
 
 - Email reminders and follow-ups
 - Round-robin and collective (multi-host) events
-- Microsoft 365 / Outlook calendars
+- Apple iCloud and other CalDAV calendars
 - Embeddable booking widget
 - Payments for paid sessions
 - Meeting polls

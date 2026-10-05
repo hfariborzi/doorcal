@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { APP_NAME } from "@/lib/config";
-import { GoogleButton } from "@/components/GoogleButton";
+import { SignInButtons } from "@/components/SignInButtons";
 import { LogoMark } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
 
@@ -43,7 +43,7 @@ export default async function Home() {
         <div className="my-auto w-full max-w-2xl py-16 text-center">
           <h1 className="text-5xl font-semibold tracking-[-0.03em] text-ink sm:text-7xl">Simple calendar booking.</h1>
           <p className="mx-auto mt-6 max-w-lg text-xl leading-relaxed text-muted">
-            Connect your Google Calendar once and share a clean link for people to book time with you.
+            Connect your Google or Microsoft calendar once and share a clean link for people to book time with you.
           </p>
           <div className="mx-auto mt-10 max-w-md">
             {user ? (
@@ -51,7 +51,7 @@ export default async function Home() {
                 Open your dashboard
               </Link>
             ) : (
-              <GoogleButton />
+              <SignInButtons />
             )}
           </div>
           <p className="mt-5 text-base text-faint">Free and open source.</p>

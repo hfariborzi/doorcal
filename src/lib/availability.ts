@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import type { EventType, Schedule, TimeRange, WeeklyHours } from "@/db/schema";
-import type { Interval } from "./google";
+import type { Interval } from "./calendar/types";
 
 export const DEFAULT_WEEKLY: WeeklyHours = {
   "1": [{ start: "09:00", end: "17:00" }],
