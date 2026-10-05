@@ -2,34 +2,17 @@ import Link from "next/link";
 import { APP_NAME } from "@/lib/config";
 
 /**
- * The DoorCal mark (design/logo/doorcal-logo.svg): a door with calendar rings on top and a knob.
- * The outline uses a non-scaling stroke so it stays crisp at any size.
+ * The DoorCal mark, drawn exactly as design/logo/doorcal-logo.svg: a door with three calendar rings on top
+ * and a knob. Only the color changes (black in the file, `currentColor` here) so it shows on the dark theme.
  */
 export function LogoMark({ size = 24, className = "" }: { size?: number; className?: string }) {
   return (
-    <svg
-      viewBox="0 0 5400 6573"
-      width={(size * 5400) / 6573}
-      height={size}
-      overflow="visible"
-      aria-hidden
-      className={className}
-    >
-      <rect
-        x="25"
-        y="375"
-        width="5350"
-        height="6173"
-        rx="475"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={Math.max(1.5, size / 14)}
-        vectorEffect="non-scaling-stroke"
-      />
-      {[962, 2330, 3698].map((x) => (
-        <rect key={x} x={x} y="0" width="700" height="700" rx="200" fill="currentColor" />
-      ))}
-      <rect x="4426" y="2836" width="700" height="700" rx="200" fill="currentColor" />
+    <svg viewBox="0 0 5400 6573" width={(size * 5400) / 6573} height={size} fill="none" aria-hidden className={className}>
+      <rect x="150" y="500" width="5100" height="5923" rx="350" stroke="currentColor" strokeWidth="300" />
+      <rect x="3698" width="1000" height="1000" rx="200" fill="currentColor" />
+      <rect x="3698" y="2852" width="1000" height="1000" rx="200" fill="currentColor" />
+      <rect x="677" width="1000" height="1000" rx="200" fill="currentColor" />
+      <rect x="2200" width="1000" height="1000" rx="200" fill="currentColor" />
     </svg>
   );
 }
