@@ -9,7 +9,7 @@ export function LegalPage({ title, updated, children }: { title: string; updated
         <Logo />
         <h1 className="mt-14 text-4xl font-semibold tracking-tight text-ink">{title}</h1>
         <p className="mt-3 text-sm text-faint">Last updated: {updated}</p>
-        <div className="mt-10 space-y-4 text-[15px] leading-7 [&_a]:text-accent-soft [&_a]:underline [&_a]:underline-offset-4 [&_code]:rounded [&_code]:bg-white/[0.06] [&_code]:px-1 [&_code]:text-[13px] [&_h2]:pt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:text-ink [&_h3]:pt-2 [&_h3]:font-semibold [&_h3]:text-ink [&_li]:mt-1.5 [&_strong]:text-ink [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6 [&_ul]:marker:text-faint">
+        <div className="mt-10 space-y-4 text-base leading-7 [&_a]:text-accent-soft [&_a]:underline [&_a]:underline-offset-4 [&_code]:rounded [&_code]:bg-white/[0.06] [&_code]:px-1 [&_code]:text-sm [&_h2]:pt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:text-ink [&_h3]:pt-2 [&_h3]:font-semibold [&_h3]:text-ink [&_li]:mt-1.5 [&_strong]:text-ink [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6 [&_ul]:marker:text-faint">
           {children}
         </div>
       </main>

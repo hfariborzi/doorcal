@@ -5,7 +5,7 @@ import { LogoMark } from "@/components/Logo";
 /** Small credit line under public booking pages. */
 export function PoweredBy({ children }: { children?: React.ReactNode }) {
   return (
-    <p className="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-faint">
+    <p className="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-faint">
       {children}
       <Link href="/" className="inline-flex items-center gap-1.5 hover:text-ink">
         <LogoMark size={15} />

@@ -373,7 +373,7 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
             )}
             {submitError && <p className="rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{submitError}</p>}
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              <button type="submit" disabled={submitting} className="btn-primary flex-1 py-3 text-[15px] sm:flex-none sm:px-10">
+              <button type="submit" disabled={submitting} className="btn-primary flex-1 py-3 text-base sm:flex-none sm:px-10">
                 {submitting ? <Loader2 size={18} className="animate-spin" /> : null}
                 {submitting ? "Scheduling…" : reschedule ? "Reschedule event" : "Schedule event"}
               </button>
@@ -432,7 +432,7 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
               <button type="button" onClick={() => { setMonth(month.plus({ months: 1 })); setSelectedDate(null); }} className="btn-ghost px-2.5" aria-label="Next month"><ChevronRight size={18} /></button>
             </div>
           </div>
-          <div className="mt-5 grid grid-cols-7 gap-1 text-center text-[11px] font-semibold tracking-[0.08em] text-faint uppercase">
+          <div className="mt-5 grid grid-cols-7 gap-1 text-center text-xs font-semibold tracking-[0.08em] text-faint uppercase">
             {WEEKDAYS.map((d) => (
               <div key={d} className="py-2">{d}</div>
             ))}
@@ -490,7 +490,7 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
                     <span className="flex items-center gap-3">
                       <span className="font-semibold text-ink tnum">{fmtTime(s.start)}</span>
                       {s.seatsLeft !== undefined && (
-                        <span className="rounded-md bg-accent/20 px-1.5 py-0.5 text-[11px] font-medium text-accent-soft">
+                        <span className="rounded-md bg-accent/20 px-1.5 py-0.5 text-xs font-medium text-accent-soft">
                           {s.seatsLeft} seat{s.seatsLeft === 1 ? "" : "s"} left
                         </span>
                       )}

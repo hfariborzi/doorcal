@@ -45,12 +45,12 @@ export default async function EventTypesPage() {
                       {t.title}
                     </Link>
                     {t.hidden && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[11px] font-medium text-muted"><Lock size={11} /> Secret</span>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.06] px-1.5 py-0.5 text-xs font-medium text-muted"><Lock size={11} /> Secret</span>
                     )}
                     {t.seats > 1 && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-accent/20 px-1.5 py-0.5 text-[11px] font-medium text-accent-soft"><Users size={11} /> Group · {t.seats}</span>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-accent/20 px-1.5 py-0.5 text-xs font-medium text-accent-soft"><Users size={11} /> Group · {t.seats}</span>
                     )}
-                    {!t.active && <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[11px] font-medium text-faint">Off</span>}
+                    {!t.active && <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 text-xs font-medium text-faint">Off</span>}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
                     <span className="inline-flex items-center gap-1.5 tnum"><Clock size={14} strokeWidth={1.75} />{t.durations.map((d) => `${d} min`).join(" / ")}</span>

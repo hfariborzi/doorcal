@@ -152,7 +152,7 @@ export function CalendarView() {
           const isToday = d.hasSame(now, "day");
           return (
             <div key={d.toISODate()} className="min-w-0 flex-1 border-l border-line px-1 py-2.5 text-center">
-              <div className={`text-[11px] font-semibold tracking-[0.08em] uppercase ${isToday ? "text-accent-soft" : "text-faint"}`}>{d.toFormat("ccc")}</div>
+              <div className={`text-xs font-semibold tracking-[0.08em] uppercase ${isToday ? "text-accent-soft" : "text-faint"}`}>{d.toFormat("ccc")}</div>
               <div className={`mx-auto mt-1 grid h-8 w-8 place-items-center rounded-full text-lg tnum ${isToday ? "bg-accent font-semibold text-white shadow-[0_0_14px_rgb(124_58_237/0.5)]" : "text-ink"}`}>
                 {d.day}
               </div>
@@ -178,7 +178,7 @@ export function CalendarView() {
         <div className="relative flex" style={{ height: 24 * HOUR_PX }}>
           <div className="w-14 shrink-0">
             {Array.from({ length: 24 }, (_, h) => (
-              <div key={h} className="relative text-right text-[11px] text-faint tnum" style={{ height: HOUR_PX }}>
+              <div key={h} className="relative text-right text-xs text-faint tnum" style={{ height: HOUR_PX }}>
                 {h > 0 && <span className="absolute -top-2 right-2">{DateTime.fromObject({ hour: h }).toFormat("h a")}</span>}
               </div>
             ))}

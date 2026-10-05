@@ -21,7 +21,7 @@ export function Logo({ href = "/", size = 28 }: { href?: string; size?: number }
   return (
     <Link href={href} className="inline-flex items-center gap-2.5 font-semibold tracking-tight text-ink">
       <LogoMark size={size} className="text-accent-soft" />
-      <span className="text-[17px]">{APP_NAME}</span>
+      <span className="text-lg">{APP_NAME}</span>
     </Link>
   );
 }

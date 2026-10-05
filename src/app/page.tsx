@@ -40,22 +40,22 @@ export default async function Home() {
           {APP_NAME}
         </div>
 
-        <div className="my-auto w-full max-w-xl py-16 text-center">
-          <h1 className="text-5xl font-semibold tracking-[-0.03em] text-ink sm:text-6xl">Simple calendar booking.</h1>
-          <p className="mx-auto mt-5 max-w-md text-lg leading-relaxed text-muted">
+        <div className="my-auto w-full max-w-2xl py-16 text-center">
+          <h1 className="text-5xl font-semibold tracking-[-0.03em] text-ink sm:text-7xl">Simple calendar booking.</h1>
+          <p className="mx-auto mt-6 max-w-lg text-xl leading-relaxed text-muted">
             Connect your Google Calendar once and share a clean link for people to book time with you.
           </p>
-          <div className="mx-auto mt-10 max-w-sm">
+          <div className="mx-auto mt-10 max-w-md">
             {user ? (
-              <Link href="/dashboard" className="btn-primary w-full rounded-full py-3 text-[15px]">
+              <Link href="/dashboard" className="btn-primary w-full rounded-full py-3 text-base">
                 Open your dashboard
               </Link>
             ) : (
               <GoogleButton />
             )}
           </div>
-          <p className="mt-4 text-sm text-faint">Free and open source.</p>
-          <p className="mx-auto mt-12 max-w-md border-t border-line pt-6 text-xs leading-relaxed text-faint">
+          <p className="mt-5 text-base text-faint">Free and open source.</p>
+          <p className="mx-auto mt-12 max-w-lg border-t border-line pt-6 text-sm leading-relaxed text-faint">
             {APP_NAME} only uses your calendar to see your free/busy times, list your calendars, and view and edit
             events for the meetings booked with you. See the{" "}
             <Link href="/privacy" className="link">privacy policy</Link>.
