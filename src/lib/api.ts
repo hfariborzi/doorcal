@@ -1,0 +1,14 @@
+import { NextResponse } from "next/server";
+import { ZodError } from "zod";
+import { BookingError } from "./bookings";
+import { CalendarNotConnectedError } from "./google";
+
+export function apiError(err: unknown) {
+  if (err instanceof BookingError) return NextResponse.json({ error: err.message }, { status: err.status });
+  if (err instanceof CalendarNotConnectedError)
+    return NextResponse.json({ error: "This calendar is temporarily unavailable for booking." }, { status: 503 });
+  if (err instanceof ZodError)
+    return NextResponse.json({ error: err.issues[0]?.message ?? "Invalid request" }, { status: 400 });
+  console.error(err);
+  return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+}
