@@ -1,0 +1,15 @@
+# Local Postgres for development: `docker compose up -d`, then use the DATABASE_URL from .env.example.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: doorcal
+      POSTGRES_PASSWORD: doorcal
+      POSTGRES_DB: doorcal
+    ports:
+      - "5432:5432"
+    volumes:
+      - doorcal-db:/var/lib/postgresql/data
+
+volumes:
+  doorcal-db:

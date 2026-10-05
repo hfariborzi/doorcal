@@ -32,10 +32,20 @@ export function authUrl(state: string, forceConsent: boolean, origin?: string) {
   });
 }
 
+// Reuse one OAuth client per user and token while the server instance stays warm, so its access token is
+// cached instead of being refreshed before every API call.
+const clients = new Map<string, OAuth2Client>();
+
 function calendarFor(user: User): calendar_v3.Calendar {
   if (!user.googleRefreshToken) throw new CalendarNotConnectedError();
-  const client = oauthClient();
-  client.setCredentials({ refresh_token: decrypt(user.googleRefreshToken) });
+  const key = `${user.id}:${user.googleRefreshToken}`;
+  let client = clients.get(key);
+  if (!client) {
+    if (clients.size > 500) clients.clear();
+    client = oauthClient();
+    client.setCredentials({ refresh_token: decrypt(user.googleRefreshToken) });
+    clients.set(key, client);
+  }
   return calendarApi({ version: "v3", auth: client });
 }
 
@@ -76,7 +86,14 @@ export async function getBusy(user: User, timeMin: Date, timeMax: Date): Promise
   return out;
 }
 
-export type CalendarListItem = { id: string; summary: string; primary: boolean; color: string; canWrite: boolean };
+export type CalendarListItem = {
+  id: string;
+  summary: string;
+  primary: boolean;
+  color: string;
+  canWrite: boolean;
+  canReadEvents: boolean; // false for calendars shared as "see only free/busy"
+};
 
 export async function listCalendars(user: User): Promise<CalendarListItem[]> {
   const cal = calendarFor(user);
@@ -89,6 +106,7 @@ export async function listCalendars(user: User): Promise<CalendarListItem[]> {
       primary: !!c.primary,
       color: c.backgroundColor || "#2563eb",
       canWrite: c.accessRole === "owner" || c.accessRole === "writer",
+      canReadEvents: c.accessRole !== "freeBusyReader",
     }))
     .sort((a, b) => Number(b.primary) - Number(a.primary) || a.summary.localeCompare(b.summary));
 }
@@ -114,7 +132,7 @@ export async function listEvents(user: User, timeMin: Date, timeMax: Date): Prom
   const calendars = await listCalendars(user);
   const wanted = new Set(user.conflictCalendarIds.length ? user.conflictCalendarIds : ["primary"]);
   wanted.add(user.writeCalendarId);
-  const selected = calendars.filter((c) => wanted.has(c.id));
+  const selected = calendars.filter((c) => wanted.has(c.id) && c.canReadEvents);
 
   const results = await Promise.all(
     selected.map(async (c) => {
@@ -127,7 +145,12 @@ export async function listEvents(user: User, timeMin: Date, timeMax: Date): Prom
           orderBy: "startTime",
           maxResults: 2500,
         }),
-      );
+      ).catch((err) => {
+        // One unreadable calendar shouldn't blank the whole view; a revoked grant still propagates.
+        if (err instanceof CalendarNotConnectedError) throw err;
+        console.warn(`[calendar] could not list events for ${c.id}`, err);
+        return { data: { items: [] as calendar_v3.Schema$Event[] } };
+      });
       return (res.data.items ?? [])
         .filter((e) => e.status !== "cancelled")
         .map<CalendarEvent>((e) => ({
@@ -195,6 +218,18 @@ export async function getEvent(user: User, calendarId: string, eventId: string) 
   const cal = calendarFor(user);
   const res = await guard(user, () => cal.events.get({ calendarId, eventId }));
   return res.data;
+}
+
+/** False when the event was deleted or cancelled in Google Calendar (e.g. by the host, outside this app). */
+export async function eventExists(user: User, calendarId: string, eventId: string) {
+  try {
+    const ev = await getEvent(user, calendarId, eventId);
+    return ev.status !== "cancelled";
+  } catch (err) {
+    const code = (err as { code?: number })?.code;
+    if (code === 404 || code === 410) return false;
+    throw err;
+  }
 }
 
 export async function patchEvent(

@@ -128,6 +128,9 @@ export const bookings = pgTable(
     cancelReason: text("cancel_reason"),
     cancelledBy: text("cancelled_by").$type<"host" | "invitee">(),
     rescheduledFrom: text("rescheduled_from"),
+    // One-on-one bookings can't overlap; the bookings_no_overlap exclusion constraint (migration 0001)
+    // enforces it in the database. Group bookings share a time slot, so they are not exclusive.
+    exclusive: boolean("exclusive").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -135,6 +138,13 @@ export const bookings = pgTable(
     index("bookings_user_start_idx").on(t.userId, t.start),
   ],
 );
+
+// Fixed-window request counters for the public endpoints (see src/lib/rate-limit.ts).
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  count: integer("count").notNull(),
+});
 
 export type User = typeof users.$inferSelect;
 export type Schedule = typeof schedules.$inferSelect;

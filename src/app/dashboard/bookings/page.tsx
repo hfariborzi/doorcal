@@ -3,6 +3,7 @@ import { and, asc, desc, eq, gte, lt } from "drizzle-orm";
 import { DateTime } from "luxon";
 import { db, bookings } from "@/db";
 import { requireUser } from "@/lib/auth";
+import { syncDeletedBookings } from "@/lib/bookings";
 import { bookingLocationText, locationIcon } from "@/lib/locations";
 import { HostCancel } from "./HostCancel";
 
@@ -27,12 +28,18 @@ export default async function BookingsPage(props: PageProps<"/dashboard/bookings
         ? and(eq(bookings.userId, user.id), eq(bookings.status, "confirmed"), lt(bookings.end, now))
         : and(eq(bookings.userId, user.id), eq(bookings.status, "confirmed"), gte(bookings.end, now));
 
-  const rows = await db
+  let rows = await db
     .select()
     .from(bookings)
     .where(where)
     .orderBy(tab === "upcoming" ? asc(bookings.start) : desc(bookings.start))
     .limit(200);
+
+  if (tab === "upcoming" && user.googleRefreshToken) {
+    // Meetings the host deleted straight from Google Calendar: show them as cancelled, not upcoming.
+    const gone = await syncDeletedBookings(user, rows.slice(0, 50));
+    if (gone.size) rows = rows.filter((b) => !gone.has(b.uid));
+  }
 
   const tz = user.timezone;
   const dayOf = (d: Date) => DateTime.fromJSDate(d).setZone(tz).toFormat("cccc, LLLL d, yyyy");

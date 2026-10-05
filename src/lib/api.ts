@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { BookingError } from "./bookings";
 import { CalendarNotConnectedError } from "./google";
+import { RateLimitError } from "./rate-limit";
 
 export function apiError(err: unknown) {
+  if (err instanceof RateLimitError) return NextResponse.json({ error: err.message }, { status: 429 });
   if (err instanceof BookingError) return NextResponse.json({ error: err.message }, { status: err.status });
   if (err instanceof CalendarNotConnectedError)
     return NextResponse.json({ error: "This calendar is temporarily unavailable for booking." }, { status: 503 });

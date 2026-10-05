@@ -2,11 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getEventType, getSlots, getUserByUsername } from "@/lib/data";
 import { getBookingByUid } from "@/lib/bookings";
 import { apiError } from "@/lib/api";
+import { rateLimit } from "@/lib/rate-limit";
 
 const MAX_RANGE_MS = 45 * 86_400_000;
 
 export async function GET(req: NextRequest) {
   try {
+    await rateLimit(req, "slots");
     const q = req.nextUrl.searchParams;
     const user = await getUserByUsername(q.get("user") ?? "");
     const et = user ? await getEventType(user.id, q.get("type") ?? "") : null;

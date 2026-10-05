@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getEventType, getUserByUsername } from "@/lib/data";
 import { createBooking } from "@/lib/bookings";
 import { apiError } from "@/lib/api";
+import { rateLimit } from "@/lib/rate-limit";
 
 const schema = z.object({
   user: z.string(),
@@ -22,6 +23,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    await rateLimit(req, "book");
     const body = schema.parse(await req.json());
     if (body.website) return NextResponse.json({ error: "Rejected" }, { status: 400 });
     const user = await getUserByUsername(body.user);

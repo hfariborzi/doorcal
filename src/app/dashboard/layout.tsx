@@ -51,7 +51,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-amber-200 bg-amber-50 px-6 py-4">
             <div className="text-sm text-amber-900">
               <strong>Connect your Google Calendar.</strong> People can&apos;t book you until {APP_NAME} can see when
-              you&apos;re busy and add meetings. Make sure you tick the calendar permission on Google&apos;s consent screen.
+              you&apos;re busy and add meetings. On Google&apos;s consent screen, tick all three calendar permissions.
             </div>
             <div className="w-64">
               <GoogleButton reconnect label="Connect Google Calendar" />

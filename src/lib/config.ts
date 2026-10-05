@@ -12,9 +12,22 @@ export const RESERVED_USERNAMES = new Set([
   "robots.txt", "sitemap.xml", "auth", "calendar", "event-types", "availability", "www",
 ]);
 
-export const GOOGLE_SCOPES = [
-  "openid",
-  "email",
-  "profile",
-  "https://www.googleapis.com/auth/calendar",
+// The narrowest Calendar scopes that cover what the app does (Google verification asks for minimal scopes).
+export const CALENDAR_SCOPES = [
+  "https://www.googleapis.com/auth/calendar.events", // list, create, update and delete events
+  "https://www.googleapis.com/auth/calendar.calendarlist.readonly", // list calendars for the settings page
+  "https://www.googleapis.com/auth/calendar.freebusy", // check busy times for availability
 ];
+
+export const GOOGLE_SCOPES = ["openid", "email", "profile", ...CALENDAR_SCOPES];
+
+/** Google's consent screen lets people untick individual scopes; calendar features need all of them. */
+export function hasCalendarScopes(granted: string) {
+  const set = new Set(granted.split(/\s+/));
+  return CALENDAR_SCOPES.every((s) => set.has(s));
+}
+
+/** Shown in the footer, privacy policy and terms. Set CONTACT_EMAIL for a public instance. */
+export const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "";
+
+export const SOURCE_URL = "https://github.com/hfariborzi/doorcal";

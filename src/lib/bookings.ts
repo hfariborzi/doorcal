@@ -1,9 +1,9 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, gt, lt, ne } from "drizzle-orm";
 import { DateTime } from "luxon";
 import { db, bookings, eventTypes, users, type Booking, type BookingLocation, type EventType, type User } from "@/db";
 import { randomId } from "./crypto";
 import { getSlots } from "./data";
-import { createEvent, deleteEvent, getEvent, patchEvent } from "./google";
+import { createEvent, deleteEvent, eventExists, getEvent, patchEvent } from "./google";
 import { bookingLocationText } from "./locations";
 import { requestBaseUrl } from "./origin";
 
@@ -39,6 +39,94 @@ async function assertSlotAvailable(user: User, et: EventType, start: Date, durat
     throw new BookingError("That time is no longer available. Please pick another slot.", 409);
   }
   return schedule;
+}
+
+const EXCLUSION_VIOLATION = "23P01";
+const STALE_CLAIM_MS = 5 * 60_000;
+
+function isOverlapError(err: unknown) {
+  // Drivers and Drizzle may wrap the Postgres error; look a few levels down.
+  let e = err as { code?: string; cause?: unknown } | undefined;
+  for (let i = 0; e && i < 4; i++, e = e.cause as typeof e) {
+    if (e.code === EXCLUSION_VIOLATION) return true;
+  }
+  return false;
+}
+
+async function markDeletedInGoogle(uid: string) {
+  await db
+    .update(bookings)
+    .set({ status: "cancelled", cancelledBy: "host", cancelReason: "Deleted from Google Calendar" })
+    .where(and(eq(bookings.uid, uid), eq(bookings.status, "confirmed")));
+}
+
+/**
+ * Release one-on-one bookings overlapping [start, end) that no longer hold the time: their Google event was
+ * deleted outside the app, or the claim never finished (the request died before creating the event).
+ */
+async function releaseStaleOverlaps(host: User, start: Date, end: Date, exceptUid?: string) {
+  const rows = await db
+    .select()
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.userId, host.id),
+        eq(bookings.status, "confirmed"),
+        eq(bookings.exclusive, true),
+        lt(bookings.start, end),
+        gt(bookings.end, start),
+        exceptUid ? ne(bookings.uid, exceptUid) : undefined,
+      ),
+    );
+  let released = false;
+  for (const b of rows) {
+    if (!b.googleEventId || !b.calendarId) {
+      if (Date.now() - b.createdAt.getTime() > STALE_CLAIM_MS) {
+        await db.delete(bookings).where(eq(bookings.id, b.id));
+        released = true;
+      }
+    } else if (!(await eventExists(host, b.calendarId, b.googleEventId))) {
+      await markDeletedInGoogle(b.uid);
+      released = true;
+    }
+  }
+  return released;
+}
+
+/** Run a write guarded by the no-overlap constraint. On conflict, release stale bookings and retry once. */
+async function withOverlapRetry<T>(host: User, start: Date, end: Date, exceptUid: string | undefined, write: () => Promise<T>) {
+  try {
+    return await write();
+  } catch (err) {
+    if (!isOverlapError(err)) throw err;
+  }
+  if (await releaseStaleOverlaps(host, start, end, exceptUid)) {
+    try {
+      return await write();
+    } catch (err) {
+      if (!isOverlapError(err)) throw err;
+    }
+  }
+  throw new BookingError("That time is no longer available. Please pick another slot.", 409);
+}
+
+/** Mark bookings whose Google event was deleted outside the app as cancelled. Returns the cancelled uids. */
+export async function syncDeletedBookings(host: User, rows: Booking[]) {
+  const gone = new Set<string>();
+  await Promise.all(
+    rows.map(async (b) => {
+      if (b.status !== "confirmed" || !b.googleEventId || !b.calendarId) return;
+      try {
+        if (!(await eventExists(host, b.calendarId, b.googleEventId))) {
+          await markDeletedInGoogle(b.uid);
+          gone.add(b.uid);
+        }
+      } catch {
+        // Google unreachable or calendar disconnected: leave the booking as it is.
+      }
+    }),
+  );
+  return gone;
 }
 
 function describe(opts: {
@@ -106,9 +194,6 @@ export async function createBooking(host: User, et: EventType, req: BookingReque
     ...req.guests.map((g) => ({ email: g })),
   ];
 
-  let googleEventId: string;
-  let meetLink: string | null = null;
-
   // Group events: join the existing session if one is already booked at this time.
   const [existing] =
     et.seats > 1
@@ -124,41 +209,13 @@ export async function createBooking(host: User, et: EventType, req: BookingReque
           )
           .limit(1)
       : [];
+  const joining = !!(existing?.googleEventId && existing.calendarId);
+  const baseUrl = await requestBaseUrl();
 
-  if (existing?.googleEventId && existing.calendarId) {
-    const ev = await getEvent(host, existing.calendarId, existing.googleEventId);
-    const current = ev.attendees ?? [];
-    const known = new Set(current.map((a) => a.email?.toLowerCase()));
-    await patchEvent(host, existing.calendarId, existing.googleEventId, {
-      attendees: [...current, ...attendees.filter((a) => !known.has(a.email.toLowerCase()))],
-    });
-    googleEventId = existing.googleEventId;
-    meetLink = existing.meetLink;
-  } else {
-    const created = await createEvent(host, {
-      calendarId: host.writeCalendarId,
-      requestId: uid,
-      summary: eventSummary(et, host, req.name),
-      description: describe({ et, booking: draft, includeManageLinks: et.seats <= 1, baseUrl: await requestBaseUrl() }),
-      location:
-        location.type === "google_meet"
-          ? undefined
-          : location.type === "in_person" || location.type === "custom_link"
-            ? location.value
-            : bookingLocationText(location),
-      start,
-      end,
-      timeZone: schedule.timezone,
-      attendees,
-      googleMeet: location.type === "google_meet",
-      privateProps: { bookingUid: uid, eventTypeId: String(et.id) },
-    });
-    googleEventId = created.id;
-    meetLink = created.meetLink;
-  }
-
-  try {
-    const [row] = await db
+  // Claim the slot in the database before touching Google. The bookings_no_overlap constraint refuses
+  // overlapping one-on-one bookings, so two people booking the same time at once can't both get it.
+  const [claim] = await withOverlapRetry(host, start, end, undefined, () =>
+    db
       .insert(bookings)
       .values({
         uid,
@@ -174,15 +231,55 @@ export async function createBooking(host: User, et: EventType, req: BookingReque
         notes: req.notes,
         answers,
         location,
-        meetLink,
-        calendarId: existing?.calendarId ?? host.writeCalendarId,
-        googleEventId,
+        meetLink: joining ? existing.meetLink : null,
+        calendarId: joining ? existing.calendarId : host.writeCalendarId,
+        googleEventId: joining ? existing.googleEventId : null,
         rescheduledFrom: rescheduledFrom ?? null,
+        exclusive: et.seats <= 1,
       })
+      .returning(),
+  );
+
+  let createdEventId: string | undefined;
+  try {
+    if (joining) {
+      const ev = await getEvent(host, existing.calendarId!, existing.googleEventId!);
+      const current = ev.attendees ?? [];
+      const known = new Set(current.map((a) => a.email?.toLowerCase()));
+      await patchEvent(host, existing.calendarId!, existing.googleEventId!, {
+        attendees: [...current, ...attendees.filter((a) => !known.has(a.email.toLowerCase()))],
+      });
+      return claim;
+    }
+    const created = await createEvent(host, {
+      calendarId: host.writeCalendarId,
+      requestId: uid,
+      summary: eventSummary(et, host, req.name),
+      description: describe({ et, booking: draft, includeManageLinks: et.seats <= 1, baseUrl }),
+      location:
+        location.type === "google_meet"
+          ? undefined
+          : location.type === "in_person" || location.type === "custom_link"
+            ? location.value
+            : bookingLocationText(location),
+      start,
+      end,
+      timeZone: schedule.timezone,
+      attendees,
+      googleMeet: location.type === "google_meet",
+      privateProps: { bookingUid: uid, eventTypeId: String(et.id) },
+    });
+    createdEventId = created.id;
+    const [row] = await db
+      .update(bookings)
+      .set({ googleEventId: created.id, meetLink: created.meetLink })
+      .where(eq(bookings.id, claim.id))
       .returning();
     return row;
   } catch (err) {
-    if (!existing) await deleteEvent(host, host.writeCalendarId, googleEventId).catch(() => {});
+    // Release the claim, and the Google event if it was already created, so nothing is left half-booked.
+    await db.delete(bookings).where(eq(bookings.id, claim.id)).catch(() => {});
+    if (createdEventId) await deleteEvent(host, host.writeCalendarId, createdEventId).catch(() => {});
     throw err;
   }
 }
@@ -276,17 +373,25 @@ export async function rescheduleBooking(uid: string, newStart: string, timezone:
   const end = new Date(start.getTime() + duration * 60_000);
   const schedule = await assertSlotAvailable(host, et, start, duration, booking.uid);
 
+  // Move the row first so the no-overlap constraint guards the new time, then move the Google event.
+  const [updated] = await withOverlapRetry(host, start, end, booking.uid, () =>
+    db.update(bookings).set({ start, end, timezone }).where(eq(bookings.uid, uid)).returning(),
+  );
   if (booking.googleEventId && booking.calendarId) {
-    await patchEvent(host, booking.calendarId, booking.googleEventId, {
-      start: { dateTime: start.toISOString(), timeZone: schedule.timezone },
-      end: { dateTime: end.toISOString(), timeZone: schedule.timezone },
-    });
+    try {
+      await patchEvent(host, booking.calendarId, booking.googleEventId, {
+        start: { dateTime: start.toISOString(), timeZone: schedule.timezone },
+        end: { dateTime: end.toISOString(), timeZone: schedule.timezone },
+      });
+    } catch (err) {
+      await db
+        .update(bookings)
+        .set({ start: booking.start, end: booking.end, timezone: booking.timezone })
+        .where(eq(bookings.uid, uid))
+        .catch(() => {});
+      throw err;
+    }
   }
-  const [updated] = await db
-    .update(bookings)
-    .set({ start, end, timezone })
-    .where(eq(bookings.uid, uid))
-    .returning();
   return updated;
 }
 

@@ -5,7 +5,7 @@ import { oauthClient } from "@/lib/google";
 import { encrypt } from "@/lib/crypto";
 import { signSession, SESSION_COOKIE, sessionCookieOptions } from "@/lib/session";
 import { ensureDefaults } from "@/lib/data";
-import { RESERVED_USERNAMES } from "@/lib/config";
+import { RESERVED_USERNAMES, hasCalendarScopes } from "@/lib/config";
 
 function isAllowed(email: string) {
   const emails = (process.env.ALLOWED_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
@@ -76,7 +76,7 @@ async function handleCallback(req: NextRequest) {
   if (!isAllowed(p.email)) return fail("This account is not allowed to sign in on this site.");
 
   const scopes = tokens.scope ?? "";
-  const hasCalendar = scopes.includes("https://www.googleapis.com/auth/calendar");
+  const hasCalendar = hasCalendarScopes(scopes);
   const refresh = tokens.refresh_token && hasCalendar ? encrypt(tokens.refresh_token) : undefined;
 
   let [user] = await db.select().from(users).where(eq(users.googleSub, p.sub)).limit(1);

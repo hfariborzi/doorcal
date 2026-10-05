@@ -89,6 +89,12 @@ test("rescheduling works when free/busy merged the booking with an adjacent even
   assert.ok(!slots.some((s) => s.start === "2026-10-05T15:30:00.000Z"));
 });
 
+test("bookings covered by free/busy don't block on their own (deleted in Google = free)", () => {
+  const b = { start: new Date("2026-10-05T15:00:00Z"), end: new Date("2026-10-05T15:30:00Z"), eventTypeId: 1, uid: "a" };
+  assert.ok(run({ bookings: [{ ...b, blocks: false }] }).some((s) => s.start === "2026-10-05T15:00:00.000Z"));
+  assert.ok(!run({ bookings: [b] }).some((s) => s.start === "2026-10-05T15:00:00.000Z"));
+});
+
 test("group events stay open until seats run out", () => {
   const et = { ...baseEt, seats: 2 };
   const b = { start: new Date("2026-10-05T15:00:00Z"), end: new Date("2026-10-05T15:30:00Z"), eventTypeId: 1, uid: "a" };

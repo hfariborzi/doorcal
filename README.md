@@ -43,7 +43,11 @@ Vercel and Neon; both have free tiers.
    - App name, support email, logo (optional).
    - App domain: your homepage (`https://your-domain`) and privacy policy (`https://your-domain/privacy`; the app includes one).
    - Authorized domains: your root domain (e.g. `example.com`).
-   - Scopes: add `.../auth/calendar` plus `openid`, `email`, `profile`.
+   - Scopes: `openid`, `email`, `profile`, plus these three Calendar scopes (the narrowest that cover what the
+     app does):
+     - `https://www.googleapis.com/auth/calendar.events`
+     - `https://www.googleapis.com/auth/calendar.calendarlist.readonly`
+     - `https://www.googleapis.com/auth/calendar.freebusy`
 4. **Credentials → Create credentials → OAuth client ID → Web application**:
    - Authorized redirect URIs:
      - `https://your-domain/api/auth/google/callback`
@@ -73,6 +77,7 @@ Vercel and Neon; both have free tiers.
    | `GOOGLE_CLIENT_SECRET` | from step 1 |
    | `AUTH_SECRET` | output of `openssl rand -base64 32` |
    | `NEXT_PUBLIC_APP_NAME` | optional display name |
+   | `CONTACT_EMAIL` | contact address shown in the footer, privacy policy and terms (recommended for public instances) |
    | `ALLOWED_EMAILS` / `ALLOWED_DOMAINS` | optional, comma-separated, to restrict who can sign up |
    | `MIGRATE_PREVIEWS` | optional; `true` runs migrations on preview builds (only if previews use their own database branch) |
 
@@ -89,12 +94,22 @@ Vercel and Neon; both have free tiers.
 
 ## Local development
 
+You need Node.js 20+, Docker (for Postgres) and a Google OAuth client (step 1 above, with the
+`http://localhost:3000/api/auth/google/callback` redirect URI).
+
 ```bash
-cp .env.example .env.local   # fill in DATABASE_URL, Google credentials, AUTH_SECRET
+cp .env.example .env.local   # fill in GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and AUTH_SECRET
+docker compose up -d         # local Postgres; DATABASE_URL in .env.example already points at it
 npm install
 npm run db:migrate
-npm run dev
+npm run dev                  # http://localhost:3000
 ```
+
+For local testing you don't need to publish the Google app: leave it in *Testing* and add your Google account as a
+test user (tokens then expire after 7 days; just reconnect).
+
+Any Postgres 13+ works (the app uses the `btree_gist` extension, included in standard Postgres). Neon URLs use
+Neon's serverless HTTP driver; everything else uses node-postgres.
 
 Other scripts: `npm test` (slot engine tests), `npm run typecheck`, `npm run lint`,
 `npm run db:generate` (create a migration after editing `src/db/schema.ts`), `npm run db:studio`.
@@ -109,6 +124,9 @@ Other scripts: `npm test` (slot engine tests), `npm run typecheck`, `npm run lin
   server and keeps the Google event in sync. Group events share one Google event and add or remove attendees.
 - Google refresh tokens are encrypted at rest with AES-256-GCM, using a key derived from `AUTH_SECRET`.
 - Sessions are signed JWT cookies. `src/proxy.ts` guards `/dashboard`.
+- A Postgres exclusion constraint stops two people booking overlapping one-on-one slots at the same moment.
+- Public endpoints (slots, booking, cancel, reschedule) are rate-limited per IP with a small Postgres table, so
+  there's no extra service to run.
 
 ## Roadmap ideas
 

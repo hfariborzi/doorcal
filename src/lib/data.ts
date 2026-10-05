@@ -78,7 +78,14 @@ export async function ensureDefaults(user: User): Promise<{ schedule: Schedule }
 
 export async function confirmedBookingsInRange(userId: number, start: Date, end: Date) {
   return db
-    .select({ start: bookings.start, end: bookings.end, eventTypeId: bookings.eventTypeId, uid: bookings.uid })
+    .select({
+      start: bookings.start,
+      end: bookings.end,
+      eventTypeId: bookings.eventTypeId,
+      uid: bookings.uid,
+      calendarId: bookings.calendarId,
+      googleEventId: bookings.googleEventId,
+    })
     .from(bookings)
     .where(
       and(eq(bookings.userId, userId), eq(bookings.status, "confirmed"), lt(bookings.start, end), gt(bookings.end, start)),
@@ -103,6 +110,14 @@ export async function getSlots(opts: {
     getBusy(user, from, to),
     confirmedBookingsInRange(user.id, from, to),
   ]);
+  // A booking whose Google event sits on a calendar we check via free/busy is already covered by `busy`.
+  // Only let the DB row block on its own when free/busy can't see it (event not created yet, or written to a
+  // calendar that isn't checked for conflicts). That way bookings deleted in Google stop blocking slots.
+  const checked = new Set(user.conflictCalendarIds.length ? user.conflictCalendarIds : ["primary"]);
+  const rows = existing.map((b) => ({
+    ...b,
+    blocks: !b.googleEventId || !b.calendarId || !checked.has(b.calendarId),
+  }));
   return {
     schedule,
     slots: computeSlots({
@@ -112,7 +127,7 @@ export async function getSlots(opts: {
       rangeStart,
       rangeEnd,
       busy,
-      bookings: existing,
+      bookings: rows,
       ignoreBookingUid,
     }),
   };

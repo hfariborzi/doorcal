@@ -12,7 +12,14 @@ export const DEFAULT_WEEKLY: WeeklyHours = {
   "7": [],
 };
 
-export type ExistingBooking = { start: Date; end: Date; eventTypeId: number | null; uid: string };
+export type ExistingBooking = {
+  start: Date;
+  end: Date;
+  eventTypeId: number | null;
+  uid: string;
+  // false when Google free/busy already covers this booking, so a booking deleted in Google stops blocking
+  blocks?: boolean;
+};
 
 export type SlotInput = {
   eventType: Pick<
@@ -96,7 +103,7 @@ export function computeSlots(input: SlotInput): Slot[] {
     : busy;
   const blocking: Interval[] = [
     ...busyLeft,
-    ...bookings.map((b) => ({ start: b.start.getTime(), end: b.end.getTime() })),
+    ...bookings.filter((b) => b.blocks !== false).map((b) => ({ start: b.start.getTime(), end: b.end.getTime() })),
   ];
 
   const slots: Slot[] = [];
