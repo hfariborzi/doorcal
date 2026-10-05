@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { DateOverride, TimeRange, WeeklyHours } from "@/db/schema";
@@ -33,18 +34,18 @@ function RangeEditor({ ranges, onChange }: { ranges: TimeRange[]; onChange: (r: 
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
           </select>
-          <span className="text-slate-400">–</span>
+          <span className="text-faint">–</span>
           <select className="input w-36 py-1.5" value={r.end} onChange={(e) => onChange(ranges.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)))}>
             {TIMES.slice(1).map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
           </select>
-          <button type="button" className="btn-ghost px-2 py-1" onClick={() => onChange(ranges.filter((_, j) => j !== i))} aria-label="Remove">✕</button>
+          <button type="button" className="btn-ghost px-2 py-1" onClick={() => onChange(ranges.filter((_, j) => j !== i))} aria-label="Remove"><X size={16} /></button>
         </div>
       ))}
       <button
         type="button"
-        className="text-sm text-blue-700 hover:underline"
+        className="text-sm text-accent-soft hover:underline"
         onClick={() => {
           const last = ranges[ranges.length - 1];
           const start = last ? last.end : "09:00";
@@ -116,8 +117,8 @@ export function ScheduleForm({
 
       <section className="card p-6">
         <h2 className="font-semibold">Weekly hours</h2>
-        <p className="text-sm text-slate-500">When you&apos;re usually available. Busy times on your Google Calendar are blocked automatically.</p>
-        <div className="mt-4 divide-y divide-slate-100">
+        <p className="text-sm text-faint">When you&apos;re usually available. Busy times on your Google Calendar are blocked automatically.</p>
+        <div className="mt-4 divide-y divide-line">
           {DAYS.map(([key, label]) => {
             const ranges = weekly[key] ?? [];
             const on = ranges.length > 0;
@@ -137,7 +138,7 @@ export function ScheduleForm({
                 {on ? (
                   <RangeEditor ranges={ranges} onChange={(r) => { setWeekly({ ...weekly, [key]: r }); touch(); }} />
                 ) : (
-                  <span className="pt-1.5 text-sm text-slate-400">Unavailable</span>
+                  <span className="pt-1.5 text-sm text-faint">Unavailable</span>
                 )}
               </div>
             );
@@ -147,16 +148,16 @@ export function ScheduleForm({
 
       <section className="card p-6">
         <h2 className="font-semibold">Date overrides</h2>
-        <p className="text-sm text-slate-500">Change your hours for specific dates, or block a day off entirely.</p>
+        <p className="text-sm text-faint">Change your hours for specific dates, or block a day off entirely.</p>
         <div className="mt-4 space-y-3">
           {overrides.map((o, i) => (
-            <div key={o.date} className="flex flex-col gap-3 rounded-lg border border-slate-200 p-3 sm:flex-row sm:items-start">
+            <div key={o.date} className="flex flex-col gap-3 rounded-lg border border-line p-3 sm:flex-row sm:items-start">
               <div className="w-36 shrink-0 pt-1.5 text-sm font-medium">{o.date}</div>
               <div className="flex-1">
                 {o.ranges.length === 0 ? (
-                  <div className="flex items-center gap-3 pt-1.5 text-sm text-slate-500">
+                  <div className="flex items-center gap-3 pt-1.5 text-sm text-faint">
                     Unavailable all day
-                    <button type="button" className="text-blue-700 hover:underline" onClick={() => { setOverrides(overrides.map((x, j) => (j === i ? { ...x, ranges: [{ start: "09:00", end: "17:00" }] } : x))); touch(); }}>
+                    <button type="button" className="text-accent-soft hover:underline" onClick={() => { setOverrides(overrides.map((x, j) => (j === i ? { ...x, ranges: [{ start: "09:00", end: "17:00" }] } : x))); touch(); }}>
                       Set hours instead
                     </button>
                   </div>
@@ -164,7 +165,7 @@ export function ScheduleForm({
                   <RangeEditor ranges={o.ranges} onChange={(r) => { setOverrides(overrides.map((x, j) => (j === i ? { ...x, ranges: r } : x))); touch(); }} />
                 )}
               </div>
-              <button type="button" className="btn-ghost py-1 text-red-600" onClick={() => { setOverrides(overrides.filter((_, j) => j !== i)); touch(); }}>Remove</button>
+              <button type="button" className="btn-ghost py-1 text-danger" onClick={() => { setOverrides(overrides.filter((_, j) => j !== i)); touch(); }}>Remove</button>
             </div>
           ))}
           <div className="flex flex-wrap items-center gap-2">
@@ -181,10 +182,10 @@ export function ScheduleForm({
         </div>
       </section>
 
-      <div className="sticky bottom-0 -mx-6 flex items-center gap-3 border-t border-slate-200 bg-white/90 px-6 py-4 backdrop-blur">
+      <div className="sticky bottom-0 -mx-6 flex items-center gap-3 border-t border-line bg-canvas/85 px-6 py-4 backdrop-blur">
         <button type="submit" disabled={pending} className="btn-primary">{pending ? "Saving…" : "Save"}</button>
-        {saved && <span className="text-sm text-green-700">Saved ✓</span>}
-        {error && <span className="text-sm text-red-700">{error}</span>}
+        {saved && <span className="inline-flex items-center gap-1 text-sm text-success"><Check size={15} /> Saved</span>}
+        {error && <span className="text-sm text-danger">{error}</span>}
       </div>
     </form>
   );

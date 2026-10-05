@@ -2,10 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { DateTime } from "luxon";
+import { CalendarDays, Check, Globe, User, Video, X } from "lucide-react";
 import { getBookingByUid } from "@/lib/bookings";
-import { bookingLocationText, locationIcon } from "@/lib/locations";
+import { bookingLocationText } from "@/lib/locations";
 import { Avatar } from "@/components/Avatar";
-import { APP_NAME } from "@/lib/config";
+import { LocationIcon } from "@/components/LocationIcon";
+import { PoweredBy } from "@/components/PoweredBy";
 import { CancelBooking } from "./CancelBooking";
 
 export const metadata = { title: "Your booking", robots: { index: false } };
@@ -32,78 +34,87 @@ export default async function BookingPage(props: PageProps<"/booking/[uid]">) {
   const hostName = host.name || host.username;
 
   return (
-    <main className="mx-auto w-full max-w-xl flex-1 px-4 py-12">
-      <div className="card p-8 text-center">
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-full text-2xl" style={{ background: cancelled ? "#fee2e2" : "#dcfce7" }}>
-          {cancelled ? "✕" : "✓"}
+    <main className="mx-auto w-full max-w-xl flex-1 px-6 py-16">
+      <div className="text-center">
+        <div
+          className={`mx-auto grid h-14 w-14 place-items-center rounded-full ring-1 ${
+            cancelled ? "bg-danger/10 text-danger ring-danger/30" : "bg-accent/20 text-accent-soft ring-accent/40"
+          }`}
+        >
+          {cancelled ? <X size={26} /> : <Check size={26} />}
         </div>
-        <h1 className="mt-4 text-2xl font-semibold">
+        <h1 className="mt-6 text-3xl font-semibold tracking-tight">
           {cancelled ? "This meeting was cancelled" : wasRescheduled ? "Your meeting was rescheduled" : isNew ? "You are scheduled" : "Your booking"}
         </h1>
         {!cancelled && (isNew || wasRescheduled) && (
-          <p className="mt-2 text-sm text-slate-600">A calendar invitation has been sent to {booking.email}.</p>
+          <p className="mt-3 text-sm text-muted">A calendar invitation has been sent to {booking.email}.</p>
         )}
-        {cancelled && booking.cancelReason && (
-          <p className="mt-2 text-sm text-slate-600">Reason: {booking.cancelReason}</p>
-        )}
+        {cancelled && booking.cancelReason && <p className="mt-3 text-sm text-muted">Reason: {booking.cancelReason}</p>}
+      </div>
 
-        <div className="mt-8 space-y-3 rounded-xl border border-slate-200 p-5 text-left text-sm">
-          <div className="flex items-center gap-3">
-            <Avatar name={hostName} image={host.image} size={36} />
-            <div>
-              <div className="font-semibold">{booking.title}</div>
-              <div className="text-slate-500">with {hostName}</div>
-            </div>
-          </div>
-          <div className={`flex gap-2 ${cancelled ? "line-through text-slate-400" : ""}`}>
-            <span>📅</span>
-            <span>
-              {s.toFormat("h:mm a")} – {e.toFormat("h:mm a")}, {s.toFormat("cccc, LLLL d, yyyy")}
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <span>🌐</span>
-            <span>{tz.replace(/_/g, " ")}</span>
-          </div>
-          <div className="flex gap-2">
-            <span>{locationIcon(booking.location.type)}</span>
-            {booking.meetLink && !cancelled ? (
-              <a href={booking.meetLink} className="text-blue-700 hover:underline" target="_blank" rel="noreferrer">
-                Join Google Meet
-              </a>
-            ) : (
-              <span>{bookingLocationText(booking.location)}</span>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <span>👤</span>
-            <span>
-              {booking.name} ({booking.email})
-              {booking.guests.length > 0 && ` + ${booking.guests.join(", ")}`}
-            </span>
+      <div className="card mt-10 p-6">
+        <div className="flex items-center gap-3 border-b border-line pb-5">
+          <Avatar name={hostName} image={host.image} size={40} />
+          <div>
+            <div className="font-semibold text-ink">{booking.title}</div>
+            <div className="text-sm text-muted">with {hostName}</div>
           </div>
         </div>
-
-        {!cancelled && !past && (
-          <>
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
-              {eventType && (
-                <Link href={`/${host.username}/${eventType.slug}?reschedule=${booking.uid}`} className="btn-secondary">
-                  Reschedule
-                </Link>
-              )}
-              <CancelBooking uid={booking.uid} />
+        <dl className="mt-5 space-y-4 text-sm">
+          <div className="flex gap-3">
+            <CalendarDays size={18} className="mt-0.5 shrink-0 text-accent-soft" />
+            <div className={cancelled ? "text-faint line-through" : ""}>
+              <dt className="font-medium text-ink">{s.toFormat("cccc, LLLL d, yyyy")}</dt>
+              <dd className="text-muted tnum">{s.toFormat("h:mm a")} – {e.toFormat("h:mm a")}</dd>
             </div>
-            <p className="mt-6 text-xs text-slate-500">
-              Bookmark this page to reschedule or cancel later.
-            </p>
-          </>
+          </div>
+          <div className="flex gap-3">
+            <Globe size={18} className="mt-0.5 shrink-0 text-accent-soft" />
+            <dd className="text-muted">{tz.replace(/_/g, " ")}</dd>
+          </div>
+          <div className="flex gap-3">
+            <LocationIcon type={booking.location.type} size={18} className="mt-0.5 shrink-0 text-accent-soft" />
+            <dd className="min-w-0 text-muted">
+              {booking.meetLink && !cancelled ? (
+                <a href={booking.meetLink} className="link" target="_blank" rel="noreferrer">Join Google Meet</a>
+              ) : (
+                bookingLocationText(booking.location)
+              )}
+            </dd>
+          </div>
+          <div className="flex gap-3">
+            <User size={18} className="mt-0.5 shrink-0 text-accent-soft" />
+            <dd className="min-w-0 break-words text-muted">
+              {booking.name} ({booking.email})
+              {booking.guests.length > 0 && ` + ${booking.guests.join(", ")}`}
+            </dd>
+          </div>
+        </dl>
+
+        {booking.meetLink && !cancelled && !past && (
+          <a href={booking.meetLink} target="_blank" rel="noreferrer" className="btn-primary mt-6 w-full py-2.5">
+            <Video size={16} /> Join with Google Meet
+          </a>
         )}
       </div>
-      <p className="mt-6 text-center text-xs text-slate-400">
-        <Link href={`/${host.username}`} className="hover:underline">Book another meeting with {hostName}</Link>
-        {" · "}Powered by <Link href="/" className="hover:underline">{APP_NAME}</Link>
-      </p>
+
+      {!cancelled && !past && (
+        <>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            {eventType && (
+              <Link href={`/${host.username}/${eventType.slug}?reschedule=${booking.uid}`} className="btn-secondary">
+                Reschedule
+              </Link>
+            )}
+            <CancelBooking uid={booking.uid} />
+          </div>
+          <p className="mt-6 text-center text-xs text-faint">Bookmark this page to reschedule or cancel later.</p>
+        </>
+      )}
+      <PoweredBy>
+        <Link href={`/${host.username}`} className="hover:text-ink">Book another time with {hostName}</Link>
+        <span aria-hidden>·</span>
+      </PoweredBy>
     </main>
   );
 }

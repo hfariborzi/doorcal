@@ -10,8 +10,8 @@ export default async function NewEventTypePage() {
   const schedules = await listSchedules(user.id);
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <Link href="/dashboard/event-types" className="text-sm text-slate-500 hover:text-slate-800">← Event types</Link>
-      <h1 className="text-2xl font-semibold">New event type</h1>
+      <Link href="/dashboard/event-types" className="text-sm text-faint hover:text-ink">← Event types</Link>
+      <h1 className="text-3xl font-semibold tracking-tight">New event type</h1>
       <EventTypeForm
         username={user.username}
         schedules={schedules.map((s) => ({ id: s.id, name: s.name, isDefault: s.isDefault }))}

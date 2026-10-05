@@ -111,8 +111,7 @@ export default function TermsPage() {
 
       <h2>12. Governing law</h2>
       <p>
-        These terms are governed by the laws of the Province of Alberta and the federal laws of Canada that apply
-        there, without regard to conflict-of-law rules.
+        These terms are governed by the laws of Canada, without regard to conflict-of-law rules.
       </p>
 
       <h2>13. Contact</h2>

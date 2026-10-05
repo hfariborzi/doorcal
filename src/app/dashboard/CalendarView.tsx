@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { DateTime } from "luxon";
+import { ChevronLeft, ChevronRight, ExternalLink, Loader2, MapPin, Plus, Trash2, Users, Video, X } from "lucide-react";
 import type { CalendarEvent } from "@/lib/google";
 
 const HOUR_PX = 48;
@@ -42,6 +43,14 @@ function layoutDay(events: CalendarEvent[], dayStart: DateTime) {
     top: ((p.s - dayStart.toMillis()) / 3_600_000) * HOUR_PX,
     height: Math.max(((p.en - p.s) / 3_600_000) * HOUR_PX, 18),
   }));
+}
+
+/** Event blocks: a dark tint of the Google calendar's color with a solid left edge. */
+function eventStyle(color: string): React.CSSProperties {
+  return {
+    background: `color-mix(in srgb, ${color} 30%, #1d1530)`,
+    borderLeft: `3px solid ${color}`,
+  };
 }
 
 function stripHtml(html: string) {
@@ -112,39 +121,39 @@ export function CalendarView() {
 
   return (
     <div className="card flex flex-col overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-4">
         <div className="flex items-center gap-2">
           <button className="btn-secondary py-1.5" onClick={() => setAnchor(DateTime.now().setZone(tz).startOf("day"))}>
             Today
           </button>
-          <button className="btn-ghost px-2.5 py-1.5" aria-label="Previous" onClick={() => setAnchor(anchor.minus(view === "week" ? { weeks: 1 } : { days: 1 }))}>‹</button>
-          <button className="btn-ghost px-2.5 py-1.5" aria-label="Next" onClick={() => setAnchor(anchor.plus(view === "week" ? { weeks: 1 } : { days: 1 }))}>›</button>
-          <h2 className="ml-2 text-lg font-semibold">{title}</h2>
+          <button className="btn-ghost px-2 py-1.5" aria-label="Previous" onClick={() => setAnchor(anchor.minus(view === "week" ? { weeks: 1 } : { days: 1 }))}><ChevronLeft size={18} /></button>
+          <button className="btn-ghost px-2 py-1.5" aria-label="Next" onClick={() => setAnchor(anchor.plus(view === "week" ? { weeks: 1 } : { days: 1 }))}><ChevronRight size={18} /></button>
+          <h2 className="ml-2 text-lg font-semibold tracking-tight">{title}</h2>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-slate-300 p-0.5 text-sm">
+          <div className="flex rounded-lg border border-line bg-black/20 p-1 text-sm">
             {(["day", "week"] as View[]).map((v) => (
-              <button key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 capitalize ${view === v ? "bg-slate-900 text-white" : "text-slate-600"}`}>
+              <button key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 capitalize ${view === v ? "bg-accent text-white" : "text-muted hover:text-ink"}`}>
                 {v}
               </button>
             ))}
           </div>
           <button className="btn-primary py-1.5" onClick={() => setCreating(now.plus({ hours: 1 }).startOf("hour"))}>
-            + New meeting
+            <Plus size={16} /> New meeting
           </button>
         </div>
       </div>
 
-      {error && <p className="m-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && <p className="m-4 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
 
-      <div className="flex border-b border-slate-200">
+      <div className="flex border-b border-line bg-black/10">
         <div className="w-14 shrink-0" />
         {range.days.map((d) => {
           const isToday = d.hasSame(now, "day");
           return (
-            <div key={d.toISODate()} className="min-w-0 flex-1 border-l border-slate-100 px-1 py-2 text-center">
-              <div className="text-xs font-medium text-slate-500 uppercase">{d.toFormat("ccc")}</div>
-              <div className={`mx-auto mt-0.5 grid h-8 w-8 place-items-center rounded-full text-lg ${isToday ? "bg-blue-600 font-semibold text-white" : ""}`}>
+            <div key={d.toISODate()} className="min-w-0 flex-1 border-l border-line px-1 py-2.5 text-center">
+              <div className={`text-[11px] font-semibold tracking-[0.08em] uppercase ${isToday ? "text-accent-soft" : "text-faint"}`}>{d.toFormat("ccc")}</div>
+              <div className={`mx-auto mt-1 grid h-8 w-8 place-items-center rounded-full text-lg tnum ${isToday ? "bg-accent font-semibold text-white shadow-[0_0_14px_rgb(124_58_237/0.5)]" : "text-ink"}`}>
                 {d.day}
               </div>
               <div className="mt-1 space-y-0.5">
@@ -155,7 +164,7 @@ export function CalendarView() {
                     return s <= d && en > d;
                   })
                   .map((e) => (
-                    <button key={`${e.calendarId}-${e.id}`} onClick={() => setSelected(e)} className="block w-full truncate rounded px-1.5 py-0.5 text-left text-xs text-white" style={{ background: e.color }}>
+                    <button key={`${e.calendarId}-${e.id}`} onClick={() => setSelected(e)} className="block w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs text-ink" style={eventStyle(e.color)}>
                       {e.title}
                     </button>
                   ))}
@@ -169,7 +178,7 @@ export function CalendarView() {
         <div className="relative flex" style={{ height: 24 * HOUR_PX }}>
           <div className="w-14 shrink-0">
             {Array.from({ length: 24 }, (_, h) => (
-              <div key={h} className="relative text-right text-[11px] text-slate-400" style={{ height: HOUR_PX }}>
+              <div key={h} className="relative text-right text-[11px] text-faint tnum" style={{ height: HOUR_PX }}>
                 {h > 0 && <span className="absolute -top-2 right-2">{DateTime.fromObject({ hour: h }).toFormat("h a")}</span>}
               </div>
             ))}
@@ -184,7 +193,7 @@ export function CalendarView() {
             return (
               <div
                 key={d.toISODate()}
-                className="relative min-w-0 flex-1 cursor-pointer border-l border-slate-100"
+                className={`relative min-w-0 flex-1 cursor-pointer border-l border-line ${d.hasSame(now, "day") ? "bg-gradient-to-b from-accent/[0.07] to-transparent" : ""}`}
                 onClick={(ev) => {
                   const rect = (ev.currentTarget as HTMLDivElement).getBoundingClientRect();
                   const minutes = Math.floor(((ev.clientY - rect.top) / HOUR_PX) * 2) * 30;
@@ -192,11 +201,11 @@ export function CalendarView() {
                 }}
               >
                 {Array.from({ length: 24 }, (_, h) => (
-                  <div key={h} className="border-t border-slate-100" style={{ height: HOUR_PX }} />
+                  <div key={h} className="border-t border-line" style={{ height: HOUR_PX }} />
                 ))}
                 {d.hasSame(now, "day") && (
-                  <div className="pointer-events-none absolute right-0 left-0 z-20 h-0.5 bg-red-500" style={{ top: (now.diff(dayStart, "minutes").minutes / 60) * HOUR_PX }}>
-                    <span className="absolute -top-1 -left-1 h-2.5 w-2.5 rounded-full bg-red-500" />
+                  <div className="pointer-events-none absolute right-0 left-0 z-20 h-px bg-accent-soft" style={{ top: (now.diff(dayStart, "minutes").minutes / 60) * HOUR_PX }}>
+                    <span className="absolute -top-[5px] -left-1.5 h-2.5 w-2.5 rounded-full bg-accent-soft shadow-[0_0_10px_rgb(210_187_255/0.8)]" />
                   </div>
                 )}
                 {layoutDay(dayEvents, dayStart).map((p) => (
@@ -206,18 +215,18 @@ export function CalendarView() {
                       ev.stopPropagation();
                       setSelected(p.e);
                     }}
-                    className="absolute z-10 overflow-hidden rounded-md border border-white px-1.5 py-0.5 text-left text-xs text-white shadow-sm hover:z-30 hover:brightness-95"
+                    className="absolute z-10 overflow-hidden rounded-md px-1.5 py-0.5 text-left text-xs text-ink shadow-[0_4px_12px_-4px_rgb(0_0_0/0.6)] hover:z-30 hover:brightness-125"
                     style={{
                       top: p.top,
                       height: p.height,
                       left: `calc(${(p.lane / p.lanes) * 100}% + 2px)`,
                       width: `calc(${100 / p.lanes}% - 4px)`,
-                      background: p.e.color,
+                      ...eventStyle(p.e.color),
                     }}
                   >
                     <div className="truncate font-medium">{p.e.title}</div>
                     {p.height > 30 && (
-                      <div className="truncate opacity-90">
+                      <div className="truncate text-muted tnum">
                         {DateTime.fromISO(p.e.start).setZone(tz).toFormat("h:mm")} – {DateTime.fromISO(p.e.end).setZone(tz).toFormat("h:mm a")}
                       </div>
                     )}
@@ -228,7 +237,9 @@ export function CalendarView() {
           })}
         </div>
         {events === null && (
-          <div className="absolute inset-0 grid place-items-center bg-white/60 text-sm text-slate-500">Loading your calendar…</div>
+          <div className="absolute inset-0 grid place-items-center bg-canvas/60 text-sm text-muted">
+            <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Loading your calendar…</span>
+          </div>
         )}
       </div>
 
@@ -265,8 +276,13 @@ function Modal({ children, onClose }: { children: React.ReactNode; onClose: () =
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4" onClick={onClose}>
-      <div className="card max-h-[90vh] w-full max-w-lg overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[#0a0418]/70 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-line-strong bg-[#180933]/90 p-6 shadow-[0_16px_40px_-8px_rgb(0_0_0/0.8),0_0_20px_rgb(124_58_237/0.15)] backdrop-blur-xl sm:p-7"
+        onClick={(e) => e.stopPropagation()}
+      >
         {children}
       </div>
     </div>
@@ -295,45 +311,47 @@ function EventDetails({ event, tz, onClose, onDeleted }: { event: CalendarEvent;
   return (
     <Modal onClose={onClose}>
       <div className="flex items-start gap-3">
-        <span className="mt-1.5 h-3 w-3 shrink-0 rounded" style={{ background: event.color }} />
+        <span className="mt-2 h-3 w-3 shrink-0 rounded-full" style={{ background: event.color }} />
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-semibold break-words">{event.title}</h3>
-          <p className="text-sm text-slate-600">
+          <h3 className="text-xl font-semibold tracking-tight break-words">{event.title}</h3>
+          <p className="mt-1 text-sm text-muted tnum">
             {event.allDay
               ? DateTime.fromISO(event.start).toFormat("cccc, LLLL d")
               : `${s.toFormat("cccc, LLLL d · h:mm a")} – ${e.toFormat("h:mm a")}`}
           </p>
         </div>
-        <button onClick={onClose} className="btn-ghost px-2 py-1" aria-label="Close">✕</button>
+        <button onClick={onClose} className="btn-ghost px-2 py-1" aria-label="Close"><X size={18} /></button>
       </div>
-      <div className="mt-4 space-y-3 text-sm">
+      <div className="mt-6 space-y-5 text-sm">
         {event.meetLink && (
-          <a href={event.meetLink} target="_blank" rel="noreferrer" className="btn-primary">🎥 Join with Google Meet</a>
+          <a href={event.meetLink} target="_blank" rel="noreferrer" className="btn-primary w-full py-2.5"><Video size={16} /> Join with Google Meet</a>
         )}
-        {event.location && <p>📍 {event.location}</p>}
+        {event.location && (
+          <p className="flex gap-2.5 text-muted"><MapPin size={16} className="mt-0.5 shrink-0 text-accent-soft" /> <span className="break-words">{event.location}</span></p>
+        )}
         {event.attendees.length > 0 && (
           <div>
-            <p className="font-medium">👥 {event.attendees.length} guest{event.attendees.length === 1 ? "" : "s"}</p>
-            <ul className="mt-1 space-y-0.5 text-slate-600">
+            <p className="flex items-center gap-2.5 font-medium text-ink"><Users size={16} className="text-accent-soft" /> {event.attendees.length} guest{event.attendees.length === 1 ? "" : "s"}</p>
+            <ul className="mt-2 space-y-1 pl-6.5 text-muted">
               {event.attendees.map((a) => (
                 <li key={a.email}>
                   {a.name ? `${a.name} · ` : ""}
                   {a.email}
-                  {a.status && a.status !== "needsAction" && <span className="ml-1 text-xs text-slate-400">({a.status})</span>}
+                  {a.status && a.status !== "needsAction" && <span className="ml-1 text-xs text-faint">({a.status})</span>}
                 </li>
               ))}
             </ul>
           </div>
         )}
-        {event.description && <p className="whitespace-pre-line text-slate-600">{stripHtml(event.description)}</p>}
+        {event.description && <p className="rounded-xl bg-black/20 p-4 break-words whitespace-pre-line text-muted">{stripHtml(event.description)}</p>}
       </div>
-      {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
-      <div className="mt-6 flex flex-wrap gap-2">
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+      <div className="mt-7 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-5">
+        {event.canEdit ? (
+          <button onClick={remove} disabled={deleting} className="btn-ghost text-danger hover:text-danger"><Trash2 size={16} /> {deleting ? "Deleting…" : "Delete"}</button>
+        ) : <span />}
         {event.htmlLink && (
-          <a href={event.htmlLink} target="_blank" rel="noreferrer" className="btn-secondary">Open in Google Calendar</a>
-        )}
-        {event.canEdit && (
-          <button onClick={remove} disabled={deleting} className="btn-danger">{deleting ? "Deleting…" : "Delete"}</button>
+          <a href={event.htmlLink} target="_blank" rel="noreferrer" className="btn-secondary"><ExternalLink size={15} /> Open in Google Calendar</a>
         )}
       </div>
     </Modal>
@@ -385,8 +403,8 @@ function NewMeeting({ start, tz, onClose, onCreated }: { start: DateTime; tz: st
     <Modal onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">New meeting</h3>
-          <button type="button" onClick={onClose} className="btn-ghost px-2 py-1" aria-label="Close">✕</button>
+          <h3 className="text-xl font-semibold tracking-tight">New meeting</h3>
+          <button type="button" onClick={onClose} className="btn-ghost px-2 py-1" aria-label="Close"><X size={18} /></button>
         </div>
         <div>
           <label className="label" htmlFor="nm-title">Title</label>
@@ -409,10 +427,10 @@ function NewMeeting({ start, tz, onClose, onCreated }: { start: DateTime; tz: st
         <div>
           <label className="label" htmlFor="nm-loc">Location</label>
           <select id="nm-loc" className="input" value={locationType} onChange={(e) => setLocationType(e.target.value)}>
-            <option value="google_meet">🎥 Google Meet (link added automatically)</option>
-            <option value="in_person">📍 In person</option>
-            <option value="phone">📞 Phone call</option>
-            <option value="custom_link">🔗 Other video link (Zoom, Teams…)</option>
+            <option value="google_meet">Google Meet (link added automatically)</option>
+            <option value="in_person">In person</option>
+            <option value="phone">Phone call</option>
+            <option value="custom_link">Other video link (Zoom, Teams…)</option>
             <option value="none">No location</option>
           </select>
           {(locationType === "in_person" || locationType === "phone" || locationType === "custom_link") && (
@@ -434,8 +452,8 @@ function NewMeeting({ start, tz, onClose, onCreated }: { start: DateTime; tz: st
           <label className="label" htmlFor="nm-desc">Description</label>
           <textarea id="nm-desc" className="input" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
-        <p className="text-xs text-slate-500">Times are in {tz.replace(/_/g, " ")}.</p>
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        <p className="text-xs text-faint">Times are in {tz.replace(/_/g, " ")}.</p>
+        {error && <p className="rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
         <div className="flex gap-2">
           <button type="submit" disabled={busy} className="btn-primary">{busy ? "Creating…" : "Create meeting"}</button>
           <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>

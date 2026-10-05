@@ -1,26 +1,31 @@
 "use client";
 
 import { useTransition } from "react";
+import { Copy, Trash2 } from "lucide-react";
 import { deleteEventType, duplicateEventType, toggleEventType } from "../actions";
+import { Switch } from "@/components/Switch";
 
 export function EventTypeActions({ id, active }: { id: number; active: boolean }) {
   const [pending, start] = useTransition();
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
-        <input type="checkbox" checked={active} disabled={pending} onChange={(e) => start(() => toggleEventType(id, e.target.checked))} />
-        {active ? "On" : "Off"}
-      </label>
-      <button className="btn-ghost py-1.5" disabled={pending} onClick={() => start(() => duplicateEventType(id))}>
-        Duplicate
+    <>
+      <Switch
+        checked={active}
+        disabled={pending}
+        onChange={(on) => start(() => toggleEventType(id, on))}
+        label={active ? "Accepting bookings" : "Not accepting bookings"}
+      />
+      <button className="btn-ghost px-2.5 py-1.5" disabled={pending} onClick={() => start(() => duplicateEventType(id))} title="Duplicate">
+        <Copy size={15} /> <span className="sr-only sm:not-sr-only">Duplicate</span>
       </button>
       <button
-        className="btn-ghost py-1.5 text-red-600"
+        className="btn-ghost px-2.5 py-1.5 text-danger hover:text-danger"
         disabled={pending}
+        title="Delete"
         onClick={() => confirm("Delete this event type? Existing bookings are kept.") && start(() => deleteEventType(id))}
       >
-        Delete
+        <Trash2 size={15} /> <span className="sr-only">Delete</span>
       </button>
-    </div>
+    </>
   );
 }

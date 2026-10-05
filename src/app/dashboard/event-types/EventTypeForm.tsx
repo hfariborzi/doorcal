@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { LocationOption, Question } from "@/db/schema";
@@ -16,7 +17,7 @@ function Section({ title, desc, children }: { title: string; desc?: string; chil
   return (
     <section className="card p-6">
       <h2 className="font-semibold">{title}</h2>
-      {desc && <p className="mt-0.5 text-sm text-slate-500">{desc}</p>}
+      {desc && <p className="mt-0.5 text-sm text-faint">{desc}</p>}
       <div className="mt-4 space-y-4">{children}</div>
     </section>
   );
@@ -42,7 +43,7 @@ function NumberField({
       <label className="label">{label}</label>
       <div className="flex items-center gap-2">
         <input type="number" min={min} className="input w-28" value={value} onChange={(e) => onChange(Number(e.target.value))} />
-        {suffix && <span className="text-sm text-slate-500">{suffix}</span>}
+        {suffix && <span className="text-sm text-faint">{suffix}</span>}
       </div>
       {help && <p className="help">{help}</p>}
     </div>
@@ -130,11 +131,11 @@ export function EventTypeForm({
         </div>
         <div>
           <label className="label" htmlFor="slug">URL</label>
-          <div className="flex items-center rounded-lg border border-slate-300 bg-slate-50 text-sm focus-within:border-blue-500">
-            <span className="pl-3 text-slate-500">/{username}/</span>
+          <div className="flex items-center rounded-lg border border-line-strong bg-white/[0.03] text-sm focus-within:border-accent">
+            <span className="pl-3 text-faint">/{username}/</span>
             <input
               id="slug"
-              className="w-full rounded-r-lg bg-white px-2 py-2 focus:outline-none"
+              className="w-full rounded-r-lg bg-black/20 px-2 py-2 focus:outline-none"
               required
               value={v.slug}
               onChange={(e) => {
@@ -156,7 +157,7 @@ export function EventTypeForm({
                 key={c}
                 type="button"
                 onClick={() => set("color", c)}
-                className={`h-7 w-7 rounded-full ring-offset-2 ${v.color === c ? "ring-2 ring-slate-900" : ""}`}
+                className={`h-7 w-7 rounded-full ring-offset-2 ring-offset-canvas ${v.color === c ? "ring-2 ring-ink" : ""}`}
                 style={{ background: c }}
                 aria-label={c}
               />
@@ -168,17 +169,17 @@ export function EventTypeForm({
       <Section title="Duration" desc="Offer one length, or several and let invitees choose.">
         <div className="flex flex-wrap items-center gap-2">
           {v.durations.map((d) => (
-            <span key={d} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
+            <span key={d} className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-3 py-1 text-sm font-medium text-accent-soft">
               {d} min
               {v.durations.length > 1 && (
-                <button type="button" className="ml-1 text-blue-400 hover:text-blue-700" onClick={() => set("durations", v.durations.filter((x) => x !== d))} aria-label={`Remove ${d} minutes`}>
-                  ✕
+                <button type="button" className="ml-1 text-accent-soft/70 hover:text-accent-soft" onClick={() => set("durations", v.durations.filter((x) => x !== d))} aria-label={`Remove ${d} minutes`}>
+                  <X size={14} />
                 </button>
               )}
             </span>
           ))}
           {[15, 30, 45, 60, 90].filter((d) => !v.durations.includes(d)).map((d) => (
-            <button key={d} type="button" className="rounded-full border border-dashed border-slate-300 px-3 py-1 text-sm text-slate-500 hover:border-slate-400" onClick={() => set("durations", [...v.durations, d].sort((a, b) => a - b))}>
+            <button key={d} type="button" className="rounded-full border border-dashed border-line-strong px-3 py-1 text-sm text-faint hover:border-line-strong" onClick={() => set("durations", [...v.durations, d].sort((a, b) => a - b))}>
               + {d}
             </button>
           ))}
@@ -203,7 +204,7 @@ export function EventTypeForm({
 
       <Section title="Location" desc="Where the meeting happens. Add more than one to let the invitee choose.">
         {v.locations.map((l, i) => (
-          <div key={i} className="space-y-2 rounded-lg border border-slate-200 p-3">
+          <div key={i} className="space-y-2 rounded-lg border border-line p-3">
             <div className="flex gap-2">
               <select
                 className="input"
@@ -271,18 +272,18 @@ export function EventTypeForm({
 
       <Section title="Event kind">
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex cursor-pointer gap-3 rounded-lg border border-slate-200 p-4 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+          <label className="flex cursor-pointer gap-3 rounded-lg border border-line p-4 has-[:checked]:border-accent has-[:checked]:bg-accent/15">
             <input type="radio" checked={!isGroup} onChange={() => set("seats", 1)} />
             <div>
               <div className="font-medium">One-on-one</div>
-              <div className="text-sm text-slate-500">One invitee per time slot.</div>
+              <div className="text-sm text-faint">One invitee per time slot.</div>
             </div>
           </label>
-          <label className="flex cursor-pointer gap-3 rounded-lg border border-slate-200 p-4 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+          <label className="flex cursor-pointer gap-3 rounded-lg border border-line p-4 has-[:checked]:border-accent has-[:checked]:bg-accent/15">
             <input type="radio" checked={isGroup} onChange={() => set("seats", Math.max(v.seats, 5))} />
             <div>
               <div className="font-medium">Group</div>
-              <div className="text-sm text-slate-500">Several invitees join the same slot (office hours, workshops).</div>
+              <div className="text-sm text-faint">Several invitees join the same slot (office hours, workshops).</div>
             </div>
           </label>
         </div>
@@ -291,7 +292,7 @@ export function EventTypeForm({
 
       <Section title="Invitee questions" desc="Name, email and notes are always asked. Add your own questions here.">
         {v.questions.map((q, i) => (
-          <div key={q.id} className="space-y-2 rounded-lg border border-slate-200 p-3">
+          <div key={q.id} className="space-y-2 rounded-lg border border-line p-3">
             <div className="flex flex-wrap gap-2">
               <input className="input flex-1" placeholder="Question" value={q.label} onChange={(e) => updateQuestion(i, { label: e.target.value })} />
               <select className="input w-36" value={q.type} onChange={(e) => updateQuestion(i, { type: e.target.value as Question["type"] })}>
@@ -314,7 +315,7 @@ export function EventTypeForm({
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={q.required} onChange={(e) => updateQuestion(i, { required: e.target.checked })} /> Required
               </label>
-              <button type="button" className="btn-ghost py-1 text-red-600" onClick={() => set("questions", v.questions.filter((_, j) => j !== i))}>Remove</button>
+              <button type="button" className="btn-ghost py-1 text-danger" onClick={() => set("questions", v.questions.filter((_, j) => j !== i))}>Remove</button>
             </div>
           </div>
         ))}
@@ -338,10 +339,10 @@ export function EventTypeForm({
         </label>
       </Section>
 
-      <div className="sticky bottom-0 -mx-6 flex items-center gap-3 border-t border-slate-200 bg-white/90 px-6 py-4 backdrop-blur">
+      <div className="sticky bottom-0 -mx-6 flex items-center gap-3 border-t border-line bg-canvas/85 px-6 py-4 backdrop-blur">
         <button type="submit" disabled={pending} className="btn-primary">{pending ? "Saving…" : "Save"}</button>
-        {saved && <span className="text-sm text-green-700">Saved ✓</span>}
-        {error && <span className="text-sm text-red-700">{error}</span>}
+        {saved && <span className="inline-flex items-center gap-1 text-sm text-success"><Check size={15} /> Saved</span>}
+        {error && <span className="text-sm text-danger">{error}</span>}
       </div>
     </form>
   );

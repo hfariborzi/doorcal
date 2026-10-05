@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { getEventType, getUserByUsername } from "@/lib/data";
 import { getBookingByUid } from "@/lib/bookings";
-import { APP_NAME } from "@/lib/config";
+import { PoweredBy } from "@/components/PoweredBy";
 import { BookingFlow, type BookingFlowProps } from "./BookingFlow";
 
 export async function generateMetadata(props: PageProps<"/[username]/[slug]">) {
@@ -23,9 +23,10 @@ export default async function EventPage(props: PageProps<"/[username]/[slug]">) 
 
   if (!et.active) {
     return (
-      <main className="mx-auto max-w-lg flex-1 px-4 py-24 text-center">
-        <h1 className="text-xl font-semibold">This event is not accepting bookings</h1>
-        <Link href={`/${user.username}`} className="btn-secondary mt-6">See other events</Link>
+      <main className="mx-auto max-w-lg flex-1 px-6 py-28 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">This event is not accepting bookings</h1>
+        <p className="mt-3 text-sm text-muted">{user.name || user.username} may have other times available.</p>
+        <Link href={`/${user.username}`} className="btn-secondary mt-8">See other events</Link>
       </main>
     );
   }
@@ -47,7 +48,7 @@ export default async function EventPage(props: PageProps<"/[username]/[slug]">) 
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">
+    <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10 sm:px-8 sm:py-14">
       <BookingFlow
         host={{ username: user.username, name: user.name, image: user.image }}
         eventType={{
@@ -62,10 +63,10 @@ export default async function EventPage(props: PageProps<"/[username]/[slug]">) 
         }}
         reschedule={rescheduleInfo}
       />
-      <p className="mt-6 text-center text-xs text-slate-400">
-        <Link href={`/${user.username}`} className="hover:underline">More events from {user.name || user.username}</Link>
-        {" · "}Powered by <Link href="/" className="hover:underline">{APP_NAME}</Link>
-      </p>
+      <PoweredBy>
+        <Link href={`/${user.username}`} className="hover:text-ink">More from {user.name || user.username}</Link>
+        <span aria-hidden>·</span>
+      </PoweredBy>
     </main>
   );
 }

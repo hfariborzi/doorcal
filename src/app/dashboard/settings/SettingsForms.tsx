@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useState, useTransition } from "react";
 import type { CalendarListItem } from "@/lib/google";
 import { deleteAccount, disconnectGoogle, saveCalendars, saveProfile } from "../actions";
@@ -17,8 +18,8 @@ function SaveBar({ pending, saved, error }: { pending: boolean; saved: boolean; 
   return (
     <div className="flex items-center gap-3">
       <button type="submit" disabled={pending} className="btn-primary">{pending ? "Saving…" : "Save"}</button>
-      {saved && <span className="text-sm text-green-700">Saved ✓</span>}
-      {error && <span className="text-sm text-red-700">{error}</span>}
+      {saved && <span className="inline-flex items-center gap-1 text-sm text-success"><Check size={15} /> Saved</span>}
+      {error && <span className="text-sm text-danger">{error}</span>}
     </div>
   );
 }
@@ -108,7 +109,7 @@ export function CalendarsForm({
     >
       <div>
         <h2 className="font-semibold">Calendars</h2>
-        <p className="text-sm text-slate-500">Choose which calendars block your availability and where new bookings go.</p>
+        <p className="text-sm text-faint">Choose which calendars block your availability and where new bookings go.</p>
       </div>
       <div>
         <p className="label">Check these calendars for conflicts</p>
@@ -128,7 +129,7 @@ export function CalendarsForm({
               />
               <span className="h-3 w-3 rounded-sm" style={{ background: c.color }} />
               {c.summary}
-              {c.primary && <span className="text-xs text-slate-400">(primary)</span>}
+              {c.primary && <span className="text-xs text-faint">(primary)</span>}
             </label>
           ))}
         </div>
@@ -149,11 +150,11 @@ export function CalendarsForm({
 export function DangerZone({ connected }: { connected: boolean }) {
   const [pending, start] = useTransition();
   return (
-    <section className="card space-y-4 border-red-200 p-6">
-      <h2 className="font-semibold text-red-700">Danger zone</h2>
+    <section className="card space-y-4 border-danger/30 p-6">
+      <h2 className="font-semibold text-danger">Danger zone</h2>
       {connected && (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-slate-600">Disconnect Google Calendar. Nobody can book you until you reconnect.</p>
+          <p className="text-sm text-muted">Disconnect Google Calendar. Nobody can book you until you reconnect.</p>
           <button
             className="btn-danger"
             disabled={pending}
@@ -164,9 +165,9 @@ export function DangerZone({ connected }: { connected: boolean }) {
         </div>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-600">Delete your account, event types and booking history. Events already on your Google Calendar stay there.</p>
+        <p className="text-sm text-muted">Delete your account, event types and booking history. Events already on your Google Calendar stay there.</p>
         <button
-          className="btn bg-red-600 text-white hover:bg-red-700"
+          className="btn bg-red-600 text-white hover:bg-red-500"
           disabled={pending}
           onClick={() => confirm("Permanently delete your account? This cannot be undone.") && start(() => deleteAccount())}
         >

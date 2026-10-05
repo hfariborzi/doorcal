@@ -8,15 +8,15 @@ export default async function DashboardHome() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Calendar</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-3xl font-semibold tracking-tight">Calendar</h1>
+        <p className="text-sm text-muted">
           Your Google Calendar. Click any open time to create a meeting.
         </p>
       </div>
       {user.googleRefreshToken ? (
         <CalendarView />
       ) : (
-        <div className="card p-10 text-center text-slate-500">Connect Google Calendar to see your events here.</div>
+        <div className="card p-10 text-center text-faint">Connect Google Calendar to see your events here.</div>
       )}
     </div>
   );

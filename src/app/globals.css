@@ -1,46 +1,88 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-}
-
+/*
+ * DoorCal design tokens, from the "Nocturne Cal" design (design/stitch/nocturne_cal/DESIGN.md):
+ * a calm midnight-purple canvas, frosted surfaces, hairline violet borders and one violet accent.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-canvas: #140d22;
+  --color-surface: #1d1530;
+  --color-raised: #271d3d;
+  --color-line: rgb(192 132 252 / 0.12);
+  --color-line-strong: rgb(192 132 252 / 0.26);
+  --color-ink: #f5f3ff;
+  --color-muted: #cbc1dc;
+  --color-faint: #958aab;
+  --color-accent: #7c3aed;
+  --color-accent-hover: #6d28d9;
+  --color-accent-soft: #d2bbff;
+  --color-danger: #ffb4ab;
+  --color-success: #86efac;
+  --color-warning: #fcd34d;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
+:root {
+  color-scheme: dark;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgb(124 58 237 / 0.22), transparent 70%),
+    var(--color-canvas);
+  background-attachment: fixed;
+  color: var(--color-ink);
+}
+
+::selection {
+  background: rgb(124 58 237 / 0.45);
+}
+
+@utility tnum {
+  font-variant-numeric: tabular-nums;
 }
 
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
 }
 @utility btn-primary {
-  @apply btn bg-blue-600 text-white hover:bg-blue-700;
+  @apply btn bg-accent text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.18)] hover:bg-accent-hover hover:shadow-[0_0_18px_rgb(124_58_237/0.45)];
 }
 @utility btn-secondary {
-  @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+  @apply btn border border-line-strong bg-white/[0.04] text-ink hover:border-accent-soft/40 hover:bg-white/[0.08];
 }
 @utility btn-danger {
-  @apply btn border border-red-200 bg-white text-red-600 hover:bg-red-50;
+  @apply btn border border-danger/30 text-danger hover:bg-danger/10;
 }
 @utility btn-ghost {
-  @apply btn text-slate-600 hover:bg-slate-100;
+  @apply btn text-muted hover:bg-white/[0.06] hover:text-ink;
 }
 @utility input {
-  @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none;
+  @apply block w-full rounded-lg border border-line bg-black/20 px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-accent-soft/60 focus:ring-3 focus:ring-accent/25 focus:outline-none;
 }
 @utility label {
-  @apply mb-1 block text-sm font-medium text-slate-700;
+  @apply mb-1.5 block text-sm font-medium text-muted;
 }
 @utility card {
-  @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+  @apply rounded-2xl border border-line bg-surface/70 shadow-[0_8px_24px_-6px_rgb(10_4_24/0.6)] backdrop-blur-md;
 }
 @utility help {
-  @apply mt-1 text-xs text-slate-500;
+  @apply mt-1.5 text-xs text-faint;
+}
+@utility eyebrow {
+  @apply text-[11px] font-semibold tracking-[0.08em] text-faint uppercase;
+}
+@utility link {
+  @apply text-accent-soft underline-offset-4 hover:underline;
+}
+
+/* Native controls follow the theme: checkboxes and radios in the accent color. */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-accent);
+}
+select option {
+  background: var(--color-surface);
+  color: var(--color-ink);
 }

@@ -19,21 +19,21 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="text-2xl font-semibold">Settings</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
       <ProfileForm
         initial={{ name: user.name, username: user.username, headline: user.headline, welcome: user.welcome, timezone: user.timezone }}
       />
 
       <section className="card space-y-3 p-6">
         <h2 className="font-semibold">Google account</h2>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted">
           Signed in as <strong>{user.email}</strong>.{" "}
           {user.googleRefreshToken ? "Google Calendar is connected." : "Google Calendar is not connected."}
         </p>
         <div className="w-72">
           <GoogleButton reconnect label={user.googleRefreshToken ? "Reconnect Google Calendar" : "Connect Google Calendar"} />
         </div>
-        {calendarError && <p className="text-sm text-red-700">Couldn&apos;t load your calendars: {calendarError}</p>}
+        {calendarError && <p className="text-sm text-danger">Couldn&apos;t load your calendars: {calendarError}</p>}
       </section>
 
       {calendars.length > 0 && (

@@ -4,8 +4,22 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { useRouter } from "next/navigation";
 import { DateTime } from "luxon";
 import type { LocationOption, Question } from "@/db/schema";
-import { locationIcon, locationLabel } from "@/lib/locations";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Globe,
+  Loader2,
+  RefreshCw,
+  UserPlus,
+  Users,
+} from "lucide-react";
+import { locationLabel } from "@/lib/locations";
 import { Avatar } from "@/components/Avatar";
+import { LocationIcon } from "@/components/LocationIcon";
 
 type Slot = { start: string; seatsLeft?: number };
 
@@ -188,198 +202,242 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
     }
   }
 
-  const info = (
-    <div className="border-b border-slate-200 p-6 md:w-80 md:shrink-0 md:border-r md:border-b-0">
-      <div className="flex items-center gap-3">
-        <Avatar name={host.name || host.username} image={host.image} size={40} />
-        <span className="text-sm font-medium text-slate-500">{host.name || host.username}</span>
-      </div>
-      <h1 className="mt-4 text-2xl font-semibold">{eventType.title}</h1>
-      {reschedule && (
-        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Rescheduling your booking from{" "}
-          <strong>{DateTime.fromISO(reschedule.start).setZone(tz).toFormat("ccc, LLL d 'at' h:mm a")}</strong>
-        </p>
-      )}
-      <div className="mt-4 space-y-3 text-sm text-slate-600">
-        <div className="flex flex-wrap items-center gap-2">
-          <span>⏱</span>
-          {eventType.durations.length > 1 && !reschedule ? (
-            eventType.durations.map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => {
-                  setDuration(d);
-                  setSelectedSlot(null);
-                }}
-                className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                  d === duration ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 hover:border-slate-400"
-                }`}
-              >
-                {d} min
-              </button>
-            ))
-          ) : (
-            <span>{duration} min</span>
-          )}
-        </div>
-        {eventType.locations.map((l, i) => (
-          <div key={i} className="flex gap-2">
-            <span>{locationIcon(l.type)}</span>
-            <span>
-              {locationLabel(l)}
-              {l.type === "in_person" && l.address ? `: ${l.address}` : ""}
-            </span>
-          </div>
+  const hostName = host.name || host.username;
+  const slotStart = selectedSlot ? DateTime.fromISO(selectedSlot.start).setZone(tz) : null;
+  const slotEnd = slotStart?.plus({ minutes: duration });
+
+  const durationPicker =
+    eventType.durations.length > 1 && !reschedule ? (
+      <div className="inline-flex rounded-lg border border-line bg-black/20 p-1" role="radiogroup" aria-label="Meeting length">
+        {eventType.durations.map((d) => (
+          <button
+            key={d}
+            type="button"
+            role="radio"
+            aria-checked={d === duration}
+            onClick={() => {
+              setDuration(d);
+              setSelectedSlot(null);
+            }}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium tnum transition ${
+              d === duration ? "bg-accent text-white" : "text-muted hover:text-ink"
+            }`}
+          >
+            {d} min
+          </button>
         ))}
-        {eventType.seats > 1 && (
-          <div className="flex gap-2">
-            <span>👥</span>
-            <span>Group event, up to {eventType.seats} people</span>
-          </div>
-        )}
-        {selectedSlot && (
-          <div className="flex gap-2 font-medium text-slate-900">
-            <span>📅</span>
-            <span>
-              {fmtTime(selectedSlot.start)} –{" "}
-              {fmtTime(DateTime.fromISO(selectedSlot.start).plus({ minutes: duration }).toISO()!)},{" "}
-              {DateTime.fromISO(selectedSlot.start).setZone(tz).toFormat("cccc, LLLL d, yyyy")}
-            </span>
-          </div>
-        )}
-        {selectedSlot && (
-          <div className="flex gap-2">
-            <span>🌐</span>
-            <span>{tz.replace(/_/g, " ")}</span>
-          </div>
-        )}
       </div>
-      {eventType.description && (
-        <p className="mt-5 whitespace-pre-line text-sm text-slate-600">{eventType.description}</p>
-      )}
+    ) : null;
+
+  const rescheduleBanner = reschedule && (
+    <div className="mb-6 flex items-center gap-3 rounded-xl border border-line bg-accent/10 px-4 py-3 text-sm">
+      <RefreshCw size={18} className="shrink-0 text-accent-soft" />
+      <div>
+        <div className="font-medium text-ink">Rescheduling your booking</div>
+        <div className="text-muted">
+          Originally{" "}
+          <span className="text-accent-soft tnum">
+            {DateTime.fromISO(reschedule.start).setZone(tz).toFormat(hour12 ? "ccc, LLL d 'at' h:mm a" : "ccc, LLL d 'at' HH:mm")}
+          </span>
+        </div>
+      </div>
     </div>
   );
 
-  if (selectedSlot) {
+  // Step 2: the invitee's details.
+  if (selectedSlot && slotStart && slotEnd) {
     return (
-      <div className="card flex flex-col overflow-hidden md:flex-row">
-        {info}
-        <form onSubmit={submit} className="flex-1 space-y-4 p-6">
-          <button type="button" onClick={() => setSelectedSlot(null)} className="btn-ghost -ml-2 px-2">
-            ← Back
-          </button>
-          {reschedule ? (
-            <>
-              <h2 className="text-lg font-semibold">Confirm new time</h2>
-              <p className="text-sm text-slate-600">
-                {reschedule.name}, your meeting will move to the time shown. Everyone on the invite will get an
-                updated calendar invitation.
-              </p>
-            </>
-          ) : (
-            <>
-              <h2 className="text-lg font-semibold">Enter details</h2>
-              <div>
-                <label className="label" htmlFor="name">Name *</label>
-                <input id="name" className="input" required value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
-              </div>
-              <div>
-                <label className="label" htmlFor="email">Email *</label>
-                <input id="email" type="email" className="input" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-              </div>
-              {showGuests ? (
+      <div>
+        <button type="button" onClick={() => setSelectedSlot(null)} className="btn-ghost -ml-3 mb-6">
+          <ArrowLeft size={16} /> Back to date &amp; time
+        </button>
+        {rescheduleBanner}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <aside className="card h-fit p-6">
+            <p className="eyebrow">Your meeting</p>
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight">{eventType.title}</h1>
+            <div className="mt-5 flex items-center gap-3">
+              <Avatar name={hostName} image={host.image} size={36} />
+              <span className="text-sm text-muted">with {hostName}</span>
+            </div>
+            <dl className="mt-6 space-y-4 text-sm">
+              <div className="flex gap-3">
+                <CalendarDays size={18} className="mt-0.5 shrink-0 text-accent-soft" />
                 <div>
-                  <label className="label" htmlFor="guests">Guest emails</label>
-                  <textarea id="guests" className="input" rows={2} placeholder="alex@example.com, sam@example.com" value={guests} onChange={(e) => setGuests(e.target.value)} />
-                  <p className="help">Separate with commas. Guests get the calendar invite too.</p>
+                  <dt className="font-medium text-ink">{slotStart.toFormat("cccc, LLLL d, yyyy")}</dt>
+                  <dd className="text-muted tnum">
+                    {fmtTime(slotStart.toISO()!)} – {fmtTime(slotEnd.toISO()!)} ({duration} min)
+                  </dd>
                 </div>
-              ) : (
-                <button type="button" onClick={() => setShowGuests(true)} className="btn-secondary">
-                  + Add guests
-                </button>
+              </div>
+              <div className="flex gap-3">
+                <Globe size={18} className="mt-0.5 shrink-0 text-accent-soft" />
+                <div>
+                  <dt className="font-medium text-ink">{tz.replace(/_/g, " ")}</dt>
+                  <dd className="text-muted">{slotStart.toFormat("ZZZZZ")}</dd>
+                </div>
+              </div>
+              {eventType.seats > 1 && (
+                <div className="flex gap-3">
+                  <Users size={18} className="mt-0.5 shrink-0 text-accent-soft" />
+                  <dt className="text-muted">Group event, up to {eventType.seats} people</dt>
+                </div>
               )}
-              {eventType.locations.length > 1 && (
-                <fieldset>
-                  <legend className="label">Where should we meet? *</legend>
-                  <div className="space-y-2">
-                    {eventType.locations.map((l, i) => (
-                      <label key={i} className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-                        <input type="radio" name="loc" checked={locationIndex === i} onChange={() => setLocationIndex(i)} />
-                        <span>{locationIcon(l.type)}</span>
-                        <span>
-                          {locationLabel(l)}
-                          {l.type === "in_person" && l.address ? `: ${l.address}` : ""}
-                        </span>
-                      </label>
-                    ))}
+            </dl>
+          </aside>
+
+          <form onSubmit={submit} className="card space-y-6 p-6 sm:p-8">
+            {reschedule ? (
+              <div>
+                <h2 className="text-lg font-semibold">Confirm the new time</h2>
+                <p className="mt-2 text-sm text-muted">
+                  {reschedule.name}, your meeting will move to the time shown. Everyone on the invitation gets an
+                  updated calendar invite.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <label className="label" htmlFor="name">Your name *</label>
+                    <input id="name" className="input" required value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
                   </div>
-                </fieldset>
-              )}
-              {loc?.type === "phone_host_calls" && (
-                <div>
-                  <label className="label" htmlFor="phone">Phone number *</label>
-                  <input id="phone" type="tel" className="input" required value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
+                  <div>
+                    <label className="label" htmlFor="email">Email address *</label>
+                    <input id="email" type="email" className="input" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+                  </div>
                 </div>
-              )}
-              {eventType.questions.map((q) => (
-                <div key={q.id}>
-                  <label className="label" htmlFor={`q-${q.id}`}>
-                    {q.label}
-                    {q.required && " *"}
-                  </label>
-                  {q.type === "textarea" ? (
-                    <textarea id={`q-${q.id}`} className="input" rows={3} required={q.required} value={answers[q.id] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })} />
-                  ) : q.type === "select" ? (
-                    <select id={`q-${q.id}`} className="input" required={q.required} value={answers[q.id] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}>
-                      <option value="">Select…</option>
-                      {(q.options ?? []).map((o) => (
-                        <option key={o}>{o}</option>
+                {showGuests ? (
+                  <div>
+                    <label className="label" htmlFor="guests">Guest emails</label>
+                    <textarea id="guests" className="input" rows={2} placeholder="alex@example.com, sam@example.com" value={guests} onChange={(e) => setGuests(e.target.value)} />
+                    <p className="help">Separate with commas. Guests get the calendar invitation too.</p>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setShowGuests(true)} className="btn-ghost -ml-3 text-accent-soft">
+                    <UserPlus size={16} /> Add guests
+                  </button>
+                )}
+                {eventType.locations.length > 1 && (
+                  <fieldset>
+                    <legend className="label">Where should we meet? *</legend>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {eventType.locations.map((l, i) => (
+                        <label
+                          key={i}
+                          className="relative flex cursor-pointer flex-col gap-3 rounded-xl border border-line bg-black/20 p-4 text-sm transition hover:border-line-strong has-[:checked]:border-accent has-[:checked]:bg-accent/15"
+                        >
+                          <input type="radio" name="loc" className="sr-only" checked={locationIndex === i} onChange={() => setLocationIndex(i)} />
+                          <LocationIcon type={l.type} size={20} className="text-accent-soft" />
+                          <span>
+                            <span className="block font-medium text-ink">{locationLabel(l)}</span>
+                            {l.type === "in_person" && l.address && <span className="mt-0.5 block text-faint">{l.address}</span>}
+                          </span>
+                        </label>
                       ))}
-                    </select>
-                  ) : (
-                    <input id={`q-${q.id}`} type={q.type === "phone" ? "tel" : "text"} className="input" required={q.required} value={answers[q.id] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })} />
-                  )}
+                    </div>
+                  </fieldset>
+                )}
+                {loc?.type === "phone_host_calls" && (
+                  <div>
+                    <label className="label" htmlFor="phone">Phone number *</label>
+                    <input id="phone" type="tel" className="input" required value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
+                  </div>
+                )}
+                {eventType.questions.map((q) => (
+                  <div key={q.id}>
+                    <label className="label" htmlFor={`q-${q.id}`}>
+                      {q.label}
+                      {q.required && " *"}
+                    </label>
+                    {q.type === "textarea" ? (
+                      <textarea id={`q-${q.id}`} className="input" rows={3} required={q.required} value={answers[q.id] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })} />
+                    ) : q.type === "select" ? (
+                      <select id={`q-${q.id}`} className="input" required={q.required} value={answers[q.id] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}>
+                        <option value="">Select…</option>
+                        {(q.options ?? []).map((o) => (
+                          <option key={o}>{o}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input id={`q-${q.id}`} type={q.type === "phone" ? "tel" : "text"} className="input" required={q.required} value={answers[q.id] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })} />
+                    )}
+                  </div>
+                ))}
+                <div>
+                  <label className="label" htmlFor="notes">Anything that will help prepare?</label>
+                  <textarea id="notes" className="input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
                 </div>
-              ))}
-              <div>
-                <label className="label" htmlFor="notes">Anything that will help prepare for the meeting?</label>
-                <textarea id="notes" className="input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
-              </div>
-              <input type="text" tabIndex={-1} autoComplete="off" className="hidden" value={website} onChange={(e) => setWebsite(e.target.value)} aria-hidden />
-            </>
-          )}
-          {submitError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{submitError}</p>}
-          <button type="submit" disabled={submitting} className="btn-primary px-6 py-2.5">
-            {submitting ? "Scheduling…" : reschedule ? "Reschedule event" : "Schedule event"}
-          </button>
-        </form>
+                <input type="text" tabIndex={-1} autoComplete="off" className="hidden" value={website} onChange={(e) => setWebsite(e.target.value)} aria-hidden />
+              </>
+            )}
+            {submitError && <p className="rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{submitError}</p>}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <button type="submit" disabled={submitting} className="btn-primary flex-1 py-3 text-[15px] sm:flex-none sm:px-10">
+                {submitting ? <Loader2 size={18} className="animate-spin" /> : null}
+                {submitting ? "Scheduling…" : reschedule ? "Reschedule event" : "Schedule event"}
+              </button>
+              <button type="button" onClick={() => setSelectedSlot(null)} className="btn-ghost">Cancel</button>
+            </div>
+          </form>
+        </div>
       </div>
     );
   }
 
+  // Step 1: pick a date and time.
   const daySlots = selectedDate ? byDate.get(selectedDate) ?? [] : [];
 
   return (
-    <div className="card flex flex-col overflow-hidden md:flex-row">
-      {info}
-      <div className="flex flex-1 flex-col gap-6 p-6 lg:flex-row">
-        <div className="flex-1">
-          <h2 className="text-lg font-semibold">Select a date & time</h2>
-          <div className="mt-4 flex items-center justify-between">
-            <span className="font-medium">{month.toFormat("LLLL yyyy")}</span>
-            <div className="flex gap-1">
-              <button type="button" disabled={!canGoBack} onClick={() => { setMonth(month.minus({ months: 1 })); setSelectedDate(null); }} className="btn-ghost px-3" aria-label="Previous month">‹</button>
-              <button type="button" onClick={() => { setMonth(month.plus({ months: 1 })); setSelectedDate(null); }} className="btn-ghost px-3" aria-label="Next month">›</button>
+    <div>
+      {rescheduleBanner}
+      <header className="flex flex-col gap-6 border-b border-line pb-8 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex gap-4">
+          <Avatar name={hostName} image={host.image} size={56} />
+          <div className="min-w-0">
+            <p className="text-sm text-muted">{hostName}</p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-[-0.02em]">{eventType.title}</h1>
+            {eventType.description && <p className="mt-3 max-w-2xl text-sm leading-relaxed whitespace-pre-line text-muted">{eventType.description}</p>}
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
+              {!durationPicker && (
+                <span className="inline-flex items-center gap-1.5 tnum"><Clock size={15} strokeWidth={1.75} className="text-accent-soft" />{duration} min</span>
+              )}
+              {eventType.locations.map((l, i) => (
+                <span key={i} className="inline-flex items-center gap-1.5">
+                  <LocationIcon type={l.type} size={15} className="text-accent-soft" />
+                  {locationLabel(l)}
+                  {l.type === "in_person" && l.address ? `: ${l.address}` : ""}
+                </span>
+              ))}
+              {eventType.seats > 1 && (
+                <span className="inline-flex items-center gap-1.5"><Users size={15} strokeWidth={1.75} className="text-accent-soft" />Group, up to {eventType.seats} people</span>
+              )}
             </div>
           </div>
-          <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-500">
+        </div>
+        {durationPicker && (
+          <div className="shrink-0">
+            <p className="eyebrow mb-2">Length</p>
+            {durationPicker}
+          </div>
+        )}
+      </header>
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+        <section>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold tracking-tight">{month.toFormat("LLLL yyyy")}</h2>
+            <div className="flex gap-1">
+              <button type="button" disabled={!canGoBack} onClick={() => { setMonth(month.minus({ months: 1 })); setSelectedDate(null); }} className="btn-ghost px-2.5" aria-label="Previous month"><ChevronLeft size={18} /></button>
+              <button type="button" onClick={() => { setMonth(month.plus({ months: 1 })); setSelectedDate(null); }} className="btn-ghost px-2.5" aria-label="Next month"><ChevronRight size={18} /></button>
+            </div>
+          </div>
+          <div className="mt-5 grid grid-cols-7 gap-1 text-center text-[11px] font-semibold tracking-[0.08em] text-faint uppercase">
             {WEEKDAYS.map((d) => (
-              <div key={d} className="py-1">{d}</div>
+              <div key={d} className="py-2">{d}</div>
             ))}
           </div>
-          <div className="mt-1 grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-1">
             {days.map((d, i) => {
               if (!d) return <div key={i} />;
               const iso = d.toISODate()!;
@@ -391,60 +449,93 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
                   type="button"
                   disabled={!available}
                   onClick={() => setSelectedDate(iso)}
-                  className={`relative mx-auto grid aspect-square w-full max-w-11 place-items-center rounded-full text-sm transition ${
+                  aria-pressed={selected}
+                  className={`relative mx-auto grid aspect-square w-full max-w-14 place-items-center rounded-xl text-sm tnum transition ${
                     selected
-                      ? "bg-blue-600 font-semibold text-white"
+                      ? "bg-accent font-semibold text-white shadow-[0_0_0_2px_var(--color-canvas),0_0_0_4px_rgb(192_132_252/0.7)]"
                       : available
-                        ? "bg-blue-50 font-semibold text-blue-700 hover:bg-blue-100"
-                        : "text-slate-400"
+                        ? "bg-white/[0.05] font-semibold text-ink hover:bg-accent/25"
+                        : "text-faint/50"
                   }`}
                 >
                   {d.day}
-                  {iso === today && <span className={`absolute bottom-1 h-1 w-1 rounded-full ${selected ? "bg-white" : "bg-slate-400"}`} />}
+                  {available && !selected && <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-accent-soft" />}
+                  {iso === today && !available && <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-faint" />}
                 </button>
               );
             })}
           </div>
-          {slots === null && !loadError && <p className="mt-4 text-sm text-slate-500">Loading availability…</p>}
-          {loadError && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
-          {slots && slots.length === 0 && !loadError && <p className="mt-4 text-sm text-slate-500">No times available this month.</p>}
+          {slots === null && !loadError && (
+            <p className="mt-5 inline-flex items-center gap-2 text-sm text-faint"><Loader2 size={15} className="animate-spin" /> Loading availability…</p>
+          )}
+          {loadError && <p className="mt-5 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{loadError}</p>}
+          {slots && slots.length === 0 && !loadError && <p className="mt-5 text-sm text-faint">No times available this month.</p>}
+        </section>
 
-          <div className="mt-6">
-            <label className="label" htmlFor="tz">Time zone</label>
-            <div className="flex gap-2">
-              <select id="tz" className="input" value={tz} onChange={(e) => setTz(e.target.value)}>
-                {allTimezones(tz).map((z) => (
-                  <option key={z} value={z}>{z.replace(/_/g, " ")}</option>
+        <section className="lg:border-l lg:border-line lg:pl-8">
+          {selectedDate ? (
+            <>
+              <h3 className="text-xl font-semibold tracking-tight">{DateTime.fromISO(selectedDate).toFormat("cccc, LLL d")}</h3>
+              <p className="mt-1 text-sm text-faint">
+                {daySlots.length} {daySlots.length === 1 ? "time" : "times"} available
+              </p>
+              <div className="mt-5 flex max-h-[26rem] flex-col gap-2 overflow-y-auto pr-1">
+                {daySlots.map((s) => (
+                  <button
+                    key={s.start}
+                    type="button"
+                    onClick={() => setSelectedSlot(s)}
+                    className="group flex items-center justify-between rounded-xl border border-line bg-white/[0.03] px-4 py-3.5 text-left transition hover:border-accent/60 hover:bg-accent/15"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="font-semibold text-ink tnum">{fmtTime(s.start)}</span>
+                      {s.seatsLeft !== undefined && (
+                        <span className="rounded-md bg-accent/20 px-1.5 py-0.5 text-[11px] font-medium text-accent-soft">
+                          {s.seatsLeft} seat{s.seatsLeft === 1 ? "" : "s"} left
+                        </span>
+                      )}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-sm text-muted group-hover:text-ink">
+                      Select <ArrowRight size={15} />
+                    </span>
+                  </button>
                 ))}
-              </select>
-              <button type="button" onClick={() => setHour12(!hour12)} className="btn-secondary shrink-0">
-                {hour12 ? "12h" : "24h"}
-              </button>
+                {daySlots.length === 0 && <p className="text-sm text-faint">No times left on this day.</p>}
+              </div>
+            </>
+          ) : (
+            <div className="flex h-full min-h-40 flex-col items-center justify-center gap-3 text-center text-sm text-faint">
+              <CalendarDays size={22} strokeWidth={1.5} />
+              Pick a highlighted day to see the times.
             </div>
-          </div>
-        </div>
+          )}
+        </section>
+      </div>
 
-        {selectedDate && (
-          <div className="lg:w-52">
-            <h3 className="font-medium">{DateTime.fromISO(selectedDate).toFormat("cccc, LLLL d")}</h3>
-            <div className="mt-4 flex max-h-[26rem] flex-col gap-2 overflow-y-auto pr-1">
-              {daySlots.map((s) => (
-                <button
-                  key={s.start}
-                  type="button"
-                  onClick={() => setSelectedSlot(s)}
-                  className="rounded-lg border border-blue-300 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:border-blue-600 hover:bg-blue-50"
-                >
-                  {fmtTime(s.start)}
-                  {s.seatsLeft !== undefined && (
-                    <span className="block text-xs font-normal text-slate-500">{s.seatsLeft} seat{s.seatsLeft === 1 ? "" : "s"} left</span>
-                  )}
-                </button>
-              ))}
-              {daySlots.length === 0 && <p className="text-sm text-slate-500">No times left on this day.</p>}
-            </div>
-          </div>
-        )}
+      <div className="mt-10 flex flex-col gap-4 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <label className="flex min-w-0 items-center gap-3">
+          <Globe size={18} className="shrink-0 text-faint" />
+          <span className="sr-only">Time zone</span>
+          <select className="input w-full border-transparent bg-transparent px-1 sm:w-80" value={tz} onChange={(e) => setTz(e.target.value)}>
+            {allTimezones(tz).map((z) => (
+              <option key={z} value={z}>{z.replace(/_/g, " ")}</option>
+            ))}
+          </select>
+        </label>
+        <div className="inline-flex shrink-0 self-start rounded-lg border border-line bg-black/20 p-1 text-xs font-medium sm:self-auto" role="radiogroup" aria-label="Clock format">
+          {[true, false].map((h) => (
+            <button
+              key={String(h)}
+              type="button"
+              role="radio"
+              aria-checked={hour12 === h}
+              onClick={() => setHour12(h)}
+              className={`rounded-md px-3 py-1 ${hour12 === h ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
+            >
+              {h ? "12h" : "24h"}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

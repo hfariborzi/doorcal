@@ -13,20 +13,6 @@ export function locationLabel(loc: Pick<LocationOption, "type"> & Partial<{ labe
   return LOCATION_TYPES.find((l) => l.type === loc.type)?.label ?? loc.type;
 }
 
-export function locationIcon(type: LocationOption["type"]): string {
-  switch (type) {
-    case "google_meet":
-      return "🎥";
-    case "in_person":
-      return "📍";
-    case "phone_host_calls":
-    case "phone_invitee_calls":
-      return "📞";
-    case "custom_link":
-      return "🔗";
-  }
-}
-
 /** Human-readable details of where a booked meeting happens. */
 export function bookingLocationText(loc: BookingLocation, meetLink?: string | null): string {
   switch (loc.type) {

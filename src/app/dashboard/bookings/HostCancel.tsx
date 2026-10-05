@@ -18,11 +18,11 @@ export function HostCancel({ uid }: { uid: string }) {
   return (
     <div className="mt-2 w-full space-y-2">
       <textarea className="input" rows={2} placeholder="Reason (shared with the invitee)" value={reason} onChange={(e) => setReason(e.target.value)} />
-      {error && <p className="text-sm text-red-700">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
       <div className="flex gap-2">
         <button
           disabled={pending}
-          className="btn bg-red-600 py-1.5 text-white hover:bg-red-700"
+          className="btn bg-red-600 py-1.5 text-white hover:bg-red-500"
           onClick={() =>
             start(async () => {
               const r = await hostCancelBooking(uid, reason);

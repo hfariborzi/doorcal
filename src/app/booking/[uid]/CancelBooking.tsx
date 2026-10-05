@@ -34,12 +34,12 @@ export function CancelBooking({ uid }: { uid: string }) {
     );
 
   return (
-    <div className="w-full space-y-3 rounded-lg border border-red-200 bg-red-50/50 p-4 text-left">
+    <div className="w-full space-y-3 rounded-xl border border-danger/25 bg-danger/5 p-4 text-left">
       <label className="label" htmlFor="reason">Reason for cancelling (optional)</label>
       <textarea id="reason" className="input" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} />
-      {error && <p className="text-sm text-red-700">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
       <div className="flex gap-2">
-        <button onClick={cancel} disabled={busy} className="btn bg-red-600 text-white hover:bg-red-700">
+        <button onClick={cancel} disabled={busy} className="btn bg-red-600 text-white hover:bg-red-500">
           {busy ? "Cancelling…" : "Confirm cancellation"}
         </button>
         <button onClick={() => setOpen(false)} className="btn-ghost">Keep booking</button>

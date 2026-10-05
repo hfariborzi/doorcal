@@ -15,7 +15,7 @@ export function ScheduleActions({ id, isDefault }: { id: number; isDefault: bool
       )}
       {!isDefault && (
         <button
-          className="btn-ghost py-1.5 text-red-600"
+          className="btn-ghost py-1.5 text-danger"
           disabled={pending}
           onClick={() =>
             confirm("Delete this schedule? Event types using it will fall back to your default.") &&
@@ -28,7 +28,7 @@ export function ScheduleActions({ id, isDefault }: { id: number; isDefault: bool
           Delete
         </button>
       )}
-      {error && <span className="text-sm text-red-700">{error}</span>}
+      {error && <span className="text-sm text-danger">{error}</span>}
     </div>
   );
 }

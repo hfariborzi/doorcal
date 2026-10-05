@@ -20,9 +20,9 @@ export default async function EditEventTypePage(props: PageProps<"/dashboard/eve
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <Link href="/dashboard/event-types" className="text-sm text-slate-500 hover:text-slate-800">← Event types</Link>
+      <Link href="/dashboard/event-types" className="text-sm text-faint hover:text-ink">← Event types</Link>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">{et.title}</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">{et.title}</h1>
         <a href={`/${user.username}/${et.slug}`} target="_blank" rel="noreferrer" className="btn-secondary">Preview booking page ↗</a>
       </div>
       <EventTypeForm

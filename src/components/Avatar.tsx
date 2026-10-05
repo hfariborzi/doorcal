@@ -14,13 +14,13 @@ export function Avatar({ name, image, size = 48 }: { name: string; image?: strin
         width={size}
         height={size}
         referrerPolicy="no-referrer"
-        className="rounded-full object-cover"
+        className="shrink-0 rounded-full object-cover ring-1 ring-line-strong"
         style={{ width: size, height: size }}
       />
     );
   return (
     <div
-      className="grid place-items-center rounded-full bg-blue-100 font-semibold text-blue-700"
+      className="grid shrink-0 place-items-center rounded-full bg-accent/25 font-semibold text-accent-soft ring-1 ring-line-strong"
       style={{ width: size, height: size, fontSize: size * 0.38 }}
     >
       {initials || "?"}

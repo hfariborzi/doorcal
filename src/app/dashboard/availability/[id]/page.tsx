@@ -26,8 +26,8 @@ export default async function SchedulePage(props: PageProps<"/dashboard/availabi
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <Link href="/dashboard/availability" className="text-sm text-slate-500 hover:text-slate-800">← Availability</Link>
-      <h1 className="text-2xl font-semibold">{initial.name}</h1>
+      <Link href="/dashboard/availability" className="text-sm text-faint hover:text-ink">← Availability</Link>
+      <h1 className="text-3xl font-semibold tracking-tight">{initial.name}</h1>
       <ScheduleForm key={id} initial={initial} />
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Check, Copy } from "lucide-react";
 
 export function CopyButton({ text, label = "Copy link", className = "btn-secondary" }: { text: string; label?: string; className?: string }) {
   const [copied, setCopied] = useState(false);
@@ -14,7 +15,8 @@ export function CopyButton({ text, label = "Copy link", className = "btn-seconda
         setTimeout(() => setCopied(false), 1500);
       }}
     >
-      {copied ? "Copied!" : label}
+      {copied ? <Check size={15} /> : <Copy size={15} />}
+      {copied ? "Copied" : label}
     </button>
   );
 }
