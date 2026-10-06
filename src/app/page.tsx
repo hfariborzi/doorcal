@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { APP_NAME } from "@/lib/config";
 import { SignInButtons } from "@/components/SignInButtons";
-import { Wordmark } from "@/components/Logo";
+import { FullLogo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
 
 function Waves() {
@@ -35,8 +35,8 @@ export default async function Home() {
     <div className="relative isolate flex min-h-screen flex-1 flex-col overflow-hidden">
       <Waves />
       <main className="flex flex-1 flex-col items-center px-6 pt-14 pb-16">
-        <div className="rounded-full border border-line bg-white/[0.04] px-5 py-2 text-ink backdrop-blur">
-          <Wordmark className="text-[22px]" />
+        <div className="flex items-center rounded-full border border-line bg-white/[0.04] px-5 py-3 text-ink backdrop-blur">
+          <FullLogo height="22px" />
         </div>
 
         <div className="my-auto w-full max-w-2xl py-16 text-center">
