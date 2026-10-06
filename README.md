@@ -126,7 +126,12 @@ model is enough; a thousand active users cost about a dollar a week.
 | OpenAI | `https://api.openai.com/v1` | `gpt-5-nano` | $0.05 / $0.40 |
 | Groq | `https://api.groq.com/openai/v1` | `llama-3.1-8b-instant` | $0.05 / $0.08 |
 | Mistral | `https://api.mistral.ai/v1` | `ministral-3b-latest` | $0.10 / $0.10 |
+| OpenRouter (many models, one key) | `https://openrouter.ai/api/v1` | `openai/gpt-6-luna-pro` | $0.10 / $0.50 |
 | Self-hosted (vLLM, Ollama) | your server's `/v1` | your model | free |
+
+Reasoning models (GPT-5 nano, gpt-oss) work too; DoorCal leaves them room to think before the short answer.
+On OpenRouter, check **Settings → Privacy** so prompts are not logged and only providers that don't train on
+inputs are used; name the route in `AI_PROVIDER_NAME` (e.g. "OpenRouter (which passes it to OpenAI)").
 
 Set `AI_PROVIDER_NAME` to the provider's name; it appears on the consent screen and in the privacy policy.
 Users opt in per account in Settings. Only the title, length, recurrence, attendee count, video-link flag and

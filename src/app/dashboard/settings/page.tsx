@@ -7,6 +7,8 @@ import { CategoriesSettings } from "./CategoriesSettings";
 import { ConnectedCalendars, DangerZone, ProfileForm } from "./SettingsForms";
 
 export const metadata = { title: "Settings" };
+// The "suggest categories" action waits on the AI provider; give it time.
+export const maxDuration = 60;
 
 export default async function SettingsPage(props: PageProps<"/dashboard/settings">) {
   const user = await requireUser();

@@ -8,7 +8,7 @@
  */
 import type { z } from "zod";
 
-const TIMEOUT_MS = 20_000;
+const DEFAULT_TIMEOUT_MS = 25_000;
 
 export function aiConfigured() {
   return !!(process.env.AI_API_KEY && process.env.AI_MODEL);
@@ -31,13 +31,14 @@ type Completion = {
   error?: { message?: string };
 };
 
-async function complete(body: Record<string, unknown>): Promise<{ status: number; data: Completion }> {
+async function complete(body: Record<string, unknown>, timeoutMs: number): Promise<{ status: number; data: Completion }> {
   const { key, baseUrl } = config();
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    // The two X- headers are OpenRouter's optional app attribution; other providers ignore them.
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "HTTP-Referer": "https://doorcal.com", "X-Title": "DoorCal" },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   const text = await res.text();
   let data: Completion = {};
@@ -60,8 +61,10 @@ export async function completeJson<T>(opts: {
   system: string;
   user: string;
   maxTokens: number;
+  timeoutMs?: number;
 }): Promise<{ data: T; usage: Usage }> {
   const { model } = config();
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const base = {
     model,
     temperature: 0,
@@ -74,7 +77,7 @@ export async function completeJson<T>(opts: {
   let { status, data } = await complete({
     ...base,
     response_format: { type: "json_schema", json_schema: { name: opts.name, schema: opts.jsonSchema, strict: true } },
-  });
+  }, timeoutMs);
   if (status === 400) {
     ({ status, data } = await complete({
       ...base,
@@ -83,7 +86,7 @@ export async function completeJson<T>(opts: {
         { role: "user", content: opts.user },
       ],
       response_format: { type: "json_object" },
-    }));
+    }, timeoutMs));
   }
   if (status >= 300) throw new Error(`AI provider ${status}: ${data.error?.message ?? "request failed"}`);
   const content = data.choices?.[0]?.message?.content ?? "";
