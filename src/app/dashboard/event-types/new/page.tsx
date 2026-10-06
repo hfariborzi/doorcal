@@ -23,6 +23,7 @@ export default async function NewEventTypePage() {
         defaultTarget={defaultTarget}
         initial={{
           writeTarget: null,
+          preferences: null,
           title: "",
           slug: "",
           description: "",

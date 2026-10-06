@@ -55,8 +55,8 @@ export function ProviderButton({
   return (
     <a
       href={`/api/auth/${provider}?${q}`}
-      className={`btn bg-white text-[#1f1f1f] hover:bg-[#f2f2f2] ${
-        compact ? "rounded-lg px-3 py-1.5 text-sm" : "w-full rounded-full py-3 text-base shadow-[0_6px_20px_-6px_rgb(0_0_0/0.5)]"
+      className={`btn border border-line-strong bg-white text-[#1f1f1f] hover:bg-[#f2f2f2] ${
+        compact ? "rounded-lg px-3 py-1.5 text-sm" : "w-full rounded-full py-3 text-base shadow-(--shadow-card)"
       }`}
     >
       {provider === "google" ? <GoogleLogo /> : <MicrosoftLogo />}

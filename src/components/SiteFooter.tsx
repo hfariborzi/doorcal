@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CONTACT_EMAIL, SOURCE_URL } from "@/lib/config";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function SiteFooter() {
   return (
@@ -17,6 +18,9 @@ export function SiteFooter() {
           </>
         )}
       </nav>
+      <div className="mt-3 flex justify-center">
+        <ThemeToggle className="text-xs" />
+      </div>
     </footer>
   );
 }

@@ -22,7 +22,7 @@ export function Switch({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition disabled:opacity-50 ${
-        checked ? "bg-accent" : "bg-white/15"
+        checked ? "bg-accent" : "bg-line-strong"
       }`}
     >
       <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${checked ? "translate-x-5.5" : "translate-x-0.5"}`} />

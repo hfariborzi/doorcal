@@ -60,6 +60,7 @@ export default async function EventPage(props: PageProps<"/[username]/[slug]">) 
           color: et.color,
           questions: et.questions,
           seats: et.seats,
+          preferences: et.preferences,
         }}
         reschedule={rescheduleInfo}
       />

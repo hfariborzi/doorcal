@@ -78,7 +78,7 @@ export default async function BookingsPage(props: PageProps<"/dashboard/bookings
             const e = DateTime.fromJSDate(b.end).setZone(tz);
             return (
               <div key={b.id}>
-                {header && <div className="eyebrow bg-black/20 px-5 py-2.5">{header}</div>}
+                {header && <div className="eyebrow bg-well px-5 py-2.5">{header}</div>}
                 <div className="flex flex-wrap items-start gap-4 px-5 py-4">
                   <div className="w-36 shrink-0 text-sm font-medium tnum">
                     {s.toFormat("h:mm a")} – {e.toFormat("h:mm a")}

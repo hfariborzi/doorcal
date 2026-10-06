@@ -36,7 +36,7 @@ export default async function ProfilePage(props: PageProps<"/[username]">) {
         <ul className="mt-12 divide-y divide-line border-y border-line">
           {types.map((t) => (
             <li key={t.id}>
-              <Link href={`/${user.username}/${t.slug}`} className="group flex items-center gap-4 px-2 py-5 transition hover:bg-white/[0.03]">
+              <Link href={`/${user.username}/${t.slug}`} className="group flex items-center gap-4 px-2 py-5 transition hover:bg-paper">
                 <span className="h-9 w-1 shrink-0 rounded-full" style={{ background: t.color }} />
                 <div className="min-w-0 flex-1">
                   <h2 className="font-medium text-ink">{t.title}</h2>

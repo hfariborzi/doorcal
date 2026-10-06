@@ -38,6 +38,7 @@ export default async function EditEventTypePage(props: PageProps<"/dashboard/eve
         initial={{
           id: et.id,
           writeTarget: et.writeAccountId ? `${et.writeAccountId}:${et.writeCalendarId ?? "primary"}` : null,
+          preferences: et.preferences,
           title: et.title,
           slug: et.slug,
           description: et.description,

@@ -36,7 +36,7 @@ export type SlotInput = {
   ignoreBookingUid?: string; // when rescheduling, the booking being moved doesn't block itself
 };
 
-export type Slot = { start: string; seatsLeft?: number };
+export type Slot = { start: string; seatsLeft?: number; preferred?: boolean };
 
 function rangesForDate(schedule: SlotInput["schedule"], date: DateTime): TimeRange[] {
   const iso = date.toISODate()!;

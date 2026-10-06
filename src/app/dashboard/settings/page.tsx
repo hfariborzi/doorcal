@@ -1,5 +1,9 @@
+import { AI_PROVIDER_NAME, aiConfigured, usageThisMonth } from "@/lib/ai";
 import { requireUser } from "@/lib/auth";
 import { calendarsForAccounts, enabledProviders, listAccounts } from "@/lib/calendar";
+import { ensureCategories, listRules } from "@/lib/labels";
+import { AiSettings } from "./AiSettings";
+import { CategoriesSettings } from "./CategoriesSettings";
 import { ConnectedCalendars, DangerZone, ProfileForm } from "./SettingsForms";
 
 export const metadata = { title: "Settings" };
@@ -9,6 +13,7 @@ export default async function SettingsPage(props: PageProps<"/dashboard/settings
   const sp = await props.searchParams;
   const accounts = await listAccounts(user.id);
   const groups = await calendarsForAccounts(accounts);
+  const [cats, rules, usage] = await Promise.all([ensureCategories(user.id), listRules(user.id), aiConfigured() ? usageThisMonth(user.id) : { events: 0, requests: 0 }]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -31,6 +36,8 @@ export default async function SettingsPage(props: PageProps<"/dashboard/settings
         initialWrite={{ accountId: user.writeAccountId, calendarId: user.writeCalendarId }}
         flash={typeof sp.error === "string" ? { kind: "error", text: sp.error } : sp.connected === "1" ? { kind: "ok", text: "Calendar connected." } : null}
       />
+      <CategoriesSettings categories={cats} rules={rules} />
+      <AiSettings configured={aiConfigured()} providerName={AI_PROVIDER_NAME} enabled={!!user.aiConsentAt} usage={usage} hasCategories={cats.length > 0} />
       <DangerZone />
     </div>
   );

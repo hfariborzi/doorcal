@@ -24,7 +24,7 @@ export function Nav() {
             href={href}
             aria-current={active ? "page" : undefined}
             className={`flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
-              active ? "bg-accent text-white shadow-[0_0_16px_rgb(124_58_237/0.35)]" : "text-muted hover:bg-white/[0.05] hover:text-ink"
+              active ? "bg-accent text-on-accent shadow-[0_0_16px_rgb(124_58_237/0.3)]" : "text-muted hover:bg-hover hover:text-ink"
             }`}
           >
             <Icon size={17} strokeWidth={1.75} />

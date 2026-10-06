@@ -137,7 +137,7 @@ export function ConnectedCalendars({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 text-xs font-medium text-muted">{PROVIDER_LABEL[a.provider]}</span>
+                  <span className="rounded-md bg-hover px-1.5 py-0.5 text-xs font-medium text-muted">{PROVIDER_LABEL[a.provider]}</span>
                   <span className="truncate font-medium text-ink">{a.email}</span>
                   {!a.connected && (
                     <span className="inline-flex items-center gap-1 rounded-md bg-warning/15 px-1.5 py-0.5 text-xs font-medium text-warning">

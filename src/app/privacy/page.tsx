@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AI_PROVIDER_NAME, aiConfigured } from "@/lib/ai";
 import { APP_NAME, CONTACT_EMAIL, SOURCE_URL } from "@/lib/config";
 import { ContactLine, LegalPage } from "@/components/LegalPage";
 
@@ -65,6 +66,24 @@ export default function PrivacyPage() {
         to show, create, update and delete events for the meetings booked with you, with a Microsoft Teams link for
         work and school accounts. Outlook sends the invitations.
       </p>
+      <h3>Event categories and AI categorisation (optional)</h3>
+      <p>
+        You can sort your calendar into categories with your own rules. {APP_NAME} then stores a category and
+        priority per event together with a scrambled fingerprint of its title, never the title itself.
+      </p>
+      {aiConfigured() ? (
+        <p>
+          If you switch on <strong>AI categorisation</strong> in Settings (it is off until you do), {APP_NAME}{" "}
+          sends a minimal description of events that no rule covers to {AI_PROVIDER_NAME} so that a model can
+          suggest a category: the event title, its length, whether it repeats, how many attendees it has (not who
+          they are), whether it has a video link, and the calendar&apos;s name. Descriptions, attendee names and
+          addresses, and booking details are never sent. The provider processes this only to answer the request;
+          under its API terms it does not use the data to train models. You can switch this off at any time, which
+          also deletes the AI-suggested labels.
+        </p>
+      ) : (
+        <p>AI categorisation is not enabled on this instance; no event data is sent to any AI provider.</p>
+      )}
       <h3>Settings hosts create</h3>
       <p>
         Your username, display name, headline, welcome message, time zone, availability schedules and event types,

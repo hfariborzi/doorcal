@@ -20,6 +20,8 @@ Think Calendly, but self-hostable and MIT-licensed.
   - custom invitee questions (text, long text, phone, dropdown)
   - secret events (bookable by link, hidden from your profile)
 - **Availability schedules.** Weekly hours with several ranges per day, date overrides and days off, a time zone per schedule, and multiple schedules (e.g. "Office hours" and "Evenings").
+- **Categories, priorities and filters.** Sort your calendar by type (your own list, with colours), location and priority; colour the calendar by any of them and hide what you don't need. Rules ("title contains…") label events automatically; an optional, opt-in AI step suggests a category list from your recent events and labels the rest.
+- **Booking preferences.** Mark preferred times and a preferred location per event type. Every available time stays bookable; invitees see the preferred ones first.
 - **Self-serve reschedule and cancel** for invitees. Google Calendar updates and everyone gets notified.
 - **Host tools.** Upcoming, past and cancelled bookings; cancel with a reason; pick which calendar bookings are written to.
 - Time zone detection and a picker for invitees, a 12h/24h toggle, and layouts that work on mobile.
@@ -95,6 +97,7 @@ Skip this to offer Google sign-in only; the Microsoft button appears once both v
    | `GOOGLE_CLIENT_ID` | from step 1 |
    | `GOOGLE_CLIENT_SECRET` | from step 1 |
    | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | optional, from step 1b |
+   | `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL` / `AI_PROVIDER_NAME` | optional, see "AI categorisation" below |
    | `AUTH_SECRET` | output of `openssl rand -base64 32` |
    | `NEXT_PUBLIC_APP_NAME` | optional display name |
    | `CONTACT_EMAIL` | contact address shown in the footer, privacy policy and terms (recommended for public instances) |
@@ -111,6 +114,24 @@ Skip this to offer Google sign-in only; the Microsoft button appears once both v
    - Type `CNAME`, Name `book`, Target `cname.vercel-dns.com`
    - Proxy status: **DNS only** (grey cloud). Vercel issues the TLS certificate itself.
 3. Set `APP_URL=https://book.example.com` and make sure the same URL is in the Google (and Microsoft) redirect URIs.
+
+### 4. AI categorisation (optional)
+
+Leave the `AI_*` variables empty and the feature stays hidden. To offer it, point DoorCal at any
+OpenAI-compatible chat-completions endpoint. The task is sorting event titles into a short list, so the cheapest
+model is enough; a thousand active users cost about a dollar a week.
+
+| Provider | `AI_BASE_URL` | `AI_MODEL` | Price (in / out per 1M tokens) |
+|---|---|---|---|
+| OpenAI | `https://api.openai.com/v1` | `gpt-5-nano` | $0.05 / $0.40 |
+| Groq | `https://api.groq.com/openai/v1` | `llama-3.1-8b-instant` | $0.05 / $0.08 |
+| Mistral | `https://api.mistral.ai/v1` | `ministral-3b-latest` | $0.10 / $0.10 |
+| Self-hosted (vLLM, Ollama) | your server's `/v1` | your model | free |
+
+Set `AI_PROVIDER_NAME` to the provider's name; it appears on the consent screen and in the privacy policy.
+Users opt in per account in Settings. Only the title, length, recurrence, attendee count, video-link flag and
+calendar name of an event are sent; never descriptions, attendee identities or bookings. Daily caps:
+`AI_MAX_EVENTS_PER_USER_PER_DAY` (300) and `AI_MAX_EVENTS_PER_DAY` (20000).
 
 ## Local development
 
@@ -149,6 +170,9 @@ Other scripts: `npm test` (slot engine tests), `npm run typecheck`, `npm run lin
 - Refresh tokens are encrypted at rest with AES-256-GCM, using a key derived from `AUTH_SECRET`.
 - Sessions are signed JWT cookies. `src/proxy.ts` guards `/dashboard`.
 - A Postgres exclusion constraint stops two people booking overlapping one-on-one slots at the same moment.
+- `src/lib/labels/` labels events: hand-set labels stick, "title contains" rules run first, and the opt-in AI
+  (`src/lib/ai/`) handles the rest after the response is sent. Only labels and title hashes are stored.
+- Light theme by default, dark theme on request; the choice is stored in the browser.
 - Public endpoints (slots, booking, cancel, reschedule) are rate-limited per IP with a small Postgres table, so
   there's no extra service to run.
 

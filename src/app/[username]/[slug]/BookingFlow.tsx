@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { DateTime } from "luxon";
-import type { LocationOption, Question } from "@/db/schema";
+import type { BookingPreferences, LocationOption, Question } from "@/db/schema";
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,6 +14,7 @@ import {
   Globe,
   Loader2,
   RefreshCw,
+  Star,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -22,7 +23,7 @@ import { Avatar } from "@/components/Avatar";
 import { LocationIcon } from "@/components/LocationIcon";
 import { TimezoneOptions } from "@/components/TimezoneOptions";
 
-type Slot = { start: string; seatsLeft?: number };
+type Slot = { start: string; seatsLeft?: number; preferred?: boolean };
 
 export type BookingFlowProps = {
   host: { username: string; name: string; image: string | null };
@@ -35,6 +36,7 @@ export type BookingFlowProps = {
     color: string;
     questions: Question[];
     seats: number;
+    preferences: BookingPreferences | null;
   };
   reschedule?: { uid: string; start: string; duration: number; name: string };
 };
@@ -81,7 +83,9 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
   const [guests, setGuests] = useState("");
   const [notes, setNotes] = useState("");
   const [phone, setPhone] = useState("");
-  const [locationIndex, setLocationIndex] = useState(0);
+  const prefs = eventType.preferences;
+  const preferredLoc = prefs?.locationIndex != null && prefs.locationIndex < eventType.locations.length ? prefs.locationIndex : null;
+  const [locationIndex, setLocationIndex] = useState(preferredLoc ?? 0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [website, setWebsite] = useState("");
 
@@ -135,6 +139,7 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
     }
     return map;
   }, [slots, tz]);
+  const hasPreferredTimes = useMemo(() => (slots ?? []).some((s) => s.preferred), [slots]);
 
   const days = useMemo(() => {
     const first = month.setZone(tz, { keepLocalTime: true }).startOf("month");
@@ -200,7 +205,7 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
 
   const durationPicker =
     eventType.durations.length > 1 && !reschedule ? (
-      <div className="inline-flex rounded-lg border border-line bg-black/20 p-1" role="radiogroup" aria-label="Meeting length">
+      <div className="inline-flex rounded-lg border border-line bg-well p-1" role="radiogroup" aria-label="Meeting length">
         {eventType.durations.map((d) => (
           <button
             key={d}
@@ -212,7 +217,7 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
               setSelectedSlot(null);
             }}
             className={`rounded-md px-3 py-1.5 text-sm font-medium tnum transition ${
-              d === duration ? "bg-accent text-white" : "text-muted hover:text-ink"
+              d === duration ? "bg-accent text-on-accent" : "text-muted hover:text-ink"
             }`}
           >
             {d} min
@@ -317,10 +322,13 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
                       {eventType.locations.map((l, i) => (
                         <label
                           key={i}
-                          className="relative flex cursor-pointer flex-col gap-3 rounded-xl border border-line bg-black/20 p-4 text-sm transition hover:border-line-strong has-[:checked]:border-accent has-[:checked]:bg-accent/15"
+                          className="relative flex cursor-pointer flex-col gap-3 rounded-xl border border-line bg-well p-4 text-sm transition hover:border-line-strong has-[:checked]:border-accent has-[:checked]:bg-accent/15"
                         >
                           <input type="radio" name="loc" className="sr-only" checked={locationIndex === i} onChange={() => setLocationIndex(i)} />
-                          <LocationIcon type={l.type} size={20} className="text-accent-soft" />
+                          <span className="flex items-center justify-between">
+                            <LocationIcon type={l.type} size={20} className="text-accent-soft" />
+                            {preferredLoc === i && <span className="rounded-md bg-accent/20 px-1.5 py-0.5 text-[11px] font-medium text-accent-soft">Preferred</span>}
+                          </span>
                           <span>
                             <span className="block font-medium text-ink">{locationLabel(l)}</span>
                             {l.type === "in_person" && l.address && <span className="mt-0.5 block text-faint">{l.address}</span>}
@@ -390,6 +398,11 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
             <p className="text-sm text-muted">{hostName}</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-[-0.02em]">{eventType.title}</h1>
             {eventType.description && <p className="mt-3 max-w-2xl text-sm leading-relaxed whitespace-pre-line text-muted">{eventType.description}</p>}
+            {prefs?.note && (
+              <p className="mt-3 inline-flex items-center gap-2 rounded-lg bg-accent/10 px-3 py-1.5 text-sm text-accent-soft">
+                <Star size={14} /> {prefs.note}
+              </p>
+            )}
             <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
               {!durationPicker && (
                 <span className="inline-flex items-center gap-1.5 tnum"><Clock size={15} strokeWidth={1.75} className="text-accent-soft" />{duration} min</span>
@@ -399,6 +412,7 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
                   <LocationIcon type={l.type} size={15} className="text-accent-soft" />
                   {locationLabel(l)}
                   {l.type === "in_person" && l.address ? `: ${l.address}` : ""}
+                  {preferredLoc === i && <span className="rounded-md bg-accent/20 px-1.5 py-0.5 text-[11px] font-medium text-accent-soft">Preferred</span>}
                 </span>
               ))}
               {eventType.seats > 1 && (
@@ -434,6 +448,7 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
               if (!d) return <div key={i} />;
               const iso = d.toISODate()!;
               const available = byDate.has(iso);
+              const preferredDay = hasPreferredTimes && (byDate.get(iso) ?? []).some((s) => s.preferred);
               const selected = iso === selectedDate;
               return (
                 <button
@@ -444,14 +459,14 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
                   aria-pressed={selected}
                   className={`relative mx-auto grid aspect-square w-full max-w-14 place-items-center rounded-xl text-sm tnum transition ${
                     selected
-                      ? "bg-accent font-semibold text-white shadow-[0_0_0_2px_var(--color-canvas),0_0_0_4px_rgb(192_132_252/0.7)]"
+                      ? "bg-accent font-semibold text-on-accent shadow-[0_0_0_2px_var(--color-canvas),0_0_0_4px_var(--color-accent-soft)]"
                       : available
-                        ? "bg-white/[0.05] font-semibold text-ink hover:bg-accent/25"
+                        ? "bg-hover font-semibold text-ink hover:bg-accent/25"
                         : "text-faint/50"
                   }`}
                 >
                   {d.day}
-                  {available && !selected && <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-accent-soft" />}
+                  {available && !selected && <span className={`absolute bottom-1.5 h-1 w-1 rounded-full ${hasPreferredTimes && !preferredDay ? "bg-faint" : "bg-accent-soft"}`} />}
                   {iso === today && !available && <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-faint" />}
                 </button>
               );
@@ -472,15 +487,19 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
                 {daySlots.length} {daySlots.length === 1 ? "time" : "times"} available
               </p>
               <div className="mt-5 flex max-h-[26rem] flex-col gap-2 overflow-y-auto pr-1">
-                {daySlots.map((s) => (
+                {[...daySlots].sort((a, b) => Number(!!b.preferred) - Number(!!a.preferred) || a.start.localeCompare(b.start)).map((s, i, arr) => (
+                  <Fragment key={s.start}>
+                  {hasPreferredTimes && (i === 0 || !!arr[i - 1].preferred !== !!s.preferred) && (
+                    <p className="eyebrow pt-1 first:pt-0">{s.preferred ? "Preferred times" : "Other times"}</p>
+                  )}
                   <button
-                    key={s.start}
                     type="button"
                     onClick={() => setSelectedSlot(s)}
-                    className="group flex items-center justify-between rounded-xl border border-line bg-white/[0.03] px-4 py-3.5 text-left transition hover:border-accent/60 hover:bg-accent/15"
+                    className={`group flex items-center justify-between rounded-xl border px-4 py-3.5 text-left transition hover:border-accent/60 hover:bg-accent/15 ${s.preferred ? "border-accent/50 bg-accent/10" : "border-line bg-paper"}`}
                   >
                     <span className="flex items-center gap-3">
                       <span className="font-semibold text-ink tnum">{fmtTime(s.start)}</span>
+                      {s.preferred && <Star size={14} className="text-accent-soft" />}
                       {s.seatsLeft !== undefined && (
                         <span className="rounded-md bg-accent/20 px-1.5 py-0.5 text-xs font-medium text-accent-soft">
                           {s.seatsLeft} seat{s.seatsLeft === 1 ? "" : "s"} left
@@ -491,6 +510,7 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
                       Select <ArrowRight size={15} />
                     </span>
                   </button>
+                  </Fragment>
                 ))}
                 {daySlots.length === 0 && <p className="text-sm text-faint">No times left on this day.</p>}
               </div>
@@ -512,7 +532,7 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
             <TimezoneOptions value={tz} />
           </select>
         </label>
-        <div className="inline-flex shrink-0 self-start rounded-lg border border-line bg-black/20 p-1 text-xs font-medium sm:self-auto" role="radiogroup" aria-label="Clock format">
+        <div className="inline-flex shrink-0 self-start rounded-lg border border-line bg-well p-1 text-xs font-medium sm:self-auto" role="radiogroup" aria-label="Clock format">
           {[true, false].map((h) => (
             <button
               key={String(h)}
@@ -520,7 +540,7 @@ export function BookingFlow({ host, eventType, reschedule }: BookingFlowProps) {
               role="radio"
               aria-checked={hour12 === h}
               onClick={() => setHour12(h)}
-              className={`rounded-md px-3 py-1 ${hour12 === h ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
+              className={`rounded-md px-3 py-1 ${hour12 === h ? "bg-accent text-on-accent" : "text-muted hover:text-ink"}`}
             >
               {h ? "12h" : "24h"}
             </button>

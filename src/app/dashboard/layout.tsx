@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { CopyButton } from "@/components/CopyButton";
 import { ProviderButton } from "@/components/ProviderButton";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Nav } from "./Nav";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
@@ -18,7 +19,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="border-b border-line bg-black/20 px-3 py-4 backdrop-blur md:sticky md:top-0 md:flex md:h-screen md:w-60 md:shrink-0 md:flex-col md:border-r md:border-b-0 md:px-4 md:py-6">
+      <aside className="border-b border-line bg-well px-3 py-4 backdrop-blur md:sticky md:top-0 md:flex md:h-screen md:w-60 md:shrink-0 md:flex-col md:border-r md:border-b-0 md:px-4 md:py-6">
         <div className="mb-4 px-2 md:mb-8">
           <Logo href="/dashboard" />
         </div>
@@ -31,6 +32,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
               <div className="truncate text-xs text-faint">{user.email}</div>
             </div>
           </div>
+          <ThemeToggle className="w-full justify-start px-2" />
           <form action="/api/auth/logout" method="post">
             <button className="btn-ghost w-full justify-start px-2">
               <LogOut size={16} /> Sign out
@@ -45,7 +47,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
               href={publicUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-w-0 items-center gap-2 rounded-lg border border-line bg-white/[0.03] px-3 py-1.5 text-muted hover:text-ink"
+              className="inline-flex min-w-0 items-center gap-2 rounded-lg border border-line bg-paper px-3 py-1.5 text-muted hover:text-ink"
               title="Your public booking page"
             >
               <Link2 size={15} className="shrink-0" />
@@ -53,11 +55,14 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             </a>
             <CopyButton text={publicUrl} className="btn-secondary py-1.5" />
           </div>
-          <form action="/api/auth/logout" method="post" className="md:hidden">
-            <button className="btn-ghost py-1.5">
-              <LogOut size={16} /> Sign out
-            </button>
-          </form>
+          <div className="flex items-center gap-1 md:hidden">
+            <ThemeToggle />
+            <form action="/api/auth/logout" method="post">
+              <button className="btn-ghost py-1.5">
+                <LogOut size={16} /> Sign out
+              </button>
+            </form>
+          </div>
         </div>
         {stale.length > 0 && (
           <div className="mx-5 mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-warning/25 bg-warning/5 px-5 py-4 sm:mx-8">

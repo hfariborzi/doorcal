@@ -1,29 +1,36 @@
 @import "tailwindcss";
 
 /*
- * DoorCal design tokens, from the "Nocturne Cal" design (design/stitch/nocturne_cal/DESIGN.md):
- * a calm midnight-purple canvas, frosted surfaces, hairline violet borders and one violet accent.
+ * DoorCal design tokens. Two themes share one set of names: light (the default) and the "Nocturne Cal" dark
+ * theme from the Stitch design (design/stitch/nocturne_cal/DESIGN.md). The theme is chosen with
+ * data-theme="light" | "dark" on <html>; see src/components/ThemeToggle.tsx.
  */
 @theme inline {
-  --color-canvas: #140d22;
-  --color-surface: #1d1530;
-  --color-raised: #271d3d;
-  --color-line: rgb(192 132 252 / 0.12);
-  --color-line-strong: rgb(192 132 252 / 0.26);
-  --color-ink: #f5f3ff;
-  --color-muted: #cbc1dc;
-  --color-faint: #958aab;
-  --color-accent: #7c3aed;
-  --color-accent-hover: #6d28d9;
-  --color-accent-soft: #d2bbff;
-  --color-danger: #ffb4ab;
-  --color-success: #86efac;
-  --color-warning: #fcd34d;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-well: var(--well);
+  --color-paper: var(--paper);
+  --color-hover: var(--hover);
+  --color-modal: var(--modal);
+  --color-scrim: var(--scrim);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: #ffffff;
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-/* Type scale, one step larger than Tailwind's default so text stays readable on the dark canvas. */
+/* Type scale, one step larger than Tailwind's default so text stays readable. */
 @theme {
   --text-xs: 0.8125rem; /* 13px */
   --text-xs--line-height: 1.25rem;
@@ -37,21 +44,71 @@
   --text-xl--line-height: 1.9rem;
 }
 
+/* Light (default): white canvas, the same purples. */
 :root {
+  color-scheme: light;
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --raised: #f7f4fc;
+  --well: #f4f1f9;
+  --paper: #faf8fd;
+  --hover: rgb(124 58 237 / 0.07);
+  --modal: #ffffff;
+  --scrim: rgb(28 18 48 / 0.45);
+  --line: rgb(76 29 149 / 0.14);
+  --line-strong: rgb(76 29 149 / 0.3);
+  --ink: #1a1033;
+  --muted: #4b4160;
+  --faint: #7c7391;
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-soft: #6d28d9;
+  --danger: #dc2626;
+  --success: #15803d;
+  --warning: #b45309;
+  --glow: rgb(124 58 237 / 0.08);
+  --shadow-card: 0 6px 20px -8px rgb(76 29 149 / 0.16);
+  --shadow-modal: 0 24px 60px -16px rgb(28 18 48 / 0.35);
+}
+
+/* Dark: the Nocturne Cal palette. */
+:root[data-theme="dark"] {
   color-scheme: dark;
+  --canvas: #140d22;
+  --surface: #1d1530;
+  --raised: #271d3d;
+  --well: rgb(0 0 0 / 0.2);
+  --paper: rgb(255 255 255 / 0.04);
+  --hover: rgb(255 255 255 / 0.06);
+  --modal: rgb(24 9 51 / 0.9);
+  --scrim: rgb(10 4 24 / 0.7);
+  --line: rgb(192 132 252 / 0.12);
+  --line-strong: rgb(192 132 252 / 0.26);
+  --ink: #f5f3ff;
+  --muted: #cbc1dc;
+  --faint: #958aab;
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-soft: #d2bbff;
+  --danger: #ffb4ab;
+  --success: #86efac;
+  --warning: #fcd34d;
+  --glow: rgb(124 58 237 / 0.22);
+  --shadow-card: 0 8px 24px -6px rgb(10 4 24 / 0.6);
+  --shadow-modal: 0 16px 40px -8px rgb(0 0 0 / 0.8), 0 0 20px rgb(124 58 237 / 0.15);
 }
 
 body {
   background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgb(124 58 237 / 0.22), transparent 70%),
-    var(--color-canvas);
+    radial-gradient(ellipse 80% 50% at 50% -10%, var(--glow), transparent 70%),
+    var(--canvas);
   background-attachment: fixed;
-  color: var(--color-ink);
+  color: var(--ink);
   font-size: var(--text-base);
 }
 
 ::selection {
-  background: rgb(124 58 237 / 0.45);
+  background: rgb(124 58 237 / 0.35);
 }
 
 @utility tnum {
@@ -62,25 +119,25 @@ body {
   @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
 }
 @utility btn-primary {
-  @apply btn bg-accent text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.18)] hover:bg-accent-hover hover:shadow-[0_0_18px_rgb(124_58_237/0.45)];
+  @apply btn bg-accent text-on-accent shadow-[inset_0_1px_0_rgb(255_255_255/0.18)] hover:bg-accent-hover hover:shadow-[0_0_18px_rgb(124_58_237/0.35)];
 }
 @utility btn-secondary {
-  @apply btn border border-line-strong bg-white/[0.04] text-ink hover:border-accent-soft/40 hover:bg-white/[0.08];
+  @apply btn border border-line-strong bg-paper text-ink hover:bg-hover;
 }
 @utility btn-danger {
   @apply btn border border-danger/30 text-danger hover:bg-danger/10;
 }
 @utility btn-ghost {
-  @apply btn text-muted hover:bg-white/[0.06] hover:text-ink;
+  @apply btn text-muted hover:bg-hover hover:text-ink;
 }
 @utility input {
-  @apply block w-full rounded-lg border border-line bg-black/20 px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-accent-soft/60 focus:ring-3 focus:ring-accent/25 focus:outline-none;
+  @apply block w-full rounded-lg border border-line bg-well px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-accent-soft/60 focus:ring-3 focus:ring-accent/25 focus:outline-none;
 }
 @utility label {
   @apply mb-1.5 block text-sm font-medium text-muted;
 }
 @utility card {
-  @apply rounded-2xl border border-line bg-surface/70 shadow-[0_8px_24px_-6px_rgb(10_4_24/0.6)] backdrop-blur-md;
+  @apply rounded-2xl border border-line bg-surface/80 shadow-(--shadow-card) backdrop-blur-md;
 }
 @utility help {
   @apply mt-1.5 text-sm text-faint;
@@ -95,9 +152,9 @@ body {
 /* Native controls follow the theme: checkboxes and radios in the accent color. */
 input[type="checkbox"],
 input[type="radio"] {
-  accent-color: var(--color-accent);
+  accent-color: var(--accent);
 }
 select option {
-  background: var(--color-surface);
-  color: var(--color-ink);
+  background: var(--surface);
+  color: var(--ink);
 }

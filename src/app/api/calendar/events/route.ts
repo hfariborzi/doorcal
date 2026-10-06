@@ -7,6 +7,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { cancelBooking } from "@/lib/bookings";
 import { eventsForAccounts, getAccount, listAccounts, providerFor, resolveWriteTarget } from "@/lib/calendar";
 import { randomId } from "@/lib/crypto";
+import { labelsForResponse } from "./labels";
+
+// Background AI labelling runs after the response; give it time to finish.
+export const maxDuration = 30;
 
 async function authed() {
   const user = await getCurrentUser();
@@ -30,7 +34,11 @@ export async function GET(req: NextRequest) {
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start || end.getTime() - start.getTime() > MAX_RANGE_MS)
       return NextResponse.json({ error: "Invalid range" }, { status: 400 });
     const result = await eventsForAccounts(user, await listAccounts(user.id), start, end);
-    return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
+    const { labels, categories, pendingAi } = await labelsForResponse(user, result.events);
+    return NextResponse.json(
+      { ...result, labels, categories, pendingAi, prefs: user.calendarPrefs ?? null },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (err) {
     return handle(err);
   }

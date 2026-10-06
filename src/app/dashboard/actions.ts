@@ -5,7 +5,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
-import { db, users, schedules, eventTypes, bookings, calendarAccounts } from "@/db";
+import { db, users, schedules, eventTypes, bookings, calendarAccounts, categories, labelRules, eventLabels, type Priority } from "@/db";
+import { aiConfigured, proposeCategories, toSample } from "@/lib/ai";
+import { eventsForAccounts } from "@/lib/calendar";
+import { CATEGORY_PALETTE, MAX_CATEGORIES, MAX_RULES, eventKey, labelKey, listCategories, listRules, storeLabels, titleHash } from "@/lib/labels";
 import { requireUser } from "@/lib/auth";
 import { cancelBooking } from "@/lib/bookings";
 import { getAccount, isConnected, listAccounts, providerFor } from "@/lib/calendar";
@@ -61,6 +64,14 @@ const eventTypeSchema = z.object({
   scheduleId: z.number().int().nullable(),
   // "<accountId>:<calendarId>" or null for the user's default calendar.
   writeTarget: z.string().regex(/^\d{1,10}:.{1,300}$/).nullable(),
+  preferences: z
+    .object({
+      locationIndex: z.number().int().min(0).max(5).nullable(),
+      weekly: z.record(z.string().regex(/^[1-7]$/), z.array(timeRange).max(10)).nullable(),
+      note: z.string().trim().max(200),
+    })
+    .nullable()
+    .default(null),
   bufferBefore: z.number().int().min(0).max(240),
   bufferAfter: z.number().int().min(0).max(240),
   minNotice: z.number().int().min(0).max(60 * 24 * 60),
@@ -320,4 +331,221 @@ export async function deleteAccount() {
   await db.delete(users).where(eq(users.id, user.id)); // cascades to accounts, schedules, event types, bookings
   (await cookies()).delete(SESSION_COOKIE);
   redirect("/");
+}
+
+// --- Categories, rules and labels ---------------------------------------------------------------------
+
+const prioritySchema = z.enum(["high", "normal", "low"]);
+
+const categorySchema = z.object({
+  id: z.number().int().optional(),
+  name: z.string().trim().min(1, "Name is required").max(30),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  defaultPriority: prioritySchema,
+});
+
+export async function saveCategory(input: z.input<typeof categorySchema>): Promise<ActionResult> {
+  const user = await requireUser();
+  const parsed = categorySchema.safeParse(input);
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const { id, ...data } = parsed.data;
+  const existing = await listCategories(user.id);
+  if (existing.some((c) => c.id !== id && c.name.toLowerCase() === data.name.toLowerCase())) return { error: "You already have a category with that name" };
+  if (id) {
+    await db.update(categories).set(data).where(and(eq(categories.id, id), eq(categories.userId, user.id)));
+  } else {
+    if (existing.length >= MAX_CATEGORIES) return { error: `You can have up to ${MAX_CATEGORIES} categories` };
+    const [row] = await db.insert(categories).values({ ...data, userId: user.id, position: existing.length }).returning({ id: categories.id });
+    revalidatePath("/dashboard", "layout");
+    return { id: row.id };
+  }
+  revalidatePath("/dashboard", "layout");
+  return { id };
+}
+
+export async function deleteCategory(id: number): Promise<ActionResult> {
+  const user = await requireUser();
+  // Labels pointing here become "Other" (foreign key set null); rules for it are removed (cascade).
+  await db.delete(categories).where(and(eq(categories.id, id), eq(categories.userId, user.id)));
+  revalidatePath("/dashboard", "layout");
+  return {};
+}
+
+const ruleSchema = z.object({
+  id: z.number().int().optional(),
+  pattern: z.string().trim().min(2, "Pattern must be at least 2 characters").max(120),
+  categoryId: z.number().int().nullable(),
+  priority: prioritySchema.nullable(),
+});
+
+export async function saveRule(input: z.input<typeof ruleSchema>): Promise<ActionResult> {
+  const user = await requireUser();
+  const parsed = ruleSchema.safeParse(input);
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const { id, ...data } = parsed.data;
+  if (data.categoryId !== null && !(await listCategories(user.id)).some((c) => c.id === data.categoryId)) return { error: "Unknown category" };
+  if (id) {
+    await db.update(labelRules).set(data).where(and(eq(labelRules.id, id), eq(labelRules.userId, user.id)));
+  } else {
+    const count = (await listRules(user.id)).length;
+    if (count >= MAX_RULES) return { error: `You can have up to ${MAX_RULES} rules` };
+    await db.insert(labelRules).values({ ...data, userId: user.id, position: count });
+  }
+  // Rule-made labels are recomputed on the next calendar load; drop them so the new rule applies.
+  await db.delete(eventLabels).where(and(eq(eventLabels.userId, user.id), eq(eventLabels.source, "rule")));
+  revalidatePath("/dashboard", "layout");
+  return {};
+}
+
+export async function deleteRule(id: number): Promise<ActionResult> {
+  const user = await requireUser();
+  await db.delete(labelRules).where(and(eq(labelRules.id, id), eq(labelRules.userId, user.id)));
+  await db.delete(eventLabels).where(and(eq(eventLabels.userId, user.id), eq(eventLabels.source, "rule")));
+  revalidatePath("/dashboard", "layout");
+  return {};
+}
+
+const labelSchema = z.object({
+  accountId: z.number().int(),
+  eventKey: z.string().min(1).max(300),
+  title: z.string().max(500),
+  categoryId: z.number().int().nullable(),
+  priority: prioritySchema.nullable(),
+  applyToTitle: z.boolean(), // also make a rule so every event with this title gets the same label
+});
+
+/** Label one event (or its whole series) by hand; optionally turn the choice into a rule. */
+export async function labelEvent(input: z.input<typeof labelSchema>): Promise<ActionResult> {
+  const user = await requireUser();
+  const parsed = labelSchema.safeParse(input);
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const d = parsed.data;
+  if (!(await getAccount(user.id, d.accountId))) return { error: "Unknown calendar account" };
+  if (d.categoryId !== null && !(await listCategories(user.id)).some((c) => c.id === d.categoryId)) return { error: "Unknown category" };
+  await storeLabels([{ userId: user.id, accountId: d.accountId, eventKey: d.eventKey, titleHash: titleHash(d.title), categoryId: d.categoryId, priority: d.priority, source: "user" }]);
+  if (d.applyToTitle && d.title.trim().length >= 2) {
+    const rules = await listRules(user.id);
+    const pattern = d.title.trim().slice(0, 120);
+    const same = rules.find((r) => r.pattern.toLowerCase() === pattern.toLowerCase());
+    if (same) await db.update(labelRules).set({ categoryId: d.categoryId, priority: d.priority }).where(eq(labelRules.id, same.id));
+    else if (rules.length < MAX_RULES) await db.insert(labelRules).values({ userId: user.id, pattern, categoryId: d.categoryId, priority: d.priority, position: rules.length });
+    await db.delete(eventLabels).where(and(eq(eventLabels.userId, user.id), eq(eventLabels.source, "rule")));
+  }
+  return {};
+}
+
+const prefsSchema = z.object({
+  colorBy: z.enum(["calendar", "type", "priority"]),
+  hidden: z.object({
+    categories: z.array(z.number().int()).max(50),
+    other: z.boolean(),
+    locations: z.array(z.enum(["video", "in_person", "unspecified"])).max(3),
+    priorities: z.array(prioritySchema).max(3),
+  }),
+});
+
+export async function saveCalendarPrefs(input: z.input<typeof prefsSchema>): Promise<ActionResult> {
+  const user = await requireUser();
+  const parsed = prefsSchema.safeParse(input);
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  await db.update(users).set({ calendarPrefs: parsed.data }).where(eq(users.id, user.id));
+  return {};
+}
+
+// --- AI (opt-in) --------------------------------------------------------------------------------------
+
+export async function setAiConsent(enabled: boolean): Promise<ActionResult> {
+  const user = await requireUser();
+  if (enabled && !aiConfigured()) return { error: "AI categorisation is not available on this instance" };
+  await db.update(users).set({ aiConsentAt: enabled ? new Date() : null }).where(eq(users.id, user.id));
+  if (!enabled) await db.delete(eventLabels).where(and(eq(eventLabels.userId, user.id), eq(eventLabels.source, "ai")));
+  revalidatePath("/dashboard", "layout");
+  return {};
+}
+
+export type ProposedCategory = {
+  name: string;
+  color: string;
+  defaultPriority: Priority;
+  sampleTitles: string[]; // a few examples to show the user
+  events: { accountId: number; eventKey: string; titleHash: string }[]; // labelled on apply
+};
+
+const SAMPLE_WEEKS = 8;
+const SAMPLE_MAX = 300;
+
+/** Ask the AI for a category list based on the last weeks of events. Nothing is saved until applied. */
+export async function proposeCategoriesAction(): Promise<{ error?: string; proposal?: ProposedCategory[]; sampled?: number }> {
+  const user = await requireUser();
+  if (!aiConfigured()) return { error: "AI categorisation is not available on this instance" };
+  if (!user.aiConsentAt) return { error: "Turn on AI categorisation first" };
+  const accounts = await listAccounts(user.id);
+  const end = new Date();
+  const start = new Date(end.getTime() - SAMPLE_WEEKS * 7 * 86_400_000);
+  const { events } = await eventsForAccounts(user, accounts, start, end);
+  // One per series, newest first, capped.
+  const seen = new Set<string>();
+  const unique = events
+    .sort((a, b) => Date.parse(b.start) - Date.parse(a.start))
+    .filter((e) => !seen.has(labelKey(e)) && seen.add(labelKey(e)))
+    .slice(0, SAMPLE_MAX);
+  if (unique.length < 5) return { error: "Not enough events in the last eight weeks to suggest categories" };
+  try {
+    const proposal = await proposeCategories(user.id, unique.map(toSample));
+    if (!proposal.length) return { error: "The AI did not return a usable list. Please try again." };
+    return {
+      sampled: unique.length,
+      proposal: proposal.map((c, i) => ({
+        name: c.name,
+        color: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length],
+        defaultPriority: c.defaultPriority,
+        sampleTitles: c.sampleIndexes.slice(0, 4).map((j) => unique[j].title),
+        events: c.sampleIndexes.map((j) => ({ accountId: unique[j].accountId, eventKey: eventKey(unique[j]), titleHash: titleHash(unique[j].title) })),
+      })),
+    };
+  } catch (err) {
+    logError("ai propose", err);
+    return { error: (err as Error).message.startsWith("Daily AI limit") ? (err as Error).message : "The AI request failed. Please try again later." };
+  }
+}
+
+const applySchema = z.object({
+  mode: z.enum(["replace", "add"]),
+  categories: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(30),
+        color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+        defaultPriority: prioritySchema,
+        events: z.array(z.object({ accountId: z.number().int(), eventKey: z.string().min(1).max(300), titleHash: z.string().min(1).max(64) })).max(500),
+      }),
+    )
+    .min(1)
+    .max(MAX_CATEGORIES),
+});
+
+/** Create the approved categories and label the sampled events with them. */
+export async function applyProposal(input: z.input<typeof applySchema>): Promise<ActionResult> {
+  const user = await requireUser();
+  const parsed = applySchema.safeParse(input);
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const owned = new Set((await listAccounts(user.id)).map((a) => a.id));
+  if (parsed.data.mode === "replace") await db.delete(categories).where(eq(categories.userId, user.id));
+  const existing = await listCategories(user.id);
+  if (existing.length + parsed.data.categories.length > MAX_CATEGORIES) return { error: `That would exceed ${MAX_CATEGORIES} categories; remove some first` };
+  const labels: (typeof eventLabels.$inferInsert)[] = [];
+  let position = existing.length;
+  for (const c of parsed.data.categories) {
+    let cat = existing.find((e) => e.name.toLowerCase() === c.name.toLowerCase());
+    if (!cat) {
+      [cat] = await db.insert(categories).values({ userId: user.id, name: c.name, color: c.color, defaultPriority: c.defaultPriority, position: position++ }).returning();
+    }
+    for (const e of c.events) {
+      if (!owned.has(e.accountId)) continue;
+      labels.push({ userId: user.id, accountId: e.accountId, eventKey: e.eventKey, titleHash: e.titleHash, categoryId: cat.id, priority: null, source: "ai" });
+    }
+  }
+  if (labels.length) await storeLabels(labels);
+  revalidatePath("/dashboard", "layout");
+  return {};
 }

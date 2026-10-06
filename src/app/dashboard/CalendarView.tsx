@@ -2,11 +2,36 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { DateTime } from "luxon";
-import { ChevronLeft, ChevronRight, ExternalLink, Loader2, MapPin, Plus, Trash2, Users, Video, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, Loader2, MapPin, Plus, Sparkles, Trash2, Users, Video, X } from "lucide-react";
+import type { CalendarPrefs, Category, EventLocationKind, LabelSource, Priority } from "@/db/schema";
 import type { CalendarEvent } from "@/lib/calendar/types";
+import { eventKey, LOCATION_KIND_LABEL, LOCATION_KINDS, PRIORITIES, PRIORITY_COLOR, PRIORITY_LABEL } from "@/lib/labels/core";
 import { meetingLinkLabel } from "@/lib/locations";
+import { labelEvent, saveCalendarPrefs } from "./actions";
 
 type Problem = { accountId: number; email: string; message: string };
+type Label = { categoryId: number | null; priority: Priority; source: LabelSource | null; location: EventLocationKind };
+type Labels = Record<string, Label>;
+
+const OTHER_COLOR = "#64748b";
+const DEFAULT_PREFS: CalendarPrefs = { colorBy: "calendar", hidden: { categories: [], other: false, locations: [], priorities: [] } };
+
+const labelKey = (e: CalendarEvent) => `${e.accountId}:${eventKey(e)}`;
+
+/** The colour an event block takes under the chosen "colour by". */
+function eventColor(e: CalendarEvent, label: Label | undefined, cats: Category[], colorBy: CalendarPrefs["colorBy"]) {
+  if (colorBy === "type") return cats.find((c) => c.id === label?.categoryId)?.color ?? OTHER_COLOR;
+  if (colorBy === "priority") return PRIORITY_COLOR[label?.priority ?? "normal"];
+  return e.color;
+}
+
+function isHidden(label: Label | undefined, prefs: CalendarPrefs) {
+  if (!label) return false;
+  const h = prefs.hidden;
+  if (label.categoryId === null ? h.other : h.categories.includes(label.categoryId)) return true;
+  if (h.locations.includes(label.location) || h.priorities.includes(label.priority)) return true;
+  return false;
+}
 
 const HOUR_PX = 48;
 
@@ -51,7 +76,7 @@ function layoutDay(events: CalendarEvent[], dayStart: DateTime) {
 /** Event blocks: a dark tint of the calendar's color with a solid left edge. */
 function eventStyle(color: string): React.CSSProperties {
   return {
-    background: `color-mix(in srgb, ${color} 30%, #1d1530)`,
+    background: `color-mix(in srgb, ${color} 30%, var(--color-surface))`,
     borderLeft: `3px solid ${color}`,
   };
 }
@@ -70,7 +95,9 @@ export function CalendarView() {
   const [viewChoice, setView] = useState<View | null>(null);
   const view: View = viewChoice ?? (narrow ? "day" : "week");
   const [anchor, setAnchor] = useState<DateTime>(() => DateTime.now().startOf("day"));
-  const [result, setResult] = useState<{ rangeKey: string; events: CalendarEvent[]; problems: Problem[]; error?: string } | null>(null);
+  const [result, setResult] = useState<{ rangeKey: string; events: CalendarEvent[]; problems: Problem[]; labels: Labels; categories: Category[]; error?: string } | null>(null);
+  const [prefs, setPrefs] = useState<CalendarPrefs | null>(null); // null until the first load brings the saved ones
+  const [aiRetry, setAiRetry] = useState(0);
   const [reloadTick, setReloadTick] = useState(0);
   const [selected, setSelected] = useState<CalendarEvent | null>(null);
   const [creating, setCreating] = useState<DateTime | null>(null);
@@ -91,6 +118,9 @@ export function CalendarView() {
   const events = result?.rangeKey === range.key ? result.events : null;
   const error = result?.rangeKey === range.key ? (result.error ?? null) : null;
   const problems = result?.rangeKey === range.key ? result.problems : [];
+  const labels: Labels = result?.labels ?? {};
+  const categories: Category[] = result?.categories ?? [];
+  const view_prefs = prefs ?? DEFAULT_PREFS;
   const load = () => setReloadTick((t) => t + 1);
 
   useEffect(() => {
@@ -100,20 +130,44 @@ export function CalendarView() {
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Could not load your calendar");
-        if (!cancelled) setResult({ rangeKey: range.key, events: data.events, problems: data.problems ?? [] });
+        if (cancelled) return;
+        setResult({ rangeKey: range.key, events: data.events, problems: data.problems ?? [], labels: data.labels ?? {}, categories: data.categories ?? [] });
+        setPrefs((p) => p ?? data.prefs ?? DEFAULT_PREFS);
+        // The AI labels events after the response; fetch once more to pick its answers up.
+        if (data.pendingAi > 0 && aiRetry === 0) setTimeout(() => setAiRetry(1), 4000);
       })
-      .catch((e) => !cancelled && setResult({ rangeKey: range.key, events: [], problems: [], error: (e as Error).message }));
+      .catch((e) => !cancelled && setResult({ rangeKey: range.key, events: [], problems: [], labels: {}, categories: [], error: (e as Error).message }));
     return () => {
       cancelled = true;
     };
-  }, [range, reloadTick]);
+  }, [range, reloadTick, aiRetry]);
+
+  function updatePrefs(next: CalendarPrefs) {
+    setPrefs(next);
+    void saveCalendarPrefs(next);
+  }
+  function toggleHidden<K extends keyof CalendarPrefs["hidden"]>(key: K, value: CalendarPrefs["hidden"][K] extends (infer T)[] ? T : boolean) {
+    const h = { ...view_prefs.hidden };
+    if (key === "other") h.other = !h.other;
+    else {
+      const list = h[key] as unknown[];
+      h[key] = (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]) as never;
+    }
+    updatePrefs({ ...view_prefs, hidden: h });
+  }
 
   useEffect(() => {
     if (scroller.current) scroller.current.scrollTop = 7.5 * HOUR_PX;
   }, [view]);
 
-  const timed = (events ?? []).filter((e) => !e.allDay);
-  const allDay = (events ?? []).filter((e) => e.allDay);
+  const shown = (events ?? []).filter((e) => !isHidden(labels[labelKey(e)], view_prefs));
+  const timed = shown.filter((e) => !e.allDay);
+  const allDay = shown.filter((e) => e.allDay);
+  const hiddenCount = (events?.length ?? 0) - shown.length;
+  const styleFor = (e: CalendarEvent) => {
+    const label = labels[labelKey(e)];
+    return { ...eventStyle(eventColor(e, label, categories, view_prefs.colorBy)), opacity: label?.priority === "low" ? 0.65 : 1 };
+  };
   const now = DateTime.now().setZone(tz);
 
   const title =
@@ -135,9 +189,9 @@ export function CalendarView() {
           <h2 className="ml-2 text-lg font-semibold tracking-tight">{title}</h2>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-line bg-black/20 p-1 text-sm">
+          <div className="flex rounded-lg border border-line bg-well p-1 text-sm">
             {(["day", "week"] as View[]).map((v) => (
-              <button key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 capitalize ${view === v ? "bg-accent text-white" : "text-muted hover:text-ink"}`}>
+              <button key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 capitalize ${view === v ? "bg-accent text-on-accent" : "text-muted hover:text-ink"}`}>
                 {v}
               </button>
             ))}
@@ -155,14 +209,42 @@ export function CalendarView() {
         </p>
       )}
 
-      <div className="flex border-b border-line bg-black/10">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-4 py-2.5 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="text-faint">Colour by</span>
+          <div className="flex rounded-lg border border-line bg-well p-0.5">
+            {(["calendar", "type", "priority"] as const).map((m) => (
+              <button key={m} onClick={() => updatePrefs({ ...view_prefs, colorBy: m })} className={`rounded-md px-2.5 py-1 capitalize ${view_prefs.colorBy === m ? "bg-accent text-on-accent" : "text-muted hover:text-ink"}`}>
+                {m}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {categories.map((c) => (
+            <Chip key={c.id} color={c.color} label={c.name} off={view_prefs.hidden.categories.includes(c.id)} onClick={() => toggleHidden("categories", c.id)} />
+          ))}
+          <Chip color={OTHER_COLOR} label="Other" off={view_prefs.hidden.other} onClick={() => toggleHidden("other", true)} />
+          <span className="mx-1 h-4 w-px bg-line" />
+          {LOCATION_KINDS.map((k) => (
+            <Chip key={k} label={LOCATION_KIND_LABEL[k]} off={view_prefs.hidden.locations.includes(k)} onClick={() => toggleHidden("locations", k)} icon={k === "video" ? <Video size={11} /> : k === "in_person" ? <MapPin size={11} /> : undefined} />
+          ))}
+          <span className="mx-1 h-4 w-px bg-line" />
+          {PRIORITIES.map((pr) => (
+            <Chip key={pr} color={PRIORITY_COLOR[pr]} label={PRIORITY_LABEL[pr]} off={view_prefs.hidden.priorities.includes(pr)} onClick={() => toggleHidden("priorities", pr)} />
+          ))}
+          {hiddenCount > 0 && <span className="ml-1 text-faint">{hiddenCount} hidden</span>}
+        </div>
+      </div>
+
+      <div className="flex border-b border-line bg-well/60">
         <div className="w-14 shrink-0" />
         {range.days.map((d) => {
           const isToday = d.hasSame(now, "day");
           return (
             <div key={d.toISODate()} className="min-w-0 flex-1 border-l border-line px-1 py-2.5 text-center">
               <div className={`text-xs font-semibold tracking-[0.08em] uppercase ${isToday ? "text-accent-soft" : "text-faint"}`}>{d.toFormat("ccc")}</div>
-              <div className={`mx-auto mt-1 grid h-8 w-8 place-items-center rounded-full text-lg tnum ${isToday ? "bg-accent font-semibold text-white shadow-[0_0_14px_rgb(124_58_237/0.5)]" : "text-ink"}`}>
+              <div className={`mx-auto mt-1 grid h-8 w-8 place-items-center rounded-full text-lg tnum ${isToday ? "bg-accent font-semibold text-on-accent shadow-[0_0_14px_rgb(124_58_237/0.5)]" : "text-ink"}`}>
                 {d.day}
               </div>
               <div className="mt-1 space-y-0.5">
@@ -173,7 +255,7 @@ export function CalendarView() {
                     return s <= d && en > d;
                   })
                   .map((e) => (
-                    <button key={`${e.accountId}-${e.calendarId}-${e.id}`} onClick={() => setSelected(e)} className="block w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs text-ink" style={eventStyle(e.color)}>
+                    <button key={`${e.accountId}-${e.calendarId}-${e.id}`} onClick={() => setSelected(e)} className="block w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs text-ink" style={styleFor(e)}>
                       {e.title}
                     </button>
                   ))}
@@ -214,7 +296,7 @@ export function CalendarView() {
                 ))}
                 {d.hasSame(now, "day") && (
                   <div className="pointer-events-none absolute right-0 left-0 z-20 h-px bg-accent-soft" style={{ top: (now.diff(dayStart, "minutes").minutes / 60) * HOUR_PX }}>
-                    <span className="absolute -top-[5px] -left-1.5 h-2.5 w-2.5 rounded-full bg-accent-soft shadow-[0_0_10px_rgb(210_187_255/0.8)]" />
+                    <span className="absolute -top-[5px] -left-1.5 h-2.5 w-2.5 rounded-full bg-accent-soft shadow-[0_0_10px_var(--color-accent-soft)]" />
                   </div>
                 )}
                 {layoutDay(dayEvents, dayStart).map((p) => (
@@ -224,16 +306,19 @@ export function CalendarView() {
                       ev.stopPropagation();
                       setSelected(p.e);
                     }}
-                    className="absolute z-10 overflow-hidden rounded-md px-1.5 py-0.5 text-left text-xs text-ink shadow-[0_4px_12px_-4px_rgb(0_0_0/0.6)] hover:z-30 hover:brightness-125"
+                    className="absolute z-10 overflow-hidden rounded-md px-1.5 py-0.5 text-left text-xs text-ink shadow-(--shadow-card) hover:z-30 hover:brightness-125"
                     style={{
                       top: p.top,
                       height: p.height,
                       left: `calc(${(p.lane / p.lanes) * 100}% + 2px)`,
                       width: `calc(${100 / p.lanes}% - 4px)`,
-                      ...eventStyle(p.e.color),
+                      ...styleFor(p.e),
                     }}
                   >
-                    <div className="truncate font-medium">{p.e.title}</div>
+                    <div className="flex items-center gap-1 truncate font-medium">
+                      {labels[labelKey(p.e)]?.priority === "high" && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" title="High priority" />}
+                      <span className="truncate">{p.e.title}</span>
+                    </div>
                     {p.height > 30 && (
                       <div className="truncate text-muted tnum">
                         {DateTime.fromISO(p.e.start).setZone(tz).toFormat("h:mm")} – {DateTime.fromISO(p.e.end).setZone(tz).toFormat("h:mm a")}
@@ -255,12 +340,15 @@ export function CalendarView() {
       {selected && (
         <EventDetails
           event={selected}
+          label={labels[labelKey(selected)]}
+          categories={categories}
           tz={tz}
           onClose={() => setSelected(null)}
           onDeleted={() => {
             setSelected(null);
             load();
           }}
+          onLabeled={load}
         />
       )}
       {creating && (
@@ -278,6 +366,21 @@ export function CalendarView() {
   );
 }
 
+function Chip({ label, color, off, onClick, icon }: { label: string; color?: string; off: boolean; onClick: () => void; icon?: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={!off}
+      title={off ? `Show ${label}` : `Hide ${label}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 transition ${off ? "border-line text-faint line-through opacity-60" : "border-line-strong text-ink"}`}
+    >
+      {color && <span className="h-2 w-2 rounded-full" style={{ background: color }} />}
+      {icon}
+      {label}
+    </button>
+  );
+}
+
 function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -285,11 +388,11 @@ function Modal({ children, onClose }: { children: React.ReactNode; onClose: () =
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[#0a0418]/70 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-scrim p-4 backdrop-blur-sm" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-line-strong bg-[#180933]/90 p-6 shadow-[0_16px_40px_-8px_rgb(0_0_0/0.8),0_0_20px_rgb(124_58_237/0.15)] backdrop-blur-xl sm:p-7"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-line-strong bg-modal p-6 shadow-(--shadow-modal) backdrop-blur-xl sm:p-7"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
@@ -298,9 +401,39 @@ function Modal({ children, onClose }: { children: React.ReactNode; onClose: () =
   );
 }
 
-function EventDetails({ event, tz, onClose, onDeleted }: { event: CalendarEvent; tz: string; onClose: () => void; onDeleted: () => void }) {
+function EventDetails({
+  event,
+  label,
+  categories,
+  tz,
+  onClose,
+  onDeleted,
+  onLabeled,
+}: {
+  event: CalendarEvent;
+  label: Label | undefined;
+  categories: Category[];
+  tz: string;
+  onClose: () => void;
+  onDeleted: () => void;
+  onLabeled: () => void;
+}) {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState<number | null>(label?.categoryId ?? null);
+  const [priority, setPriority] = useState<Priority | "">(label?.source ? label.priority : "");
+  const [applyToTitle, setApplyToTitle] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const labelDirty = categoryId !== (label?.categoryId ?? null) || (priority || null) !== (label?.source ? label.priority : null);
+
+  async function saveLabel() {
+    setSaving(true);
+    setError(null);
+    const r = await labelEvent({ accountId: event.accountId, eventKey: eventKey(event), title: event.title, categoryId, priority: priority || null, applyToTitle });
+    setSaving(false);
+    if (r.error) return setError(r.error);
+    onLabeled();
+  }
   const s = DateTime.fromISO(event.start).setZone(tz);
   const e = DateTime.fromISO(event.end).setZone(tz);
 
@@ -352,7 +485,36 @@ function EventDetails({ event, tz, onClose, onDeleted }: { event: CalendarEvent;
             </ul>
           </div>
         )}
-        {event.description && <p className="rounded-xl bg-black/20 p-4 break-words whitespace-pre-line text-muted">{stripHtml(event.description)}</p>}
+        {event.description && <p className="rounded-xl bg-well p-4 break-words whitespace-pre-line text-muted">{stripHtml(event.description)}</p>}
+
+        <div className="rounded-xl border border-line p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="eyebrow">Category</span>
+            {label?.source === "ai" && <span className="inline-flex items-center gap-1 rounded-md bg-accent/15 px-1.5 py-0.5 text-[11px] text-accent-soft"><Sparkles size={10} /> AI</span>}
+            {label?.source === "rule" && <span className="rounded-md bg-well px-1.5 py-0.5 text-[11px] text-faint">rule</span>}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <select className="input w-44 py-1.5" value={categoryId ?? ""} onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : null)} aria-label="Category">
+              <option value="">Other</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <select className="input w-40 py-1.5" value={priority} onChange={(e) => setPriority(e.target.value as Priority | "")} aria-label="Priority">
+              <option value="">Priority: default</option>
+              {PRIORITIES.map((p) => (
+                <option key={p} value={p}>Priority: {PRIORITY_LABEL[p]}</option>
+              ))}
+            </select>
+          </div>
+          <label className="mt-2 flex items-center gap-2 text-xs text-muted">
+            <input type="checkbox" checked={applyToTitle} onChange={(e) => setApplyToTitle(e.target.checked)} />
+            Apply to every event titled &ldquo;{event.title.slice(0, 40)}{event.title.length > 40 ? "…" : ""}&rdquo;
+          </label>
+          {(labelDirty || applyToTitle) && (
+            <button onClick={saveLabel} disabled={saving} className="btn-secondary mt-3 py-1.5">{saving ? "Saving…" : "Save label"}</button>
+          )}
+        </div>
       </div>
       {error && <p className="mt-3 text-sm text-danger">{error}</p>}
       <div className="mt-7 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-5">

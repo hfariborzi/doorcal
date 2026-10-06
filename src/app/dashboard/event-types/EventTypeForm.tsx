@@ -4,7 +4,9 @@ import { Check, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { LocationOption, Question } from "@/db/schema";
-import { LOCATION_TYPES } from "@/lib/locations";
+import { LOCATION_TYPES, locationLabel } from "@/lib/locations";
+import { EMPTY_PREFERENCES } from "@/lib/preferences";
+import { WeeklyHoursEditor } from "@/components/WeeklyHoursEditor";
 import { saveEventType, type EventTypeInput } from "../actions";
 
 const COLORS = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0891b2", "#db2777", "#475569"];
@@ -115,6 +117,8 @@ export function EventTypeForm({
   }
 
   const isGroup = v.seats > 1;
+  const prefs = v.preferences ?? EMPTY_PREFERENCES;
+  const setPrefs = (patch: Partial<typeof prefs>) => set("preferences", { ...prefs, ...patch });
 
   return (
     <form onSubmit={submit} className="space-y-6">
@@ -135,11 +139,11 @@ export function EventTypeForm({
         </div>
         <div>
           <label className="label" htmlFor="slug">URL</label>
-          <div className="flex items-center rounded-lg border border-line-strong bg-white/[0.03] text-sm focus-within:border-accent">
+          <div className="flex items-center rounded-lg border border-line-strong bg-paper text-sm focus-within:border-accent">
             <span className="pl-3 text-faint">/{username}/</span>
             <input
               id="slug"
-              className="w-full rounded-r-lg bg-black/20 px-2 py-2 focus:outline-none"
+              className="w-full rounded-r-lg bg-well px-2 py-2 focus:outline-none"
               required
               value={v.slug}
               onChange={(e) => {
@@ -289,6 +293,35 @@ export function EventTypeForm({
         </div>
       </Section>
 
+      <Section title="Preferences" desc="Soft preferences shown to invitees. Every available time stays bookable; preferred ones are just highlighted.">
+        {v.locations.length > 1 && (
+          <div>
+            <label className="label" htmlFor="pref-loc">Preferred location</label>
+            <select id="pref-loc" className="input sm:w-80" value={prefs.locationIndex ?? ""} onChange={(e) => setPrefs({ locationIndex: e.target.value === "" ? null : Number(e.target.value) })}>
+              <option value="">No preference</option>
+              {v.locations.map((l, i) => (
+                <option key={i} value={i}>{locationLabel(l)}{l.type === "in_person" && l.address ? `: ${l.address}` : ""}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div>
+          <label className="flex items-center gap-3 text-sm">
+            <input type="checkbox" checked={prefs.weekly !== null} onChange={(e) => setPrefs({ weekly: e.target.checked ? { "1": [{ start: "09:00", end: "12:00" }] } : null })} />
+            Mark some times as preferred
+          </label>
+          {prefs.weekly !== null && (
+            <div className="mt-3 rounded-xl border border-line px-4">
+              <WeeklyHoursEditor weekly={prefs.weekly} onChange={(w) => setPrefs({ weekly: w })} offLabel="No preference" defaultRange={{ start: "09:00", end: "12:00" }} />
+            </div>
+          )}
+        </div>
+        <div>
+          <label className="label" htmlFor="pref-note">Note to invitees</label>
+          <input id="pref-note" className="input" maxLength={200} placeholder="e.g. Mornings are best; Tuesdays ideal" value={prefs.note} onChange={(e) => setPrefs({ note: e.target.value })} />
+        </div>
+      </Section>
+
       <Section title="Event kind">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex cursor-pointer gap-3 rounded-lg border border-line p-4 has-[:checked]:border-accent has-[:checked]:bg-accent/15">
@@ -358,7 +391,7 @@ export function EventTypeForm({
         </label>
       </Section>
 
-      <div className="sticky bottom-0 -mx-6 flex items-center gap-3 border-t border-line bg-canvas/85 px-6 py-4 backdrop-blur">
+      <div className="sticky bottom-0 -mx-6 flex items-center gap-3 border-t border-line bg-canvas/90 px-6 py-4 backdrop-blur">
         <button type="submit" disabled={pending} className="btn-primary">{pending ? "Saving…" : "Save"}</button>
         {saved && <span className="inline-flex items-center gap-1 text-sm text-success"><Check size={15} /> Saved</span>}
         {error && <span className="text-sm text-danger">{error}</span>}

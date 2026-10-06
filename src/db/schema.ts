@@ -34,6 +34,23 @@ export type Question = {
 
 export type BookingLocation = { type: LocationOption["type"]; value?: string };
 
+export type Priority = "high" | "normal" | "low";
+export type EventLocationKind = "video" | "in_person" | "unspecified";
+export type LabelSource = "user" | "rule" | "ai";
+
+/** Dashboard calendar display choices. */
+export type CalendarPrefs = {
+  colorBy: "calendar" | "type" | "priority";
+  hidden: { categories: number[]; other: boolean; locations: EventLocationKind[]; priorities: Priority[] };
+};
+
+/** Soft preferences shown to invitees; they never remove a slot. */
+export type BookingPreferences = {
+  locationIndex: number | null; // index into event_types.locations
+  weekly: WeeklyHours | null; // preferred windows, in the schedule's time zone; null = no time preference
+  note: string;
+};
+
 export const users = pgTable(
   "users",
   {
@@ -49,6 +66,9 @@ export const users = pgTable(
     writeCalendarId: text("write_calendar_id").notNull().default("primary"),
     // Default calendar account that receives new bookings (event types can override it).
     writeAccountId: integer("write_account_id").references((): AnyPgColumn => calendarAccounts.id, { onDelete: "set null" }),
+    calendarPrefs: jsonb("calendar_prefs").$type<CalendarPrefs>(),
+    // When the user agreed to send event titles to the AI provider for categorisation; null = off.
+    aiConsentAt: timestamp("ai_consent_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("users_username_idx").on(t.username)],
@@ -81,6 +101,82 @@ export const calendarAccounts = pgTable(
     uniqueIndex("calendar_accounts_provider_account_idx").on(t.provider, t.providerAccountId),
     index("calendar_accounts_user_idx").on(t.userId),
   ],
+);
+
+/** Event types a user sorts their calendar into (the "type" dimension). At most 10 per user. */
+export const categories = pgTable(
+  "categories",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    color: text("color").notNull(),
+    defaultPriority: text("default_priority").$type<Priority>().notNull().default("normal"),
+    position: integer("position").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("categories_user_name_idx").on(t.userId, t.name)],
+);
+
+/** "If the title contains X, it's category Y (and priority Z)". First match wins, in position order. */
+export const labelRules = pgTable(
+  "label_rules",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    pattern: text("pattern").notNull(), // matched case-insensitively as a substring of the title
+    categoryId: integer("category_id").references(() => categories.id, { onDelete: "cascade" }), // null = Other
+    priority: text("priority").$type<Priority>(), // null = the category's default
+    position: integer("position").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("label_rules_user_idx").on(t.userId)],
+);
+
+/**
+ * A label on one calendar event (or a whole recurring series). Only the label and a hash of the title are
+ * stored, never the title itself. A label from a rule or the AI is redone when the title changes; a label
+ * the user set by hand sticks.
+ */
+export const eventLabels = pgTable(
+  "event_labels",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => calendarAccounts.id, { onDelete: "cascade" }),
+    eventKey: text("event_key").notNull(), // the series id for recurring events, else the event id
+    titleHash: text("title_hash").notNull(),
+    categoryId: integer("category_id").references(() => categories.id, { onDelete: "set null" }), // null = Other
+    priority: text("priority").$type<Priority>(), // null = the category's default
+    source: text("source").$type<LabelSource>().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("event_labels_account_event_idx").on(t.accountId, t.eventKey), index("event_labels_user_idx").on(t.userId)],
+);
+
+/** AI classification counters, for per-user and instance-wide caps. */
+export const aiUsage = pgTable(
+  "ai_usage",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    day: text("day").notNull(), // YYYY-MM-DD (UTC)
+    events: integer("events").notNull().default(0),
+    requests: integer("requests").notNull().default(0),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+  },
+  (t) => [uniqueIndex("ai_usage_user_day_idx").on(t.userId, t.day)],
 );
 
 export const schedules = pgTable(
@@ -116,6 +212,7 @@ export const eventTypes = pgTable(
     // Where bookings of this type go; null means the user's default account and calendar.
     writeAccountId: integer("write_account_id").references(() => calendarAccounts.id, { onDelete: "set null" }),
     writeCalendarId: text("write_calendar_id"),
+    preferences: jsonb("preferences").$type<BookingPreferences>(),
     bufferBefore: integer("buffer_before").notNull().default(0),
     bufferAfter: integer("buffer_after").notNull().default(0),
     minNotice: integer("min_notice").notNull().default(240), // minutes
@@ -179,6 +276,9 @@ export const rateLimits = pgTable("rate_limits", {
 
 export type User = typeof users.$inferSelect;
 export type CalendarAccount = typeof calendarAccounts.$inferSelect;
+export type Category = typeof categories.$inferSelect;
+export type LabelRule = typeof labelRules.$inferSelect;
+export type EventLabel = typeof eventLabels.$inferSelect;
 export type Schedule = typeof schedules.$inferSelect;
 export type EventType = typeof eventTypes.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;

@@ -15,12 +15,12 @@ function Waves() {
     >
       <defs>
         <linearGradient id="wave-a" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#4c1d95" stopOpacity="0.45" />
-          <stop offset="1" stopColor="#2e1065" stopOpacity="0.2" />
+          <stop offset="0" stopColor="#7c3aed" stopOpacity="0.22" />
+          <stop offset="1" stopColor="#4c1d95" stopOpacity="0.12" />
         </linearGradient>
         <linearGradient id="wave-b" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#7c3aed" stopOpacity="0.35" />
-          <stop offset="1" stopColor="#4c1d95" stopOpacity="0.15" />
+          <stop offset="0" stopColor="#8b5cf6" stopOpacity="0.3" />
+          <stop offset="1" stopColor="#6d28d9" stopOpacity="0.14" />
         </linearGradient>
       </defs>
       <path d="M0 120 C 360 40 720 220 1080 140 S 1440 80 1440 80 V400 H0Z" fill="url(#wave-a)" />
@@ -35,7 +35,7 @@ export default async function Home() {
     <div className="relative isolate flex min-h-screen flex-1 flex-col overflow-hidden">
       <Waves />
       <main className="flex flex-1 flex-col items-center px-6 pt-14 pb-16">
-        <div className="flex items-center rounded-full border border-line bg-white/[0.04] px-5 py-3 text-ink backdrop-blur">
+        <div className="flex items-center rounded-full border border-line bg-paper px-5 py-3 text-ink backdrop-blur">
           <FullLogo height="22px" />
         </div>
 

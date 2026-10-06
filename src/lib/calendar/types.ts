@@ -22,8 +22,10 @@ export type Attendee = { email: string; name?: string; status?: string };
 
 export type CalendarEvent = {
   id: string;
+  seriesId?: string; // set for instances of a recurring event
   accountId: number;
   calendarId: string;
+  calendarName?: string;
   title: string;
   start: string; // ISO date-time, or ISO date for all-day events
   end: string;

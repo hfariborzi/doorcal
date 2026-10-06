@@ -186,8 +186,10 @@ export const googleCalendar: CalendarProvider = {
             .filter((e) => e.status !== "cancelled" && e.id)
             .map<CalendarEvent>((e) => ({
               id: e.id!,
+              seriesId: e.recurringEventId ?? undefined,
               accountId: account.id,
               calendarId: c.id,
+              calendarName: c.summary,
               title: e.summary || "(No title)",
               start: e.start?.dateTime || e.start?.date || "",
               end: e.end?.dateTime || e.end?.date || "",

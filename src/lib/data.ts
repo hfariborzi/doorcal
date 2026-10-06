@@ -1,6 +1,7 @@
 import { and, asc, eq, gt, lt } from "drizzle-orm";
 import { db, users, schedules, eventTypes, bookings, type EventType, type User, type Schedule } from "@/db";
 import { computeSlots, DEFAULT_WEEKLY } from "./availability";
+import { hasTimePreference, isPreferredSlot } from "./preferences";
 import { busyForAccounts, listAccounts } from "./calendar";
 
 export async function getUserByUsername(username: string): Promise<User | null> {
@@ -120,17 +121,10 @@ export async function getSlots(opts: {
     ...b,
     blocks: !b.eventId || !b.calendarId || !b.accountId || !checked.has(`${b.accountId}:${b.calendarId}`),
   }));
-  return {
-    schedule,
-    slots: computeSlots({
-      eventType,
-      schedule,
-      duration,
-      rangeStart,
-      rangeEnd,
-      busy,
-      bookings: rows,
-      ignoreBookingUid,
-    }),
-  };
+  const slots = computeSlots({ eventType, schedule, duration, rangeStart, rangeEnd, busy, bookings: rows, ignoreBookingUid });
+  // Soft preferences: mark slots inside the host's preferred windows; nothing is removed.
+  if (hasTimePreference(eventType.preferences)) {
+    for (const s of slots) s.preferred = isPreferredSlot(Date.parse(s.start), duration, eventType.preferences!.weekly, schedule.timezone);
+  }
+  return { schedule, slots };
 }

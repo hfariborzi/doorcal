@@ -248,6 +248,7 @@ type GraphEvent = GraphEventLite & {
   webLink?: string;
   body?: { content?: string };
   attendees?: GraphAttendee[];
+  seriesMasterId?: string | null;
 };
 
 export const microsoftCalendar: CalendarProvider = {
@@ -277,7 +278,7 @@ export const microsoftCalendar: CalendarProvider = {
   },
 
   async listEvents(account, calendars, timeMin, timeMax): Promise<CalendarEvent[]> {
-    const select = "id,subject,start,end,isAllDay,isCancelled,location,onlineMeeting,onlineMeetingUrl,webLink,body,attendees,showAs";
+    const select = "id,subject,start,end,isAllDay,isCancelled,location,onlineMeeting,onlineMeetingUrl,webLink,body,attendees,showAs,seriesMasterId";
     const results = await Promise.all(
       calendars.map(async (c) => {
         const items = await graphPages<GraphEvent>(account, viewPath(c.id, timeMin, timeMax, select), UTC_PREFER).catch((err) => {
@@ -289,8 +290,10 @@ export const microsoftCalendar: CalendarProvider = {
           .filter((e) => !e.isCancelled)
           .map<CalendarEvent>((e) => ({
             id: e.id,
+            seriesId: e.seriesMasterId || undefined,
             accountId: account.id,
             calendarId: c.id,
+            calendarName: c.summary,
             title: e.subject || "(No title)",
             start: e.isAllDay ? allDayDate(e.start) : new Date(parseGraphUtc(e.start)).toISOString(),
             end: e.isAllDay ? allDayDate(e.end) : new Date(parseGraphUtc(e.end)).toISOString(),
