@@ -2,7 +2,7 @@
 
 /*
  * DoorCal design tokens. Two themes share one set of names: light (the default) and the "Nocturne Cal" dark
- * theme from the Stitch design (design/stitch/nocturne_cal/DESIGN.md). The theme is chosen with
+ * theme from the "Nocturne Cal" Stitch design (kept with the owner's design files). The theme is chosen with
  * data-theme="light" | "dark" on <html>; see src/components/ThemeToggle.tsx.
  */
 @theme inline {

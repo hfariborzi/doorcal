@@ -2,7 +2,7 @@ import Link from "next/link";
 import { APP_NAME } from "@/lib/config";
 
 /**
- * The DoorCal mark, drawn exactly as design/logo/doorcal-logo.svg: a "D" that doubles as a door, with three
+ * The DoorCal mark, drawn exactly as the DoorCal mark SVG (owner's design files): a "D" that doubles as a door, with three
  * calendar rings on top and a knob. Only the color changes (black in the file, `currentColor` here) so it
  * shows on the dark theme.
  */
@@ -27,7 +27,7 @@ export function LogoMark({ size = 24, className = "", style }: { size?: number; 
 }
 
 /*
- * The full logo, drawn exactly as design/logo/doorcal-logo-full.svg (the D mark followed by "oorCal" as
+ * The full logo, drawn exactly as the full DoorCal logo SVG (owner's design files) (the D mark followed by "oorCal" as
  * outlines). Only two things differ from the file: black becomes currentColor (the D can take its own color
  * through markClassName), and the viewBox is trimmed to the drawing's edges (x 0–17818, y 430–4700) so the
  * logo sizes and aligns by its ink rather than by the file's empty margins.
