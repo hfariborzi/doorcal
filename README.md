@@ -183,7 +183,7 @@ Other scripts: `npm test` (slot engine tests), `npm run typecheck`, `npm run lin
 
 ## Roadmap ideas
 
-Contributions are welcome. Some ideas:
+Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) (changes come in as pull requests reviewed by the maintainer). Some ideas:
 
 - Email reminders and follow-ups
 - Round-robin and collective (multi-host) events
