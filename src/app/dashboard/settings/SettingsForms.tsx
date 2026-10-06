@@ -58,7 +58,7 @@ export function ProfileForm({ initial }: { initial: { name: string; username: st
       </div>
       <div>
         <label className="label" htmlFor="p-head">Headline</label>
-        <input id="p-head" className="input" placeholder="e.g. Associate Professor, Mount Royal University" value={v.headline} onChange={(e) => set("headline", e.target.value)} />
+        <input id="p-head" className="input" placeholder="e.g. Associate Professor, Example University" value={v.headline} onChange={(e) => set("headline", e.target.value)} />
       </div>
       <div>
         <label className="label" htmlFor="p-welcome">Welcome message</label>
