@@ -30,6 +30,13 @@ function MicrosoftLogo() {
 
 const DEFAULT_LABEL: Record<Provider, string> = { google: "Continue with Google", microsoft: "Continue with Microsoft" };
 
+// Google's sign-in button guidelines (light): white, 1px #747775 border, #1F1F1F text, medium weight, 40px
+// tall, Roboto. Microsoft's: white, #8C8C8C border, #5E5E5E text, semibold. Both stay light in dark mode.
+const BRAND: Record<Provider, { border: string; color: string; weight: number; font: string }> = {
+  google: { border: "#747775", color: "#1F1F1F", weight: 500, font: '"Roboto", "Helvetica Neue", Arial, sans-serif' },
+  microsoft: { border: "#8C8C8C", color: "#5E5E5E", weight: 600, font: '"Segoe UI", "Helvetica Neue", Arial, sans-serif' },
+};
+
 /**
  * Starts the provider's OAuth flow. `connect` links the account to the signed-in user instead of signing in;
  * `reconnect` re-authorises an existing account. The light button follows both providers' branding rules.
@@ -55,9 +62,8 @@ export function ProviderButton({
   return (
     <a
       href={`/api/auth/${provider}?${q}`}
-      className={`btn border border-line-strong bg-white text-[#1f1f1f] hover:bg-[#f2f2f2] ${
-        compact ? "rounded-lg px-3 py-1.5 text-sm" : "w-full rounded-full py-3 text-base shadow-(--shadow-card)"
-      }`}
+      className={`btn border bg-white hover:bg-[#f2f2f2] ${compact ? "rounded-lg px-3 py-1.5 text-sm" : "w-full rounded-full px-5 shadow-(--shadow-card)"}`}
+      style={{ borderColor: BRAND[provider].border, color: BRAND[provider].color, fontWeight: BRAND[provider].weight, fontFamily: BRAND[provider].font, ...(compact ? {} : { height: 40, fontSize: 14 }) }}
     >
       {provider === "google" ? <GoogleLogo /> : <MicrosoftLogo />}
       {label ?? DEFAULT_LABEL[provider]}

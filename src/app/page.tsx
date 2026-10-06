@@ -54,10 +54,23 @@ export default async function Home() {
             )}
           </div>
           <p className="mt-5 text-base text-faint">Free and open source.</p>
-          <p className="mx-auto mt-12 max-w-lg border-t border-line pt-6 text-sm leading-relaxed text-faint">
+          <dl className="mx-auto mt-12 grid max-w-xl gap-x-8 gap-y-4 border-t border-line pt-8 text-left text-sm sm:grid-cols-3">
+            {[
+              ["1. Connect", "Sign in with Google or Microsoft and allow calendar access, once."],
+              ["2. Set your hours", "Choose when you take meetings, in person or by video, and get a link."],
+              ["3. Get booked", "Invitees pick a free time. The meeting lands on your calendar with the invite sent."],
+            ].map(([t, d]) => (
+              <div key={t}>
+                <dt className="font-semibold text-ink">{t}</dt>
+                <dd className="mt-1 leading-relaxed text-muted">{d}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mx-auto mt-8 max-w-lg border-t border-line pt-6 text-sm leading-relaxed text-faint">
             {APP_NAME} only uses your calendar to see your free/busy times, list your calendars, and view and edit
             events for the meetings booked with you. See the{" "}
-            <Link href="/privacy" className="link">privacy policy</Link>.
+            <Link href="/privacy" className="link">privacy policy</Link> and{" "}
+            <Link href="/terms" className="link">terms of service</Link>.
           </p>
         </div>
       </main>

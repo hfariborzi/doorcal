@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AlertTriangle, Check, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import type { Provider } from "@/db/schema";
@@ -123,6 +124,10 @@ export function ConnectedCalendars({
         <p className="text-sm text-faint">
           Connect as many Google and Microsoft accounts as you like. Any of them can be used to sign in. Tick the
           calendars that should block your availability, and choose where new bookings go.
+        </p>
+        <p className="mt-1 text-xs text-faint">
+          Calendar access is used only to check when you&apos;re busy, list your calendars, and create, update or
+          cancel the meetings booked with you. See the <Link href="/privacy" className="link">privacy policy</Link>.
         </p>
       </div>
       {flash && (
