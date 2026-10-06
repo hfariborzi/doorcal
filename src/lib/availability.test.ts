@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { DateTime } from "luxon";
 import { computeSlots, DEFAULT_WEEKLY, type SlotInput } from "./availability.ts";
 
 const TZ = "America/Edmonton";
@@ -106,11 +107,18 @@ test("group events stay open until seats run out", () => {
 });
 
 test("DST change keeps slots on local wall-clock time", () => {
-  // 2026-11-02 is the Monday after DST ends in North America (MST = UTC-7)
+  // 2026-11-02 is the Monday after DST ends in North America. Compare against Luxon's own idea of
+  // 09:00 local that day rather than a fixed instant, so the test doesn't depend on the machine's
+  // time-zone database (regions do change their DST rules).
   const slots = run({
     now: new Date("2026-10-30T12:00:00Z"),
     rangeStart: new Date("2026-11-02T07:00:00Z"),
     rangeEnd: new Date("2026-11-03T07:00:00Z"),
   });
-  assert.equal(slots[0].start, "2026-11-02T16:00:00.000Z"); // 09:00 MST
+  const nineLocal = DateTime.fromObject({ year: 2026, month: 11, day: 2, hour: 9 }, { zone: TZ });
+  assert.equal(slots[0].start, nineLocal.toUTC().toISO());
+  // And the slot before the change was also 09:00 local, whatever the offsets were.
+  const before = run({ rangeStart: new Date("2026-10-26T06:00:00Z"), rangeEnd: new Date("2026-10-27T06:00:00Z") });
+  assert.equal(DateTime.fromISO(before[0].start).setZone(TZ).toFormat("HH:mm"), "09:00");
+  assert.equal(DateTime.fromISO(slots[0].start).setZone(TZ).toFormat("HH:mm"), "09:00");
 });
