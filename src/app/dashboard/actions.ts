@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
-import { db, users, schedules, eventTypes, bookings, calendarAccounts, categories, labelRules, eventLabels, type Priority } from "@/db";
+import { db, users, schedules, eventTypes, bookings, calendarAccounts, categories, labelRules, eventLabels, type CalendarPrefs, type Priority } from "@/db";
 import { aiConfigured, proposeCategories, toSample } from "@/lib/ai";
 import { eventsForAccounts } from "@/lib/calendar";
 import { CATEGORY_PALETTE, MAX_CATEGORIES, MAX_RULES, eventKey, labelKey, listCategories, listRules, storeLabels, titleHash } from "@/lib/labels";
@@ -448,7 +448,22 @@ export async function saveCalendarPrefs(input: z.input<typeof prefsSchema>): Pro
   const user = await requireUser();
   const parsed = prefsSchema.safeParse(input);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
-  await db.update(users).set({ calendarPrefs: parsed.data }).where(eq(users.id, user.id));
+  // Keep the sidebar's calendar choice; the calendar view only owns colour-by and the filter chips.
+  await db.update(users).set({ calendarPrefs: { ...parsed.data, calendars: user.calendarPrefs?.calendars } }).where(eq(users.id, user.id));
+  return {};
+}
+
+const DEFAULT_PREFS: CalendarPrefs = { colorBy: "calendar", hidden: { categories: [], other: false, locations: [], priorities: [] } };
+
+/** Sidebar: which of an account's calendars are shown in the dashboard. */
+export async function setVisibleCalendars(accountId: number, calendarIds: string[]): Promise<ActionResult> {
+  const user = await requireUser();
+  const parsed = z.object({ accountId: z.number().int(), calendarIds: z.array(z.string().min(1).max(300)).max(100) }).safeParse({ accountId, calendarIds });
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  if (!(await getAccount(user.id, parsed.data.accountId))) return { error: "Unknown calendar account" };
+  const current = user.calendarPrefs ?? DEFAULT_PREFS;
+  const calendars = { ...(current.calendars ?? {}), [String(parsed.data.accountId)]: [...new Set(parsed.data.calendarIds)] };
+  await db.update(users).set({ calendarPrefs: { ...current, calendars } }).where(eq(users.id, user.id));
   return {};
 }
 

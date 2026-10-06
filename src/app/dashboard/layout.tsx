@@ -8,6 +8,7 @@ import { CopyButton } from "@/components/CopyButton";
 import { ProviderButton } from "@/components/ProviderButton";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { CalendarSidebar } from "./CalendarSidebar";
 import { Nav } from "./Nav";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
@@ -19,11 +20,17 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="border-b border-line bg-well px-3 py-4 backdrop-blur md:sticky md:top-0 md:flex md:h-screen md:w-60 md:shrink-0 md:flex-col md:border-r md:border-b-0 md:px-4 md:py-6">
+      <aside className="border-b border-line bg-well px-3 py-4 backdrop-blur md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col md:overflow-y-auto md:border-r md:border-b-0 md:px-4 md:py-6">
         <div className="mb-4 px-2 md:mb-8">
           <Logo href="/dashboard" />
         </div>
         <Nav />
+        <div className="hidden md:block">
+          <CalendarSidebar />
+        </div>
+        <div className="md:hidden">
+          <CalendarSidebar collapsible />
+        </div>
         <div className="mt-auto hidden space-y-1 border-t border-line pt-4 md:block">
           <div className="flex items-center gap-3 px-2 py-2">
             <Avatar name={user.name || user.email} image={user.image} size={32} />

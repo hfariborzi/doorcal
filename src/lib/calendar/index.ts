@@ -121,7 +121,16 @@ export async function calendarsForAccounts(accounts: CalendarAccount[]): Promise
 
 export type EventsResult = { events: CalendarEvent[]; problems: { accountId: number; email: string; message: string }[] };
 
-/** Dashboard events from the calendars each account checks for conflicts, plus the one bookings go to. */
+/** Calendars shown for an account in the dashboard: the user's choice, else conflicts + the booking calendar. */
+export function visibleCalendarIds(user: Pick<User, "calendarPrefs" | "writeAccountId" | "writeCalendarId">, account: CalendarAccount): Set<string> {
+  const chosen = user.calendarPrefs?.calendars?.[String(account.id)];
+  if (chosen) return new Set(chosen);
+  const wanted = new Set(account.conflictCalendarIds);
+  if (user.writeAccountId === account.id) wanted.add(user.writeCalendarId);
+  return wanted;
+}
+
+/** Dashboard events from each account's visible calendars (see visibleCalendarIds). */
 export async function eventsForAccounts(user: User, accounts: CalendarAccount[], timeMin: Date, timeMax: Date): Promise<EventsResult> {
   const out: EventsResult = { events: [], problems: [] };
   await Promise.all(
@@ -132,8 +141,7 @@ export async function eventsForAccounts(user: User, accounts: CalendarAccount[],
       }
       try {
         const provider = providerFor(account);
-        const wanted = new Set(account.conflictCalendarIds);
-        if (user.writeAccountId === account.id) wanted.add(user.writeCalendarId);
+        const wanted = visibleCalendarIds(user, account);
         const calendars = (await provider.listCalendars(account)).filter((c) => wanted.has(c.id) && c.canReadEvents);
         out.events.push(...(await provider.listEvents(account, calendars, timeMin, timeMax)));
       } catch (err) {

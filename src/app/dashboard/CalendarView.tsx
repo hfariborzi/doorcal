@@ -8,6 +8,7 @@ import type { CalendarEvent } from "@/lib/calendar/types";
 import { eventKey, LOCATION_KIND_LABEL, LOCATION_KINDS, PRIORITIES, PRIORITY_COLOR, PRIORITY_LABEL } from "@/lib/labels/core";
 import { meetingLinkLabel } from "@/lib/locations";
 import { labelEvent, saveCalendarPrefs } from "./actions";
+import { CALENDARS_CHANGED } from "./CalendarSidebar";
 
 type Problem = { accountId: number; email: string; message: string };
 type Label = { categoryId: number | null; priority: Priority; source: LabelSource | null; location: EventLocationKind };
@@ -159,6 +160,13 @@ export function CalendarView() {
   useEffect(() => {
     if (scroller.current) scroller.current.scrollTop = 7.5 * HOUR_PX;
   }, [view]);
+
+  // The sidebar showed or hid a calendar: fetch the events again.
+  useEffect(() => {
+    const onChange = () => setReloadTick((t) => t + 1);
+    window.addEventListener(CALENDARS_CHANGED, onChange);
+    return () => window.removeEventListener(CALENDARS_CHANGED, onChange);
+  }, []);
 
   const shown = (events ?? []).filter((e) => !isHidden(labels[labelKey(e)], view_prefs));
   const timed = shown.filter((e) => !e.allDay);

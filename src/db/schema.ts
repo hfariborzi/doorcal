@@ -42,6 +42,9 @@ export type LabelSource = "user" | "rule" | "ai";
 export type CalendarPrefs = {
   colorBy: "calendar" | "type" | "priority";
   hidden: { categories: number[]; other: boolean; locations: EventLocationKind[]; priorities: Priority[] };
+  // Calendars shown in the dashboard, per account id. An account with no entry shows its conflict
+  // calendars plus the one bookings go to. Separate from what blocks availability (Settings).
+  calendars?: Record<string, string[]>;
 };
 
 /** Soft preferences shown to invitees; they never remove a slot. */
