@@ -85,7 +85,9 @@ export default function PrivacyPage() {
           not used for training and is retained for at most 30 days for abuse monitoring; OpenRouter is
           instructed, on every request, to route only to OpenAI or to Microsoft&apos;s Azure OpenAI Service (which
           hosts the same models under the same no-training terms) and only to providers that do not store or
-          train on data; prompt logging is switched off in our OpenRouter account. {APP_NAME}{" "}
+          train on data. In our OpenRouter account, zero data retention is enforced for OpenAI models, so requests
+          are served only by endpoints that do not store them; routing to providers that may train on data is
+          disabled; and prompt logging is switched off. {APP_NAME}{" "}
           itself keeps only the resulting category label. You can switch this off at any time, which also deletes
           the AI-suggested labels.
         </p>

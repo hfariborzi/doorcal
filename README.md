@@ -130,8 +130,9 @@ model is enough; a thousand active users cost about a dollar a week.
 | Self-hosted (vLLM, Ollama) | your server's `/v1` | your model | free |
 
 Reasoning models (GPT-5 nano, gpt-oss) work too; DoorCal leaves them room to think before the short answer.
-On OpenRouter, check **Settings → Privacy** so prompts are not logged and only providers that don't train on
-inputs are used; name the route in `AI_PROVIDER_NAME` (e.g. "OpenRouter (which passes it to OpenAI)").
+On OpenRouter, set **Settings → Privacy** as doorcal.com does: Zero Data Retention on for the model's vendor,
+every "allow endpoints that train on request data" toggle off, and the data-discount (logging) toggle off. Name
+the route in `AI_PROVIDER_NAME` (e.g. "OpenRouter (which passes it to OpenAI)").
 
 Set `AI_PROVIDER_NAME` to the provider's name; it appears on the consent screen and in the privacy policy.
 Users opt in per account in Settings. Only the title, length, recurrence, attendee count, video-link flag and
