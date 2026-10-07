@@ -11,7 +11,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node scripts/migrate.mjs",
     "db:studio": "drizzle-kit studio",
-    "test": "node --test --experimental-strip-types src/lib/availability.test.ts src/lib/calendar/microsoft-graph.test.ts src/lib/labels/core.test.ts src/lib/preferences.test.ts"
+    "test": "node --test --experimental-strip-types src/lib/availability.test.ts src/lib/calendar/microsoft-graph.test.ts src/lib/labels/core.test.ts src/lib/preferences.test.ts src/lib/ai/client.test.ts"
   },
   "dependencies": {
     "@googleapis/calendar": "^20.1.0",

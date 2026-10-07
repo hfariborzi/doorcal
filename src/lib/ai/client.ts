@@ -25,6 +25,26 @@ function config() {
 
 export type Usage = { inputTokens: number; outputTokens: number };
 
+/**
+ * Extra request fields that pin down where the data may go. On OpenRouter: only providers that don't
+ * collect or train on data, and only the model's own vendor (for OpenAI models, OpenAI itself or Microsoft's
+ * Azure OpenAI Service, which hosts the same models under the same no-training terms). Other endpoints get
+ * nothing extra, since OpenAI-style APIs reject unknown fields. AI_ROUTE_PROVIDERS overrides the list.
+ */
+export function routingFor(baseUrl: string, model: string): Record<string, unknown> {
+  let host = "";
+  try {
+    host = new URL(baseUrl).hostname;
+  } catch {
+    return {};
+  }
+  if (host !== "openrouter.ai") return {};
+  const vendor = model.split("/")[0];
+  const defaults = vendor === "openai" ? "openai,azure" : vendor;
+  const only = (process.env.AI_ROUTE_PROVIDERS ?? defaults).split(",").map((s) => s.trim()).filter(Boolean);
+  return { provider: { data_collection: "deny", ...(only.length ? { only } : {}) } };
+}
+
 type Completion = {
   choices?: { message?: { content?: string | null } }[];
   usage?: { prompt_tokens?: number; completion_tokens?: number };
@@ -67,6 +87,7 @@ export async function completeJson<T>(opts: {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const base = {
     model,
+    ...routingFor(config().baseUrl, model),
     temperature: 0,
     max_tokens: opts.maxTokens,
     messages: [
@@ -88,7 +109,8 @@ export async function completeJson<T>(opts: {
       response_format: { type: "json_object" },
     }, timeoutMs));
   }
-  if (status >= 300) throw new Error(`AI provider ${status}: ${data.error?.message ?? "request failed"}`);
+  // Gateways can answer 200 with an error body (e.g. the upstream provider is unavailable).
+  if (status >= 300 || data.error) throw new Error(`AI provider ${data.error ? "error" : status}: ${data.error?.message ?? "request failed"}`);
   const content = data.choices?.[0]?.message?.content ?? "";
   const json = content.trim().replace(/^```(?:json)?\s*|\s*```$/g, "");
   let parsed: unknown;

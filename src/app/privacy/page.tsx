@@ -77,9 +77,14 @@ export default function PrivacyPage() {
           sends a minimal description of events that no rule covers to {AI_PROVIDER_NAME} so that a model can
           suggest a category: the event title, its length, whether it repeats, how many attendees it has (not who
           they are), whether it has a video link, and the calendar&apos;s name. Descriptions, attendee names and
-          addresses, and booking details are never sent. The provider processes this only to answer the request;
-          under its API terms it does not use the data to train models. You can switch this off at any time, which
-          also deletes the AI-suggested labels.
+          addresses, and booking details are never sent. The provider processes this only to answer the request
+          and does not use it to train or improve AI models: under OpenAI&apos;s API terms, data sent to the API is
+          not used for training and is retained for at most 30 days for abuse monitoring; OpenRouter is
+          instructed, on every request, to route only to OpenAI or to Microsoft&apos;s Azure OpenAI Service (which
+          hosts the same models under the same no-training terms) and only to providers that do not store or
+          train on data; prompt logging is switched off in our OpenRouter account. {APP_NAME}{" "}
+          itself keeps only the resulting category label. You can switch this off at any time, which also deletes
+          the AI-suggested labels.
         </p>
       ) : (
         <p>AI categorisation is not enabled on this instance; no event data is sent to any AI provider.</p>
