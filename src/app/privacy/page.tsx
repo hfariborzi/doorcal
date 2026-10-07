@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { AI_PROVIDER_NAME, aiConfigured } from "@/lib/ai";
+
+const AI_MODEL = process.env.AI_MODEL ?? "";
 import { APP_NAME, CONTACT_EMAIL, SOURCE_URL } from "@/lib/config";
 import { ContactLine, LegalPage } from "@/components/LegalPage";
 
@@ -77,7 +79,8 @@ export default function PrivacyPage() {
           sends a minimal description of events that no rule covers to {AI_PROVIDER_NAME} so that a model can
           suggest a category: the event title, its length, whether it repeats, how many attendees it has (not who
           they are), whether it has a video link, and the calendar&apos;s name. Descriptions, attendee names and
-          addresses, and booking details are never sent. The provider processes this only to answer the request
+          addresses, free/busy data and booking details are never sent, and requests are subject to daily limits
+          per user and for the whole service.{AI_MODEL ? ` The model currently used is ${AI_MODEL}.` : ""} The provider processes this only to answer the request
           and does not use it to train or improve AI models: under OpenAI&apos;s API terms, data sent to the API is
           not used for training and is retained for at most 30 days for abuse monitoring; OpenRouter is
           instructed, on every request, to route only to OpenAI or to Microsoft&apos;s Azure OpenAI Service (which
