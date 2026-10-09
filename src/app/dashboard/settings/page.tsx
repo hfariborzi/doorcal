@@ -1,6 +1,6 @@
 import { AI_PROVIDER_NAME, aiConfigured, usageThisMonth } from "@/lib/ai";
 import { requireUser } from "@/lib/auth";
-import { calendarsForAccounts, enabledProviders, listAccounts } from "@/lib/calendar";
+import { calendarsForAccounts, enabledProviders, listAccounts, visibleCalendarIds } from "@/lib/calendar";
 import { ensureCategories, listRules } from "@/lib/labels";
 import { AiSettings } from "./AiSettings";
 import { CategoriesSettings } from "./CategoriesSettings";
@@ -32,6 +32,7 @@ export default async function SettingsPage(props: PageProps<"/dashboard/settings
           connected: !!account.refreshToken,
           onlineMeetings: account.onlineMeetings,
           conflictCalendarIds: account.conflictCalendarIds,
+          visibleCalendarIds: [...visibleCalendarIds(user, account)],
           calendars,
           error,
         }))}

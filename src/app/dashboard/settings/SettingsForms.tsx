@@ -84,6 +84,7 @@ type AccountView = {
   connected: boolean;
   onlineMeetings: boolean;
   conflictCalendarIds: string[];
+  visibleCalendarIds: string[];
   calendars: CalendarListItem[];
   error: string | null;
 };
@@ -100,6 +101,7 @@ export function ConnectedCalendars({
   flash: { kind: "ok" | "error"; text: string } | null;
 }) {
   const [conflicts, setConflicts] = useState(() => new Map(accounts.map((a) => [a.id, new Set(a.conflictCalendarIds)])));
+  const [visible, setVisible] = useState(() => new Map(accounts.map((a) => [a.id, new Set(a.visibleCalendarIds)])));
   const writable = accounts.flatMap((a) => a.calendars.filter((c) => c.canWrite).map((c) => ({ value: `${a.id}:${c.id}`, label: `${a.email} › ${c.summary}` })));
   const initialValue = `${initialWrite.accountId}:${initialWrite.calendarId}`;
   const [write, setWrite] = useState(writable.some((w) => w.value === initialValue) ? initialValue : (writable[0]?.value ?? ""));
@@ -107,13 +109,14 @@ export function ConnectedCalendars({
   const [saved, setSaved] = useState(false);
   const [pending, start] = useTransition();
 
-  function toggle(accountId: number, calendarId: string, on: boolean) {
-    const next = new Map(conflicts);
-    const set = new Set(next.get(accountId));
-    if (on) set.add(calendarId);
-    else set.delete(calendarId);
-    next.set(accountId, set);
-    setConflicts(next);
+  function toggle(which: "conflicts" | "visible", accountId: number, calendarId: string, on: boolean) {
+    const [current, set] = which === "conflicts" ? [conflicts, setConflicts] : [visible, setVisible];
+    const next = new Map(current);
+    const ids = new Set(next.get(accountId));
+    if (on) ids.add(calendarId);
+    else ids.delete(calendarId);
+    next.set(accountId, ids);
+    set(next);
     setSaved(false);
   }
 
@@ -122,8 +125,9 @@ export function ConnectedCalendars({
       <div>
         <h2 className="font-semibold">Connected calendars</h2>
         <p className="text-sm text-faint">
-          Connect as many Google and Microsoft accounts as you like. Any of them can be used to sign in. Tick the
-          calendars that should block your availability, and choose where new bookings go.
+          Connect as many Google and Microsoft accounts as you like. Any of them can be used to sign in. For each
+          calendar, choose whether it shows on your Calendar page and whether it blocks your availability, then
+          choose where new bookings go.
         </p>
         <p className="mt-1 text-xs text-faint">
           Calendar access is used only to check when you&apos;re busy, list your calendars, and create, update or
@@ -163,17 +167,34 @@ export function ConnectedCalendars({
             {a.calendars.length > 0 && (
               <div className="mt-3 space-y-2">
                 {a.calendars.map((c) => (
-                  <label key={c.id} className="flex items-center gap-3 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={conflicts.get(a.id)?.has(c.id) ?? false}
-                      onChange={(e) => toggle(a.id, c.id, e.target.checked)}
-                    />
-                    <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: c.color }} />
-                    <span className="text-ink">{c.summary}</span>
-                    {c.primary && <span className="text-xs text-faint">(main)</span>}
-                    {!c.canReadEvents && <span className="text-xs text-faint">(free/busy only)</span>}
-                  </label>
+                  <div key={c.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: c.color }} />
+                      <span className="truncate text-ink">{c.summary}</span>
+                      {c.primary && <span className="text-xs text-faint">(main)</span>}
+                      {!c.canReadEvents && <span className="text-xs text-faint">(free/busy only)</span>}
+                    </div>
+                    <div className="flex items-center gap-4 text-muted">
+                      {c.canReadEvents && (
+                        <label className="flex items-center gap-1.5">
+                          <input
+                            type="checkbox"
+                            checked={visible.get(a.id)?.has(c.id) ?? false}
+                            onChange={(e) => toggle("visible", a.id, c.id, e.target.checked)}
+                          />
+                          Show
+                        </label>
+                      )}
+                      <label className="flex items-center gap-1.5">
+                        <input
+                          type="checkbox"
+                          checked={conflicts.get(a.id)?.has(c.id) ?? false}
+                          onChange={(e) => toggle("conflicts", a.id, c.id, e.target.checked)}
+                        />
+                        Blocks bookings
+                      </label>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -198,7 +219,11 @@ export function ConnectedCalendars({
           const writeCalendarId = write ? write.slice(sep + 1) : initialWrite.calendarId;
           start(async () => {
             const r = await saveCalendarSettings({
-              accounts: accounts.map((a) => ({ id: a.id, conflictCalendarIds: [...(conflicts.get(a.id) ?? [])] })),
+              accounts: accounts.map((a) => ({
+                id: a.id,
+                conflictCalendarIds: [...(conflicts.get(a.id) ?? [])],
+                visibleCalendarIds: [...(visible.get(a.id) ?? [])],
+              })),
               writeAccountId,
               writeCalendarId,
             });

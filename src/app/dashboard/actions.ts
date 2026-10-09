@@ -254,7 +254,15 @@ export async function saveProfile(input: z.input<typeof profileSchema>): Promise
 }
 
 const calendarSettingsSchema = z.object({
-  accounts: z.array(z.object({ id: z.number().int(), conflictCalendarIds: z.array(z.string().min(1).max(300)).max(50) })).max(20),
+  accounts: z
+    .array(
+      z.object({
+        id: z.number().int(),
+        conflictCalendarIds: z.array(z.string().min(1).max(300)).max(50),
+        visibleCalendarIds: z.array(z.string().min(1).max(300)).max(100),
+      }),
+    )
+    .max(20),
   writeAccountId: z.number().int(),
   writeCalendarId: z.string().min(1).max(300),
 });
@@ -273,9 +281,13 @@ export async function saveCalendarSettings(input: z.input<typeof calendarSetting
       .set({ conflictCalendarIds: [...new Set(a.conflictCalendarIds)] })
       .where(and(eq(calendarAccounts.id, a.id), eq(calendarAccounts.userId, user.id)));
   }
+  // Which calendars the Calendar page shows, per account (display only).
+  const current = user.calendarPrefs ?? DEFAULT_PREFS;
+  const calendars = { ...(current.calendars ?? {}) };
+  for (const a of parsed.data.accounts) calendars[String(a.id)] = [...new Set(a.visibleCalendarIds)];
   await db
     .update(users)
-    .set({ writeAccountId: parsed.data.writeAccountId, writeCalendarId: parsed.data.writeCalendarId })
+    .set({ writeAccountId: parsed.data.writeAccountId, writeCalendarId: parsed.data.writeCalendarId, calendarPrefs: { ...current, calendars } })
     .where(eq(users.id, user.id));
   revalidatePath("/dashboard", "layout");
   return {};
@@ -456,17 +468,6 @@ export async function saveCalendarPrefs(input: z.input<typeof prefsSchema>): Pro
 const DEFAULT_PREFS: CalendarPrefs = { colorBy: "calendar", hidden: { categories: [], other: false, locations: [], priorities: [] } };
 
 /** Sidebar: which of an account's calendars are shown in the dashboard. */
-export async function setVisibleCalendars(accountId: number, calendarIds: string[]): Promise<ActionResult> {
-  const user = await requireUser();
-  const parsed = z.object({ accountId: z.number().int(), calendarIds: z.array(z.string().min(1).max(300)).max(100) }).safeParse({ accountId, calendarIds });
-  if (!parsed.success) return { error: firstIssue(parsed.error) };
-  if (!(await getAccount(user.id, parsed.data.accountId))) return { error: "Unknown calendar account" };
-  const current = user.calendarPrefs ?? DEFAULT_PREFS;
-  const calendars = { ...(current.calendars ?? {}), [String(parsed.data.accountId)]: [...new Set(parsed.data.calendarIds)] };
-  await db.update(users).set({ calendarPrefs: { ...current, calendars } }).where(eq(users.id, user.id));
-  return {};
-}
-
 // --- AI (opt-in) --------------------------------------------------------------------------------------
 
 export async function setAiConsent(enabled: boolean): Promise<ActionResult> {

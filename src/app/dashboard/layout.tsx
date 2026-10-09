@@ -8,7 +8,6 @@ import { CopyButton } from "@/components/CopyButton";
 import { ProviderButton } from "@/components/ProviderButton";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { CalendarSidebar } from "./CalendarSidebar";
 import { Nav } from "./Nav";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
@@ -25,12 +24,6 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
           <Logo href="/dashboard" />
         </div>
         <Nav />
-        <div className="hidden md:block">
-          <CalendarSidebar />
-        </div>
-        <div className="md:hidden">
-          <CalendarSidebar collapsible />
-        </div>
         <div className="mt-auto hidden space-y-1 border-t border-line pt-4 md:block">
           <div className="flex items-center gap-3 px-2 py-2">
             <Avatar name={user.name || user.email} image={user.image} size={32} />

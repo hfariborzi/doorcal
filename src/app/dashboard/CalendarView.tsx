@@ -8,7 +8,6 @@ import type { CalendarEvent } from "@/lib/calendar/types";
 import { eventKey, LOCATION_KIND_LABEL, LOCATION_KINDS, PRIORITIES, PRIORITY_COLOR, PRIORITY_LABEL } from "@/lib/labels/core";
 import { meetingLinkLabel } from "@/lib/locations";
 import { labelEvent, saveCalendarPrefs } from "./actions";
-import { CALENDARS_CHANGED } from "./CalendarSidebar";
 
 type Problem = { accountId: number; email: string; message: string };
 type Label = { categoryId: number | null; priority: Priority; source: LabelSource | null; location: EventLocationKind };
@@ -35,6 +34,8 @@ function isHidden(label: Label | undefined, prefs: CalendarPrefs) {
 }
 
 const HOUR_PX = 48;
+// A tab left in the background this long comes back on today and the current time.
+const RESET_AFTER_HIDDEN_MS = 15 * 60_000;
 
 type View = "week" | "day";
 
@@ -102,7 +103,18 @@ export function CalendarView() {
   const [reloadTick, setReloadTick] = useState(0);
   const [selected, setSelected] = useState<CalendarEvent | null>(null);
   const [creating, setCreating] = useState<DateTime | null>(null);
+  const [, setClock] = useState(0); // re-renders each minute so "now" stays current
   const scroller = useRef<HTMLDivElement>(null);
+
+  /** Scroll the time grid so the current time sits near the top, with a little of the past above it. */
+  function scrollToNow() {
+    const n = DateTime.now().setZone(tz);
+    if (scroller.current) scroller.current.scrollTop = Math.max(0, (n.hour + n.minute / 60 - 1.5) * HOUR_PX);
+  }
+  function goToNow() {
+    setAnchor(DateTime.now().setZone(tz).startOf("day"));
+    scrollToNow();
+  }
 
   const range = useMemo(() => {
     const a = anchor.setZone(tz, { keepLocalTime: true }).startOf("day");
@@ -157,16 +169,30 @@ export function CalendarView() {
     updatePrefs({ ...view_prefs, hidden: h });
   }
 
-  useEffect(() => {
-    if (scroller.current) scroller.current.scrollTop = 7.5 * HOUR_PX;
-  }, [view]);
+  // Open on the current time, and keep it there when switching between day and week.
+  useEffect(scrollToNow, [view, tz]);
 
-  // The sidebar showed or hid a calendar: fetch the events again.
+  // Keep the "now" line moving, and bring a tab that sat in the background back to today and now.
   useEffect(() => {
-    const onChange = () => setReloadTick((t) => t + 1);
-    window.addEventListener(CALENDARS_CHANGED, onChange);
-    return () => window.removeEventListener(CALENDARS_CHANGED, onChange);
-  }, []);
+    const timer = setInterval(() => setClock((c) => c + 1), 60_000);
+    let hiddenAt = 0;
+    const onVisibility = () => {
+      if (document.hidden) {
+        hiddenAt = Date.now();
+        return;
+      }
+      setClock((c) => c + 1);
+      if (hiddenAt && Date.now() - hiddenAt > RESET_AFTER_HIDDEN_MS) {
+        goToNow();
+        setReloadTick((t) => t + 1);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [tz]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shown = (events ?? []).filter((e) => !isHidden(labels[labelKey(e)], view_prefs));
   const timed = shown.filter((e) => !e.allDay);
@@ -189,7 +215,7 @@ export function CalendarView() {
     <div className="card flex flex-col overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-4">
         <div className="flex items-center gap-2">
-          <button className="btn-secondary py-1.5" onClick={() => setAnchor(DateTime.now().setZone(tz).startOf("day"))}>
+          <button className="btn-secondary py-1.5" onClick={goToNow}>
             Today
           </button>
           <button className="btn-ghost px-2 py-1.5" aria-label="Previous" onClick={() => setAnchor(anchor.minus(view === "week" ? { weeks: 1 } : { days: 1 }))}><ChevronLeft size={18} /></button>
