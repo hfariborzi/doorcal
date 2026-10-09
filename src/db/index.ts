@@ -18,8 +18,17 @@ export function usesNeonHttp(url: string) {
   }
 }
 
+/**
+ * The database for this deployment. On Vercel preview deployments, PREVIEW_DATABASE_URL (a separate
+ * database or Neon branch) wins over DATABASE_URL when set, so previews and staging never touch production.
+ */
+export function databaseUrl(): string | undefined {
+  if (process.env.VERCEL_ENV === "preview" && process.env.PREVIEW_DATABASE_URL) return process.env.PREVIEW_DATABASE_URL;
+  return process.env.DATABASE_URL;
+}
+
 function createDb(): Db {
-  const url = process.env.DATABASE_URL;
+  const url = databaseUrl();
   if (!url) throw new Error("DATABASE_URL is not set");
   if (usesNeonHttp(url)) return neonDb(url);
   // Same query API for everything this app uses, so it is typed as the Neon client.

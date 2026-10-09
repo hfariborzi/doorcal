@@ -102,10 +102,17 @@ Skip this to offer Google sign-in only; the Microsoft button appears once both v
    | `NEXT_PUBLIC_APP_NAME` | optional display name |
    | `CONTACT_EMAIL` | contact address shown in the footer, privacy policy and terms (recommended for public instances) |
    | `ALLOWED_EMAILS` / `ALLOWED_DOMAINS` | optional, comma-separated, to restrict who can sign up |
-   | `MIGRATE_PREVIEWS` | optional; `true` runs migrations on preview builds (only if previews use their own database branch) |
+   | `PREVIEW_DATABASE_URL` | optional; database for preview deployments and a staging branch (see below) |
+   | `MIGRATE_PREVIEWS` | optional; `true` runs migrations on preview builds that share `DATABASE_URL` (only if previews use their own database branch) |
 
 4. Redeploy. Database migrations run automatically during production builds (`scripts/migrate.mjs`). Preview builds
    skip them unless `MIGRATE_PREVIEWS=true`, so a preview can't change a shared production database.
+
+5. Optional staging site. Create a `staging` branch, add a domain to the project bound to that branch, and give it
+   its own database: **Storage → Create Database → Neon**, connected to the **Preview** environment only with the
+   variable prefix `PREVIEW_`. Preview deployments then use `PREVIEW_DATABASE_URL` and migrate it on build.
+   Set `APP_URL`, `AUTH_SECRET` and the other variables for the Preview environment (scoped to the branch) and add
+   the staging callback URL to the OAuth clients.
 
 ### 3. Custom domain (e.g. a subdomain on Cloudflare)
 

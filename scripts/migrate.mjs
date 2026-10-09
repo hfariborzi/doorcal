@@ -1,20 +1,23 @@
 // Applies pending SQL migrations from ./drizzle. Runs automatically before `next build`.
 // Skips quietly when DATABASE_URL is not set (e.g. CI builds without a database).
-// Skips Vercel preview builds, which often share the production database, unless MIGRATE_PREVIEWS=true
-// (set that if each preview gets its own database branch).
+// On Vercel preview builds, migrates PREVIEW_DATABASE_URL (a separate database or Neon branch) when it is
+// set. Without it, previews often share the production database, so migrations are skipped unless
+// MIGRATE_PREVIEWS=true (set that if each preview gets its own database branch some other way).
 // Uses Neon's HTTP driver for Neon URLs and node-postgres for any other Postgres (see src/db/index.ts).
 
-const url = process.env.DATABASE_URL;
+const preview = process.env.VERCEL_ENV === "preview";
+const url = (preview && process.env.PREVIEW_DATABASE_URL) || process.env.DATABASE_URL;
 
 if (!url) {
   console.log("[migrate] DATABASE_URL not set, skipping migrations");
   process.exit(0);
 }
 
-if (process.env.VERCEL_ENV === "preview" && process.env.MIGRATE_PREVIEWS !== "true") {
-  console.log("[migrate] preview build, skipping migrations (set MIGRATE_PREVIEWS=true to run them)");
+if (preview && !process.env.PREVIEW_DATABASE_URL && process.env.MIGRATE_PREVIEWS !== "true") {
+  console.log("[migrate] preview build, skipping migrations (set PREVIEW_DATABASE_URL or MIGRATE_PREVIEWS=true to run them)");
   process.exit(0);
 }
+if (preview && process.env.PREVIEW_DATABASE_URL) console.log("[migrate] preview build, using PREVIEW_DATABASE_URL");
 
 function usesNeonHttp() {
   if (process.env.DATABASE_DRIVER) return process.env.DATABASE_DRIVER === "neon";
