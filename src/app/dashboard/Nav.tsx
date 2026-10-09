@@ -12,7 +12,7 @@ const items = [
   { href: "/dashboard/settings", label: "Settings", Icon: Settings },
 ];
 
-export function Nav() {
+export function Nav({ collapsed = false }: { collapsed?: boolean }) {
   const path = usePathname();
   return (
     <nav className="flex gap-1 overflow-x-auto md:flex-col">
@@ -23,12 +23,13 @@ export function Nav() {
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={`flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+            title={collapsed ? label : undefined}
+            className={`flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${collapsed ? "md:justify-center md:px-0" : ""} ${
               active ? "bg-accent text-on-accent shadow-[0_0_16px_rgb(124_58_237/0.3)]" : "text-muted hover:bg-hover hover:text-ink"
             }`}
           >
             <Icon size={17} strokeWidth={1.75} />
-            {label}
+            <span className={collapsed ? "md:sr-only" : ""}>{label}</span>
           </Link>
         );
       })}

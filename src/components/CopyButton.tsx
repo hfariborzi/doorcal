@@ -3,12 +3,23 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 
-export function CopyButton({ text, label = "Copy link", className = "btn-secondary" }: { text: string; label?: string; className?: string }) {
+export function CopyButton({
+  text,
+  label = "Copy link",
+  className = "btn-secondary",
+  iconOnly = false,
+}: {
+  text: string;
+  label?: string;
+  className?: string;
+  iconOnly?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
   return (
     <button
       type="button"
       className={className}
+      title={iconOnly ? label : undefined}
       onClick={async () => {
         await navigator.clipboard.writeText(text);
         setCopied(true);
@@ -16,7 +27,7 @@ export function CopyButton({ text, label = "Copy link", className = "btn-seconda
       }}
     >
       {copied ? <Check size={15} /> : <Copy size={15} />}
-      {copied ? "Copied" : label}
+      <span className={iconOnly ? "sr-only" : "whitespace-nowrap"}>{copied ? "Copied" : label}</span>
     </button>
   );
 }

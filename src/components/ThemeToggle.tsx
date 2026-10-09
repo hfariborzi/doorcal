@@ -28,7 +28,7 @@ function apply(theme: Theme) {
   listeners.forEach((cb) => cb());
 }
 
-export function ThemeToggle({ className = "" }: { className?: string }) {
+export function ThemeToggle({ className = "", iconOnly = false }: { className?: string; iconOnly?: boolean }) {
   const theme = useSyncExternalStore(subscribe, current, () => "light" as Theme);
   const next: Theme = theme === "dark" ? "light" : "dark";
   return (
@@ -40,7 +40,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       title={`Switch to ${next} mode`}
     >
       {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-      <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+      <span className={iconOnly ? "sr-only" : ""}>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
     </button>
   );
 }

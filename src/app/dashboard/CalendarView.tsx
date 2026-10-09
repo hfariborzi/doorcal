@@ -33,7 +33,7 @@ function isHidden(label: Label | undefined, prefs: CalendarPrefs) {
   return false;
 }
 
-const HOUR_PX = 48;
+const HOUR_PX = 42;
 // A tab left in the background this long comes back on today and the current time.
 const RESET_AFTER_HIDDEN_MS = 15 * 60_000;
 
@@ -212,225 +212,243 @@ export function CalendarView() {
       : range.start.toFormat("cccc, LLLL d, yyyy");
 
   return (
-    <div className="card flex flex-col overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-4">
-        <div className="flex items-center gap-2">
-          <button className="btn-secondary py-1.5" onClick={goToNow}>
-            Today
-          </button>
-          <button className="btn-ghost px-2 py-1.5" aria-label="Previous" onClick={() => setAnchor(anchor.minus(view === "week" ? { weeks: 1 } : { days: 1 }))}><ChevronLeft size={18} /></button>
-          <button className="btn-ghost px-2 py-1.5" aria-label="Next" onClick={() => setAnchor(anchor.plus(view === "week" ? { weeks: 1 } : { days: 1 }))}><ChevronRight size={18} /></button>
-          <h2 className="ml-2 text-lg font-semibold tracking-tight">{title}</h2>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-line bg-well p-1 text-sm">
-            {(["day", "week"] as View[]).map((v) => (
-              <button key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 capitalize ${view === v ? "bg-accent text-on-accent" : "text-muted hover:text-ink"}`}>
-                {v}
-              </button>
-            ))}
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+      {/* On desktop the card fills the window (minus the page padding), so the time grid scrolls, not the page. */}
+      <div className="card flex min-w-0 flex-1 flex-col overflow-hidden md:h-[calc(100dvh-3rem)]">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2.5">
+          <div className="flex items-center gap-2">
+            <button className="btn-secondary py-1.5" onClick={goToNow}>
+              Today
+            </button>
+            <button className="btn-ghost px-2 py-1.5" aria-label="Previous" onClick={() => setAnchor(anchor.minus(view === "week" ? { weeks: 1 } : { days: 1 }))}><ChevronLeft size={18} /></button>
+            <button className="btn-ghost px-2 py-1.5" aria-label="Next" onClick={() => setAnchor(anchor.plus(view === "week" ? { weeks: 1 } : { days: 1 }))}><ChevronRight size={18} /></button>
+            <h2 className="ml-1 text-base font-semibold tracking-tight">{title}</h2>
           </div>
-          <button className="btn-primary py-1.5" onClick={() => setCreating(now.plus({ hours: 1 }).startOf("hour"))}>
-            <Plus size={16} /> New meeting
-          </button>
-        </div>
-      </div>
-
-      {error && <p className="m-4 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
-      {problems.length > 0 && (
-        <p className="m-4 rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning">
-          {problems.map((p) => `${p.email} ${p.message}`).join(". ")}.
-        </p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-4 py-2.5 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="text-faint">Colour by</span>
-          <div className="flex rounded-lg border border-line bg-well p-0.5">
-            {(["calendar", "type", "priority"] as const).map((m) => (
-              <button key={m} onClick={() => updatePrefs({ ...view_prefs, colorBy: m })} className={`rounded-md px-2.5 py-1 capitalize ${view_prefs.colorBy === m ? "bg-accent text-on-accent" : "text-muted hover:text-ink"}`}>
-                {m}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {categories.map((c) => (
-            <Chip key={c.id} color={c.color} label={c.name} off={view_prefs.hidden.categories.includes(c.id)} onClick={() => toggleHidden("categories", c.id)} />
-          ))}
-          <Chip color={OTHER_COLOR} label="Other" off={view_prefs.hidden.other} onClick={() => toggleHidden("other", true)} />
-          <span className="mx-1 h-4 w-px bg-line" />
-          {LOCATION_KINDS.map((k) => (
-            <Chip key={k} label={LOCATION_KIND_LABEL[k]} off={view_prefs.hidden.locations.includes(k)} onClick={() => toggleHidden("locations", k)} icon={k === "video" ? <Video size={11} /> : k === "in_person" ? <MapPin size={11} /> : undefined} />
-          ))}
-          <span className="mx-1 h-4 w-px bg-line" />
-          {PRIORITIES.map((pr) => (
-            <Chip key={pr} color={PRIORITY_COLOR[pr]} label={PRIORITY_LABEL[pr]} off={view_prefs.hidden.priorities.includes(pr)} onClick={() => toggleHidden("priorities", pr)} />
-          ))}
-          {hiddenCount > 0 && <span className="ml-1 text-faint">{hiddenCount} hidden</span>}
-        </div>
-      </div>
-
-      <div className="flex border-b border-line bg-well/60">
-        <div className="w-14 shrink-0" />
-        {range.days.map((d) => {
-          const isToday = d.hasSame(now, "day");
-          return (
-            <div key={d.toISODate()} className="min-w-0 flex-1 border-l border-line px-1 py-2.5 text-center">
-              <div className={`text-xs font-semibold tracking-[0.08em] uppercase ${isToday ? "text-accent-soft" : "text-faint"}`}>{d.toFormat("ccc")}</div>
-              <div className={`mx-auto mt-1 grid h-8 w-8 place-items-center rounded-full text-lg tnum ${isToday ? "bg-accent font-semibold text-on-accent shadow-[0_0_14px_rgb(124_58_237/0.5)]" : "text-ink"}`}>
-                {d.day}
-              </div>
-              <div className="mt-1 space-y-0.5">
-                {allDay
-                  .filter((e) => {
-                    const s = DateTime.fromISO(e.start, { zone: tz });
-                    const en = DateTime.fromISO(e.end, { zone: tz });
-                    return s <= d && en > d;
-                  })
-                  .map((e) => (
-                    <button key={`${e.accountId}-${e.calendarId}-${e.id}`} onClick={() => setSelected(e)} className="block w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs text-ink" style={styleFor(e)}>
-                      {e.title}
-                    </button>
-                  ))}
-              </div>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg border border-line bg-well p-1 text-sm">
+              {(["day", "week"] as View[]).map((v) => (
+                <button key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 capitalize ${view === v ? "bg-accent text-on-accent" : "text-muted hover:text-ink"}`}>
+                  {v}
+                </button>
+              ))}
             </div>
-          );
-        })}
-      </div>
-
-      <div ref={scroller} className="relative h-[65vh] overflow-y-auto">
-        <div className="relative flex" style={{ height: 24 * HOUR_PX }}>
-          <div className="w-14 shrink-0">
-            {Array.from({ length: 24 }, (_, h) => (
-              <div key={h} className="relative text-right text-xs text-faint tnum" style={{ height: HOUR_PX }}>
-                {h > 0 && <span className="absolute -top-2 right-2">{DateTime.fromObject({ hour: h }).toFormat("h a")}</span>}
-              </div>
-            ))}
+            <button className="btn-primary py-1.5" onClick={() => setCreating(now.plus({ hours: 1 }).startOf("hour"))}>
+              <Plus size={16} /> New meeting
+            </button>
           </div>
+        </div>
+
+        {error && <p className="m-4 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {problems.length > 0 && (
+          <p className="m-4 rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning">
+            {problems.map((p) => `${p.email} ${p.message}`).join(". ")}.
+          </p>
+        )}
+
+        <div className="flex border-b border-line bg-well/60">
+          <div className="w-14 shrink-0" />
           {range.days.map((d) => {
-            const dayStart = d.startOf("day");
-            const dayEvents = timed.filter((e) => {
-              const s = DateTime.fromISO(e.start).toMillis();
-              const en = DateTime.fromISO(e.end).toMillis();
-              return s < dayStart.plus({ days: 1 }).toMillis() && en > dayStart.toMillis();
-            });
+            const isToday = d.hasSame(now, "day");
             return (
-              <div
-                key={d.toISODate()}
-                className={`relative min-w-0 flex-1 cursor-pointer border-l border-line ${d.hasSame(now, "day") ? "bg-gradient-to-b from-accent/[0.07] to-transparent" : ""}`}
-                onClick={(ev) => {
-                  const rect = (ev.currentTarget as HTMLDivElement).getBoundingClientRect();
-                  const minutes = Math.floor(((ev.clientY - rect.top) / HOUR_PX) * 2) * 30;
-                  setCreating(dayStart.plus({ minutes }));
-                }}
-              >
-                {Array.from({ length: 24 }, (_, h) => (
-                  <div key={h} className="border-t border-line" style={{ height: HOUR_PX }} />
-                ))}
-                {d.hasSame(now, "day") && (
-                  <div className="pointer-events-none absolute right-0 left-0 z-20 h-px bg-accent-soft" style={{ top: (now.diff(dayStart, "minutes").minutes / 60) * HOUR_PX }}>
-                    <span className="absolute -top-[5px] -left-1.5 h-2.5 w-2.5 rounded-full bg-accent-soft shadow-[0_0_10px_var(--color-accent-soft)]" />
-                  </div>
-                )}
-                {layoutDay(dayEvents, dayStart).map((p) => (
-                  <button
-                    key={`${p.e.accountId}-${p.e.calendarId}-${p.e.id}`}
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      setSelected(p.e);
-                    }}
-                    className="absolute z-10 overflow-hidden rounded-md px-1.5 py-0.5 text-left text-xs text-ink shadow-(--shadow-card) hover:z-30 hover:brightness-125"
-                    style={{
-                      top: p.top,
-                      height: p.height,
-                      left: `calc(${(p.lane / p.lanes) * 100}% + 2px)`,
-                      width: `calc(${100 / p.lanes}% - 4px)`,
-                      ...styleFor(p.e),
-                    }}
-                  >
-                    <div className="flex items-center gap-1 truncate font-medium">
-                      {labels[labelKey(p.e)]?.priority === "high" && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" title="High priority" />}
-                      <span className="truncate">{p.e.title}</span>
-                    </div>
-                    {p.height > 30 && (
-                      <div className="truncate text-muted tnum">
-                        {DateTime.fromISO(p.e.start).setZone(tz).toFormat("h:mm")} – {DateTime.fromISO(p.e.end).setZone(tz).toFormat("h:mm a")}
-                      </div>
-                    )}
-                  </button>
-                ))}
+              <div key={d.toISODate()} className="min-w-0 flex-1 border-l border-line px-1 py-1.5 text-center">
+                <div className={`text-xs font-semibold tracking-[0.08em] uppercase ${isToday ? "text-accent-soft" : "text-faint"}`}>{d.toFormat("ccc")}</div>
+                <div className={`mx-auto mt-0.5 grid h-7 w-7 place-items-center rounded-full text-base tnum ${isToday ? "bg-accent font-semibold text-on-accent shadow-[0_0_14px_rgb(124_58_237/0.5)]" : "text-ink"}`}>
+                  {d.day}
+                </div>
+                <div className="mt-1 space-y-0.5">
+                  {allDay
+                    .filter((e) => {
+                      const s = DateTime.fromISO(e.start, { zone: tz });
+                      const en = DateTime.fromISO(e.end, { zone: tz });
+                      return s <= d && en > d;
+                    })
+                    .map((e) => (
+                      <button key={`${e.accountId}-${e.calendarId}-${e.id}`} onClick={() => setSelected(e)} className="block w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs text-ink" style={styleFor(e)}>
+                        {e.title}
+                      </button>
+                    ))}
+                </div>
               </div>
             );
           })}
         </div>
-        {events === null && (
-          <div className="absolute inset-0 grid place-items-center bg-canvas/60 text-sm text-muted">
-            <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Loading your calendar…</span>
+
+        <div ref={scroller} className="relative h-[65vh] overflow-y-auto md:h-auto md:min-h-0 md:flex-1">
+          <div className="relative flex" style={{ height: 24 * HOUR_PX }}>
+            <div className="w-14 shrink-0">
+              {Array.from({ length: 24 }, (_, h) => (
+                <div key={h} className="relative text-right text-xs text-faint tnum" style={{ height: HOUR_PX }}>
+                  {h > 0 && <span className="absolute -top-2 right-2">{DateTime.fromObject({ hour: h }).toFormat("h a")}</span>}
+                </div>
+              ))}
+            </div>
+            {range.days.map((d) => {
+              const dayStart = d.startOf("day");
+              const dayEvents = timed.filter((e) => {
+                const s = DateTime.fromISO(e.start).toMillis();
+                const en = DateTime.fromISO(e.end).toMillis();
+                return s < dayStart.plus({ days: 1 }).toMillis() && en > dayStart.toMillis();
+              });
+              return (
+                <div
+                  key={d.toISODate()}
+                  className={`relative min-w-0 flex-1 cursor-pointer border-l border-line ${d.hasSame(now, "day") ? "bg-gradient-to-b from-accent/[0.07] to-transparent" : ""}`}
+                  onClick={(ev) => {
+                    const rect = (ev.currentTarget as HTMLDivElement).getBoundingClientRect();
+                    const minutes = Math.floor(((ev.clientY - rect.top) / HOUR_PX) * 2) * 30;
+                    setCreating(dayStart.plus({ minutes }));
+                  }}
+                >
+                  {Array.from({ length: 24 }, (_, h) => (
+                    <div key={h} className="border-t border-line" style={{ height: HOUR_PX }} />
+                  ))}
+                  {d.hasSame(now, "day") && (
+                    <div className="pointer-events-none absolute right-0 left-0 z-20 h-px bg-accent-soft" style={{ top: (now.diff(dayStart, "minutes").minutes / 60) * HOUR_PX }}>
+                      <span className="absolute -top-[5px] -left-1.5 h-2.5 w-2.5 rounded-full bg-accent-soft shadow-[0_0_10px_var(--color-accent-soft)]" />
+                    </div>
+                  )}
+                  {layoutDay(dayEvents, dayStart).map((p) => (
+                    <button
+                      key={`${p.e.accountId}-${p.e.calendarId}-${p.e.id}`}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        setSelected(p.e);
+                      }}
+                      className="absolute z-10 overflow-hidden rounded-md px-1.5 py-0.5 text-left text-xs text-ink shadow-(--shadow-card) hover:z-30 hover:brightness-125"
+                      style={{
+                        top: p.top,
+                        height: p.height,
+                        left: `calc(${(p.lane / p.lanes) * 100}% + 2px)`,
+                        width: `calc(${100 / p.lanes}% - 4px)`,
+                        ...styleFor(p.e),
+                      }}
+                    >
+                      <div className="flex items-center gap-1 truncate font-medium">
+                        {labels[labelKey(p.e)]?.priority === "high" && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" title="High priority" />}
+                        <span className="truncate">{p.e.title}</span>
+                      </div>
+                      {p.height > 30 && (
+                        <div className="truncate text-muted tnum">
+                          {DateTime.fromISO(p.e.start).setZone(tz).toFormat("h:mm")} – {DateTime.fromISO(p.e.end).setZone(tz).toFormat("h:mm a")}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
           </div>
+          {events === null && (
+            <div className="absolute inset-0 grid place-items-center bg-canvas/60 text-sm text-muted">
+              <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Loading your calendar…</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+        {/* Display controls sit beside the calendar on wide screens and below it on narrow ones. */}
+        <aside className="card space-y-4 p-4 text-xs lg:w-56 lg:shrink-0">
+          <div>
+            <p className="mb-1.5 text-faint">Colour by</p>
+            <div className="flex rounded-lg border border-line bg-well p-0.5">
+              {(["calendar", "type", "priority"] as const).map((m) => (
+                <button key={m} onClick={() => updatePrefs({ ...view_prefs, colorBy: m })} className={`flex-1 rounded-md px-2 py-1 capitalize ${view_prefs.colorBy === m ? "bg-accent text-on-accent" : "text-muted hover:text-ink"}`}>
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-1.5 text-faint">Type</p>
+            <div className="flex flex-wrap gap-1.5">
+              {categories.map((c) => (
+                <Chip key={c.id} color={c.color} label={c.name} off={view_prefs.hidden.categories.includes(c.id)} onClick={() => toggleHidden("categories", c.id)} />
+              ))}
+              <Chip color={OTHER_COLOR} label="Other" off={view_prefs.hidden.other} onClick={() => toggleHidden("other", true)} />
+            </div>
+          </div>
+          <div>
+            <p className="mb-1.5 text-faint">Location</p>
+            <div className="flex flex-wrap gap-1.5">
+              {LOCATION_KINDS.map((k) => (
+                <Chip key={k} label={LOCATION_KIND_LABEL[k]} off={view_prefs.hidden.locations.includes(k)} onClick={() => toggleHidden("locations", k)} icon={k === "video" ? <Video size={11} /> : k === "in_person" ? <MapPin size={11} /> : undefined} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-1.5 text-faint">Priority</p>
+            <div className="flex flex-wrap gap-1.5">
+              {PRIORITIES.map((pr) => (
+                <Chip key={pr} color={PRIORITY_COLOR[pr]} label={PRIORITY_LABEL[pr]} off={view_prefs.hidden.priorities.includes(pr)} onClick={() => toggleHidden("priorities", pr)} />
+              ))}
+            </div>
+          </div>
+          <p className="border-t border-line pt-3 leading-relaxed text-faint">
+            {hiddenCount > 0 && <span className="block text-muted">{hiddenCount} hidden by these filters.</span>}
+            Click a chip to hide or show. Click any open time to create a meeting.
+          </p>
+        </aside>
+
+        {selected && (
+          <EventDetails
+            event={selected}
+            label={labels[labelKey(selected)]}
+            categories={categories}
+            tz={tz}
+            onClose={() => setSelected(null)}
+            onDeleted={() => {
+              setSelected(null);
+              load();
+            }}
+            onLabeled={load}
+          />
+        )}
+        {creating && (
+          <NewMeeting
+            start={creating}
+            tz={tz}
+            onClose={() => setCreating(null)}
+            onCreated={() => {
+              setCreating(null);
+              load();
+            }}
+          />
         )}
       </div>
+    );
+  }
 
-      {selected && (
-        <EventDetails
-          event={selected}
-          label={labels[labelKey(selected)]}
-          categories={categories}
-          tz={tz}
-          onClose={() => setSelected(null)}
-          onDeleted={() => {
-            setSelected(null);
-            load();
-          }}
-          onLabeled={load}
-        />
-      )}
-      {creating && (
-        <NewMeeting
-          start={creating}
-          tz={tz}
-          onClose={() => setCreating(null)}
-          onCreated={() => {
-            setCreating(null);
-            load();
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-function Chip({ label, color, off, onClick, icon }: { label: string; color?: string; off: boolean; onClick: () => void; icon?: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      aria-pressed={!off}
-      title={off ? `Show ${label}` : `Hide ${label}`}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 transition ${off ? "border-line text-faint line-through opacity-60" : "border-line-strong text-ink"}`}
-    >
-      {color && <span className="h-2 w-2 rounded-full" style={{ background: color }} />}
-      {icon}
-      {label}
-    </button>
-  );
-}
-
-function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-scrim p-4 backdrop-blur-sm" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-line-strong bg-modal p-6 shadow-(--shadow-modal) backdrop-blur-xl sm:p-7"
-        onClick={(e) => e.stopPropagation()}
+  function Chip({ label, color, off, onClick, icon }: { label: string; color?: string; off: boolean; onClick: () => void; icon?: React.ReactNode }) {
+    return (
+      <button
+        onClick={onClick}
+        aria-pressed={!off}
+        title={off ? `Show ${label}` : `Hide ${label}`}
+        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 transition ${off ? "border-line text-faint line-through opacity-60" : "border-line-strong text-ink"}`}
       >
-        {children}
-      </div>
+        {color && <span className="h-2 w-2 rounded-full" style={{ background: color }} />}
+        {icon}
+        {label}
+      </button>
+    );
+  }
+
+  function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+    useEffect(() => {
+      const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, [onClose]);
+    return (
+      <div className="fixed inset-0 z-50 grid place-items-center bg-scrim p-4 backdrop-blur-sm" onClick={onClose}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-line-strong bg-modal p-6 shadow-(--shadow-modal) backdrop-blur-xl sm:p-7"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {children}
+        </div>
     </div>
   );
 }

@@ -1,14 +1,14 @@
+import { cookies } from "next/headers";
 import { Link2, LogOut } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { enabledProviders, isConnected, listAccounts } from "@/lib/calendar";
 import { APP_NAME } from "@/lib/config";
 import { requestBaseUrl } from "@/lib/origin";
-import { Avatar } from "@/components/Avatar";
 import { CopyButton } from "@/components/CopyButton";
 import { ProviderButton } from "@/components/ProviderButton";
-import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Nav } from "./Nav";
+import { Sidebar } from "./Sidebar";
+import { SIDEBAR_COOKIE } from "./sidebar-cookie";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   const user = await requireUser();
@@ -16,32 +16,14 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
   const accounts = await listAccounts(user.id);
   const stale = accounts.filter((a) => !isConnected(a));
   const noneConnected = accounts.every((a) => !isConnected(a));
+  const collapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "1";
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="border-b border-line bg-well px-3 py-4 backdrop-blur md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col md:overflow-y-auto md:border-r md:border-b-0 md:px-4 md:py-6">
-        <div className="mb-4 px-2 md:mb-8">
-          <Logo href="/dashboard" />
-        </div>
-        <Nav />
-        <div className="mt-auto hidden space-y-1 border-t border-line pt-4 md:block">
-          <div className="flex items-center gap-3 px-2 py-2">
-            <Avatar name={user.name || user.email} image={user.image} size={32} />
-            <div className="min-w-0 text-sm">
-              <div className="truncate font-medium text-ink">{user.name}</div>
-              <div className="truncate text-xs text-faint">{user.email}</div>
-            </div>
-          </div>
-          <ThemeToggle className="w-full justify-start px-2" />
-          <form action="/api/auth/logout" method="post">
-            <button className="btn-ghost w-full justify-start px-2">
-              <LogOut size={16} /> Sign out
-            </button>
-          </form>
-        </div>
-      </aside>
+      <Sidebar collapsed={collapsed} name={user.name} email={user.email} image={user.image} publicUrl={publicUrl} />
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 text-sm sm:px-8">
+        {/* Phones only: on desktop the booking link, theme and sign-out live in the sidebar. */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 text-sm sm:px-8 md:hidden">
           <div className="flex min-w-0 items-center gap-2">
             <a
               href={publicUrl}
@@ -55,7 +37,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             </a>
             <CopyButton text={publicUrl} className="btn-secondary py-1.5" />
           </div>
-          <div className="flex items-center gap-1 md:hidden">
+          <div className="flex items-center gap-1">
             <ThemeToggle />
             <form action="/api/auth/logout" method="post">
               <button className="btn-ghost py-1.5">
@@ -85,7 +67,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             </div>
           </div>
         )}
-        <div className="px-5 py-6 sm:px-8 sm:py-8">{children}</div>
+        <div className="px-5 py-6 sm:px-8 md:py-6">{children}</div>
       </div>
     </div>
   );
