@@ -130,8 +130,9 @@ export function ConnectedCalendars({
           choose where new bookings go.
         </p>
         <p className="mt-1 text-xs text-faint">
-          Calendar access is used only to check when you&apos;re busy, list your calendars, and create, update or
-          cancel the meetings booked with you. See the <Link href="/privacy" className="link">privacy policy</Link>.
+          Calendar access is used only to check when you&apos;re busy, list your calendars, create, update or cancel
+          the meetings booked with you, plan your tasks, and, if you turn her on, let Dori see the coming week. See
+          the <Link href="/privacy" className="link">privacy policy</Link>.
         </p>
       </div>
       {flash && (

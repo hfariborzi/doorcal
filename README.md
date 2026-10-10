@@ -21,6 +21,8 @@ Think Calendly, but self-hostable and MIT-licensed.
   - secret events (bookable by link, hidden from your profile)
 - **Availability schedules.** Weekly hours with several ranges per day, date overrides and days off, a time zone per schedule, and multiple schedules (e.g. "Office hours" and "Evenings").
 - **Tasks.** Projects and tasks under the same areas that colour your calendar, with ordering links ("comes after", "goes with"), reminders that are never scheduled, and a "good enough" status: mark a task mostly done, name the small part left, and it lands in a Loose ends list instead of keeping the task open.
+- **Planning.** Open tasks are placed into free time around your meetings by DoorCal's own planner (plain code, no AI), in deadline order and respecting "comes after" links, pinned times and notes like "not today". The plan shows on the calendar as dashed blocks and moves by itself when a booking or an accepted invitation lands (Google push notifications and Microsoft change subscriptions).
+- **Dori, the assistant (optional, opt-in).** A puppy in the corner of every dashboard page. Tell her everything once and she proposes areas, projects and tasks for you to accept; after that, "add …", "remove …", "I'm not in the mood for writing today", "clear the next three days for the grant", "when can I meet Sam?", "can I take on a new course?". Day plan and Week plan buttons give headlines. She replies in whatever language you write in, takes voice input, can read answers aloud, and every change she makes can be undone. She never moves calendar events or sends email herself.
 - **Categories, priorities and filters.** Sort your calendar by type (your own list, with colours), location and priority; colour the calendar by any of them and hide what you don't need. Rules ("title contains…") label events automatically; an optional, opt-in AI step suggests a category list from your recent events and labels the rest.
 - **Booking preferences.** Mark preferred times and a preferred location per event type. Every available time stays bookable; invitees see the preferred ones first.
 - **Self-serve reschedule and cancel** for invitees. Google Calendar updates and everyone gets notified.
@@ -98,7 +100,10 @@ Skip this to offer Google sign-in only; the Microsoft button appears once both v
    | `GOOGLE_CLIENT_ID` | from step 1 |
    | `GOOGLE_CLIENT_SECRET` | from step 1 |
    | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | optional, from step 1b |
-   | `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL` / `AI_PROVIDER_NAME` | optional, see "AI categorisation" below |
+   | `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL` / `AI_PROVIDER_NAME` | optional, see "AI categorisation" below; also powers Dori |
+   | `DORI_MODEL` | optional; model for Dori if different from `AI_MODEL` |
+   | `ELEVENLABS_API_KEY` | optional; voice input for Dori |
+   | `CRON_SECRET` | recommended; lets the daily job renew calendar push notifications |
    | `AUTH_SECRET` | output of `openssl rand -base64 32` |
    | `NEXT_PUBLIC_APP_NAME` | optional display name |
    | `CONTACT_EMAIL` | contact address shown in the footer, privacy policy and terms (recommended for public instances) |
@@ -186,6 +191,15 @@ Other scripts: `npm test` (slot engine tests), `npm run typecheck`, `npm run lin
 - A Postgres exclusion constraint stops two people booking overlapping one-on-one slots at the same moment.
 - `src/lib/labels/` labels events: hand-set labels stick, "title contains" rules run first, and the opt-in AI
   (`src/lib/ai/`) handles the rest after the response is sent. Only labels and title hashes are stored.
+- `src/lib/tasks/` holds areas (the same list as calendar categories), projects, tasks, links and the "good enough"
+  status. `src/lib/planner/core.ts` is the pure planner: deadline-first placement into working hours around busy
+  time, with links, pinned work and day notes; unit tested. `src/lib/planner/index.ts` loads inputs, stores the plan
+  and recomputes it when something marks it stale.
+- `src/lib/calendar/watch.ts` keeps Google push channels and Microsoft change subscriptions open on conflict
+  calendars (webhooks under `/api/calendar/webhook/`), renewed by the daily job in `vercel.json`.
+- `src/lib/dori/` is the assistant: `context.ts` builds what the model sees (event titles and times, never
+  attendee identities), `tools.ts` defines every action with zod validation and an undo record, `agent.ts` runs the
+  tool loop and streams progress to `/api/dori/chat`.
 - Light theme by default, dark theme on request; the choice is stored in the browser.
 - Public endpoints (slots, booking, cancel, reschedule) are rate-limited per IP with a small Postgres table, so
   there's no extra service to run.

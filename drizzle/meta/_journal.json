@@ -50,6 +50,13 @@
       "when": 1791660362906,
       "tag": "0006_projects_tasks",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791663288246,
+      "tag": "0007_dori_planner",
+      "breakpoints": true
     }
   ]
 }

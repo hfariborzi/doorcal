@@ -7,6 +7,7 @@ import { requestBaseUrl } from "@/lib/origin";
 import { CopyButton } from "@/components/CopyButton";
 import { ProviderButton } from "@/components/ProviderButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { DoriPanel } from "./DoriPanel";
 import { Sidebar } from "./Sidebar";
 import { SIDEBAR_COOKIE } from "./sidebar-cookie";
 
@@ -69,6 +70,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
         )}
         <div className="px-5 py-6 sm:px-8 md:py-6">{children}</div>
       </div>
+      <DoriPanel />
     </div>
   );
 }

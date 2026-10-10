@@ -126,3 +126,64 @@ export async function completeJson<T>(opts: {
     usage: { inputTokens: data.usage?.prompt_tokens ?? 0, outputTokens: data.usage?.completion_tokens ?? 0 },
   };
 }
+
+// --- Chat with tools (Dori) -------------------------------------------------------------------------------
+
+export type ToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
+export type ChatMessage =
+  | { role: "system" | "user"; content: string }
+  | { role: "assistant"; content: string | null; tool_calls?: ToolCall[] }
+  | { role: "tool"; tool_call_id: string; content: string };
+export type ToolDef = { type: "function"; function: { name: string; description: string; parameters: Record<string, unknown> } };
+
+type ChatCompletion = {
+  choices?: { message?: { content?: string | null; tool_calls?: ToolCall[] } }[];
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+  error?: { message?: string };
+};
+
+/** The model Dori uses: DORI_MODEL if set, else the categorisation model. */
+export function doriModel() {
+  return process.env.DORI_MODEL || process.env.AI_MODEL || "";
+}
+
+/**
+ * How hard a reasoning model thinks before answering. Dori's tool calls are routine, and long thinking made
+ * turns slow, so the default is "low". DORI_REASONING=medium|high|minimal changes it. Sent in each provider's
+ * own form; providers without the setting get nothing extra.
+ */
+function reasoningFor(baseUrl: string): Record<string, unknown> {
+  const effort = process.env.DORI_REASONING || "low";
+  if (effort === "default") return {};
+  let host = "";
+  try {
+    host = new URL(baseUrl).hostname;
+  } catch {
+    return {};
+  }
+  if (host === "openrouter.ai") return { reasoning: { effort } };
+  if (host === "api.openai.com") return { reasoning_effort: effort };
+  return {};
+}
+
+/** One chat-completions round with tools. The caller runs any tool calls and calls again with the results. */
+export async function chatWithTools(opts: { messages: ChatMessage[]; tools: ToolDef[]; maxTokens: number; timeoutMs?: number }): Promise<{ message: { content: string | null; tool_calls?: ToolCall[] }; usage: Usage }> {
+  const { key, baseUrl } = config();
+  const model = doriModel();
+  const res = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "HTTP-Referer": "https://doorcal.com", "X-Title": "DoorCal" },
+    body: JSON.stringify({ model, ...routingFor(baseUrl, model), ...reasoningFor(baseUrl), max_tokens: opts.maxTokens, messages: opts.messages, tools: opts.tools, tool_choice: "auto", parallel_tool_calls: true }),
+    signal: AbortSignal.timeout(opts.timeoutMs ?? 60_000),
+  });
+  const text = await res.text();
+  let data: ChatCompletion = {};
+  try {
+    data = text ? (JSON.parse(text) as ChatCompletion) : {};
+  } catch {
+    data = { error: { message: text.slice(0, 200) } };
+  }
+  if (!res.ok || data.error) throw new Error(`AI provider ${data.error ? "error" : res.status}: ${data.error?.message ?? "request failed"}`);
+  const message = data.choices?.[0]?.message ?? { content: "" };
+  return { message: { content: message.content ?? null, tool_calls: message.tool_calls }, usage: { inputTokens: data.usage?.prompt_tokens ?? 0, outputTokens: data.usage?.completion_tokens ?? 0 } };
+}

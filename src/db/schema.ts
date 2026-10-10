@@ -47,6 +47,11 @@ export type CalendarPrefs = {
   calendars?: Record<string, string[]>;
 };
 
+/** Dori settings a user chooses. */
+export type DoriPrefs = {
+  nickname: string; // how Dori greets you; empty = first name
+};
+
 /** Soft preferences shown to invitees; they never remove a slot. */
 export type BookingPreferences = {
   locationIndex: number | null; // index into event_types.locations
@@ -72,6 +77,13 @@ export const users = pgTable(
     calendarPrefs: jsonb("calendar_prefs").$type<CalendarPrefs>(),
     // When the user agreed to send event titles to the AI provider for categorisation; null = off.
     aiConsentAt: timestamp("ai_consent_at", { withTimezone: true }),
+    // When the user turned on Dori, the assistant (sends tasks and the coming week's events to the model).
+    doriConsentAt: timestamp("dori_consent_at", { withTimezone: true }),
+    doriPrefs: jsonb("dori_prefs").$type<DoriPrefs>(),
+    // Hours for planned work; null = the default availability schedule's hours.
+    workHours: jsonb("work_hours").$type<WeeklyHours>(),
+    // Set when tasks or the calendar changed, so the plan is recomputed on next use.
+    planDirtyAt: timestamp("plan_dirty_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("users_username_idx").on(t.username)],
@@ -183,6 +195,8 @@ export const aiUsage = pgTable(
     requests: integer("requests").notNull().default(0),
     inputTokens: integer("input_tokens").notNull().default(0),
     outputTokens: integer("output_tokens").notNull().default(0),
+    doriTurns: integer("dori_turns").notNull().default(0), // messages Dori answered
+    voiceSeconds: integer("voice_seconds").notNull().default(0), // audio transcribed
   },
   (t) => [uniqueIndex("ai_usage_user_day_idx").on(t.userId, t.day)],
 );
@@ -194,6 +208,7 @@ export type TaskKind = "task" | "reminder"; // a reminder is something to rememb
 export type TaskStatus = "open" | "good_enough" | "done" | "dropped";
 export type TaskEnergy = "deep" | "light";
 export type TaskLinkKind = "before" | "together"; // "from" finishes before "to" starts; or the two are done as one
+export type TaskRepeat = "daily" | "weekdays" | "weekly" | "monthly";
 
 /** A bounded effort inside an area, e.g. "JIBS revision" under Research. */
 export const projects = pgTable(
@@ -239,7 +254,8 @@ export const tasks = pgTable(
     hardDeadline: boolean("hard_deadline").notNull().default(false), // a date that cannot move
     priority: text("priority").$type<Priority>().notNull().default("normal"),
     energy: text("energy").$type<TaskEnergy>(), // null = either
-    people: jsonb("people").$type<string[]>().notNull().default([]), // who is involved; stays in DoorCal
+    people: jsonb("people").$type<string[]>().notNull().default([]), // who is involved
+    repeat: text("repeat").$type<TaskRepeat>(), // completing a repeating task creates the next one
     position: integer("position").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -265,6 +281,165 @@ export const taskLinks = pgTable(
     kind: text("kind").$type<TaskLinkKind>().notNull(),
   },
   (t) => [uniqueIndex("task_links_pair_idx").on(t.fromTaskId, t.toTaskId), index("task_links_user_idx").on(t.userId)],
+);
+
+// --- Planning ---------------------------------------------------------------------------------------
+
+/** A piece of planned work placed in free time by the planner, or pinned there by the user. */
+export type PlanBlock = { taskId: number; start: string; end: string; pinned: boolean }; // ISO instants
+export type AtRisk = { taskId: number; reason: "late" | "unplaced"; finishesAt?: string };
+export type PlanNotice = { at: string; text: string };
+
+/** The current plan for a user, recomputed by code (never the model) whenever tasks or the calendar change. */
+export const plans = pgTable("plans", {
+  userId: integer("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  blocks: jsonb("blocks").$type<PlanBlock[]>().notNull().default([]),
+  atRisk: jsonb("at_risk").$type<AtRisk[]>().notNull().default([]),
+  notices: jsonb("notices").$type<PlanNotice[]>().notNull().default([]), // "moved X because Y", for Dori to mention
+  noticesSeenAt: timestamp("notices_seen_at", { withTimezone: true }),
+  computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Work the user fixed at a time ("work on X tomorrow 9 to 11"); the planner fits everything else around it. */
+export const pinnedBlocks = pgTable(
+  "pinned_blocks",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    taskId: integer("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    start: timestamp("start", { withTimezone: true }).notNull(),
+    end: timestamp("end", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("pinned_blocks_user_idx").on(t.userId)],
+);
+
+/**
+ * Something about one day ("not in the mood for writing", "keep Thursday and Friday for the grant"), or a
+ * standing note when `day` is null. The structured fields steer the planner; `text` is for Dori.
+ */
+export const dayNotes = pgTable(
+  "day_notes",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    day: text("day"), // YYYY-MM-DD in the user's time zone; null = always
+    text: text("text").notNull(),
+    avoidEnergy: text("avoid_energy").$type<TaskEnergy>(),
+    skipTaskIds: jsonb("skip_task_ids").$type<number[]>().notNull().default([]),
+    reserveForTaskIds: jsonb("reserve_for_task_ids").$type<number[]>().notNull().default([]), // only these that day
+    maxWorkMinutes: integer("max_work_minutes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("day_notes_user_day_idx").on(t.userId, t.day)],
+);
+
+// --- Dori, the assistant ----------------------------------------------------------------------------
+
+export type DoriMood = "happy" | "thinking" | "busy" | "celebrating" | "concerned" | "sleeping";
+export type DoriProposal = {
+  areas: { name: string; description?: string }[];
+  projects: { ref: string; name: string; area?: string; targetDate?: string | null; notes?: string }[];
+  tasks: {
+    title: string;
+    project?: string; // a project ref from this proposal, or an existing project's name
+    area?: string;
+    kind?: TaskKind;
+    estimateMinutes?: number | null;
+    dueDate?: string | null;
+    hardDeadline?: boolean;
+    priority?: Priority;
+    energy?: TaskEnergy | null;
+    notes?: string;
+    people?: string[];
+    repeat?: TaskRepeat | null;
+  }[];
+  links: { before: number; after: number }[]; // indexes into tasks
+  status: "pending" | "accepted" | "discarded";
+};
+export type DoriCard =
+  | { kind: "emails"; items: { label: string; href: string; count: number }[] }
+  | { kind: "event"; title: string; start: string; end: string; attendees: string[]; status: "pending" | "added" | "dismissed" }
+  | { kind: "slots"; items: { start: string; end: string; shifts: string[] }[] };
+export type DoriMeta = {
+  lang?: string;
+  mood?: DoriMood;
+  actions?: string[]; // what Dori changed, in words
+  undoable?: boolean;
+  undone?: boolean;
+  proposal?: DoriProposal;
+  cards?: DoriCard[];
+};
+
+export const doriMessages = pgTable(
+  "dori_messages",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role").$type<"user" | "assistant">().notNull(),
+    content: text("content").notNull(),
+    meta: jsonb("meta").$type<DoriMeta>().notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("dori_messages_user_idx").on(t.userId, t.id)],
+);
+
+/** How to reverse one change Dori made. Applied newest first when the user presses Undo. */
+export type UndoOp =
+  | { op: "deleteTask"; id: number }
+  | { op: "restoreTask"; row: Record<string, unknown>; links: Record<string, unknown>[] }
+  | { op: "patchTask"; id: number; fields: Record<string, unknown> }
+  | { op: "deleteProject"; id: number }
+  | { op: "patchProject"; id: number; fields: Record<string, unknown> }
+  | { op: "deleteCategory"; id: number }
+  | { op: "deleteLink"; id: number }
+  | { op: "deleteNote"; id: number }
+  | { op: "restoreNote"; row: Record<string, unknown> }
+  | { op: "deletePinned"; id: number }
+  | { op: "restorePinned"; row: Record<string, unknown> }
+  | { op: "setWorkHours"; weekly: WeeklyHours | null };
+
+export const doriActions = pgTable(
+  "dori_actions",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    messageId: integer("message_id")
+      .notNull()
+      .references(() => doriMessages.id, { onDelete: "cascade" }),
+    undo: jsonb("undo").$type<UndoOp[]>().notNull(),
+    undoneAt: timestamp("undone_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("dori_actions_message_idx").on(t.messageId)],
+);
+
+/** Push-notification channels on connected calendars, so new or changed events re-run the planner. */
+export const calendarWatches = pgTable(
+  "calendar_watches",
+  {
+    id: serial("id").primaryKey(),
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => calendarAccounts.id, { onDelete: "cascade" }),
+    calendarId: text("calendar_id").notNull(),
+    channelId: text("channel_id").notNull(), // Google channel id, or Microsoft subscription id
+    resourceId: text("resource_id"), // Google only, needed to stop the channel
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("calendar_watches_channel_idx").on(t.channelId), index("calendar_watches_account_idx").on(t.accountId)],
 );
 
 export const schedules = pgTable(
@@ -368,6 +543,10 @@ export type Category = typeof categories.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type TaskLink = typeof taskLinks.$inferSelect;
+export type Plan = typeof plans.$inferSelect;
+export type PinnedBlock = typeof pinnedBlocks.$inferSelect;
+export type DayNote = typeof dayNotes.$inferSelect;
+export type DoriMessage = typeof doriMessages.$inferSelect;
 export type LabelRule = typeof labelRules.$inferSelect;
 export type EventLabel = typeof eventLabels.$inferSelect;
 export type Schedule = typeof schedules.$inferSelect;

@@ -298,4 +298,23 @@ export const googleCalendar: CalendarProvider = {
       // Token may already be invalid; nothing else to do.
     }
   },
+
+  // Push notifications use the calendar.events scope the app already has; channels last at most a week.
+  async watch(account, calendarId, address, channelId, token) {
+    const cal = calendarFor(account);
+    const res = await guard(account, () =>
+      cal.events.watch({ calendarId, requestBody: { id: channelId, type: "web_hook", address, token, params: { ttl: String(7 * 86_400) } } }),
+    );
+    const expiration = Number(res.data.expiration);
+    return { channelId, resourceId: res.data.resourceId ?? null, expiresAt: new Date(Number.isFinite(expiration) ? expiration : Date.now() + 6 * 86_400_000) };
+  },
+
+  async unwatch(account, channelId, resourceId) {
+    if (!resourceId) return;
+    try {
+      await guard(account, () => calendarFor(account).channels.stop({ requestBody: { id: channelId, resourceId } }));
+    } catch {
+      // Already expired or stopped.
+    }
+  },
 };

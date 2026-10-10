@@ -71,6 +71,10 @@ export interface CalendarProvider {
   deleteEvent(account: CalendarAccount, calendarId: string, eventId: string): Promise<void>;
   /** Best effort: tell the provider to forget our access. */
   revoke(refreshToken: string): Promise<void>;
+  /** Ask the provider to call `address` when events on this calendar change. */
+  watch(account: CalendarAccount, calendarId: string, address: string, channelId: string, token: string): Promise<{ channelId: string; resourceId: string | null; expiresAt: Date }>;
+  /** Stop a watch created by `watch`. Best effort. */
+  unwatch(account: CalendarAccount, channelId: string, resourceId: string | null): Promise<void>;
 }
 
 /** What an OAuth sign-in or connect flow learns about the account. */

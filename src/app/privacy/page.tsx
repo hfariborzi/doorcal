@@ -2,6 +2,8 @@ import Link from "next/link";
 import { AI_PROVIDER_NAME, aiConfigured } from "@/lib/ai";
 
 const AI_MODEL = process.env.AI_MODEL ?? "";
+const DORI_MODEL = process.env.DORI_MODEL || AI_MODEL;
+const VOICE = !!process.env.ELEVENLABS_API_KEY;
 import { APP_NAME, CONTACT_EMAIL, SOURCE_URL } from "@/lib/config";
 import { ContactLine, LegalPage } from "@/components/LegalPage";
 
@@ -10,14 +12,16 @@ export const metadata = {
   description: `How ${APP_NAME} collects, uses, shares, protects and deletes your data, including Google user data.`,
 };
 
-const UPDATED = "October 5, 2026";
+const UPDATED = "October 10, 2026";
 
 export default function PrivacyPage() {
   return (
     <LegalPage title="Privacy policy" updated={UPDATED}>
       <p>
         {APP_NAME} is a free, open-source scheduling service. People connect their Google Calendar, publish booking
-        links, and others use those links to book meetings with them. This policy explains what data {APP_NAME}{" "}
+        links, and others use those links to book meetings with them. Hosts can also keep their tasks in{" "}
+        {APP_NAME}, have them planned around their calendar, and, if they choose, talk to Dori, an optional
+        assistant. This policy explains what data {APP_NAME}{" "}
         collects, how it is used and shared, how it is protected, and how you can delete it. It applies to the
         service at doorcal.com. {APP_NAME} works with Google Calendar and with Microsoft (Outlook, Microsoft 365). Copies of the{" "}
         <a href={SOURCE_URL} target="_blank" rel="noreferrer">open-source code</a> run by other people are separate
@@ -94,6 +98,52 @@ export default function PrivacyPage() {
       ) : (
         <p>AI categorisation is not enabled on this instance; no event data is sent to any AI provider.</p>
       )}
+      <h3>Tasks and planning</h3>
+      <p>
+        If you use Tasks, {APP_NAME} stores what you enter: your areas, projects and tasks, with their notes, due
+        dates, estimates, priorities, links between tasks, and the names of people you type in. {APP_NAME} then
+        plans your open tasks into free time around your calendar. The planning is done by {APP_NAME}&apos;s own
+        code, not by an AI model; it uses the busy times from the calendars you chose for conflicts, and stores
+        only the resulting planned times and which task each belongs to, not the details of your events.
+      </p>
+      <p>
+        To keep the plan current, {APP_NAME} asks Google and Microsoft to notify it when events change on those
+        calendars. A notification says only that something changed, not what; {APP_NAME} then reads your busy
+        times again and moves planned work if needed. Planned work stays in {APP_NAME} and is never written to
+        your calendar unless you add it yourself.
+      </p>
+      <h3>Dori, the assistant (optional)</h3>
+      {aiConfigured() ? (
+        <>
+          <p>
+            Dori is off until you turn her on. When you message her, {APP_NAME} sends {AI_PROVIDER_NAME} what she
+            needs to answer: your message and your recent conversation with her; your areas, projects and tasks
+            (titles, notes, dates, estimates, priorities and the names of people you typed); notes she keeps for
+            you, such as &ldquo;not in the mood for writing today&rdquo;; your working hours and planned work; and,
+            from your calendars for the coming week (or a range you ask about), each event&apos;s title, start and
+            end time, calendar name and number of attendees. Attendee names and email addresses, event
+            descriptions and locations are never sent.{DORI_MODEL ? ` The model currently used is ${DORI_MODEL}.` : ""}{" "}
+            The same no-training and zero-data-retention setup described above for AI categorisation applies, and
+            requests are subject to daily limits per user and for the whole service.
+          </p>
+          <p>
+            Dori can add, change, complete and remove your tasks and projects, and every change she makes can be
+            undone. She never moves or deletes calendar events. She can offer to add an event to your calendar,
+            which happens only when you press <strong>Add to calendar</strong>, and she can prepare emails, which
+            open in your own mail app with the recipients filled in by {APP_NAME} in your browser; {APP_NAME} never
+            sends them. Your conversation with Dori is stored in {APP_NAME} until you clear it or turn Dori off,
+            which also deletes the notes she kept.
+          </p>
+          <p>
+            {VOICE
+              ? `If you talk to Dori with the microphone, your recording is sent to ElevenLabs to be turned into text and is not stored by ${APP_NAME}; ElevenLabs handles it under its own terms and privacy policy. Only the resulting text is used as your message.`
+              : "Voice input, where available, uses your browser's own speech recognition."}{" "}
+            Reading answers aloud uses your browser&apos;s built-in voices.
+          </p>
+        </>
+      ) : (
+        <p>Dori is not enabled on this instance; no task or calendar data is sent to any AI provider.</p>
+      )}
       <h3>Settings hosts create</h3>
       <p>
         Your username, display name, headline, welcome message, time zone, availability schedules and event types,
@@ -123,6 +173,7 @@ export default function PrivacyPage() {
       <ul>
         <li>To provide scheduling: show availability, take bookings, and create, update and cancel calendar events.</li>
         <li>To show hosts their calendar, bookings and settings in the dashboard.</li>
+        <li>To keep hosts&apos; tasks, plan them around their calendar, and, if they turn it on, let Dori answer and act on their requests.</li>
         <li>To let invitees view, reschedule or cancel their own booking.</li>
         <li>To keep the service secure and working, including preventing spam and abuse.</li>
       </ul>
@@ -160,6 +211,13 @@ export default function PrivacyPage() {
           countries where these providers operate.
         </li>
         <li><strong>Google and Microsoft</strong>, to read and update your calendars as described above.</li>
+        {aiConfigured() && (
+          <li>
+            <strong>The AI provider</strong> ({AI_PROVIDER_NAME}), only if you turn on AI categorisation or Dori, and
+            only what is described above. It may not use the data to train or improve AI models.
+          </li>
+        )}
+        {VOICE && <li><strong>ElevenLabs</strong>, only for recordings you make with Dori&apos;s microphone, to turn them into text.</li>}
         <li><strong>When required by law</strong>, or to protect the rights, safety and security of users and the service.</li>
       </ul>
       <p>We don&apos;t sell or rent personal information to anyone.</p>
@@ -182,8 +240,9 @@ export default function PrivacyPage() {
         <li>
           <strong>Hosts:</strong> your data is kept while your account exists. You can delete your account at any
           time in <strong>Settings → Delete account</strong>. This immediately deletes your profile, settings, event
-          types, schedules and booking history from our database and revokes {APP_NAME}&apos;s access to your
-          Google accounts. Calendar events already on your calendars stay there, under your control.
+          types, schedules, tasks, plan, conversation with Dori and booking history from our database and revokes
+          {" "}{APP_NAME}&apos;s access to your Google accounts. Calendar events already on your calendars stay
+          there, under your control.
         </li>
         <li>
           <strong>Removing a connected account</strong> (Settings → Connected calendars → Remove) deletes its stored
@@ -197,6 +256,10 @@ export default function PrivacyPage() {
         <li>
           <strong>Invitees:</strong> booking details are kept as part of the host&apos;s booking history until the
           host deletes their account, or until you ask us to delete them.
+        </li>
+        <li>
+          <strong>Tasks and Dori:</strong> tasks and projects are kept until you delete them. Your conversation with
+          Dori is kept until you clear it or turn Dori off. The plan is recomputed and overwritten as things change.
         </li>
         <li>Deleted data may remain in our database provider&apos;s backups for a short period (up to about 30 days) before it is overwritten.</li>
       </ul>

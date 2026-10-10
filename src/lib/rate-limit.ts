@@ -32,13 +32,18 @@ function ipKey(req: NextRequest) {
     .slice(0, 22);
 }
 
-/** Fixed-window counter in Postgres: one atomic upsert per call. Throws RateLimitError when over the limit. */
+/** Per-IP limit for the public endpoints. Throws RateLimitError when over the limit. */
 export async function rateLimit(req: NextRequest, bucket: keyof typeof LIMITS) {
   const { limit, windowSec } = LIMITS[bucket];
+  await rateLimitKey(`${bucket}:${ipKey(req)}`, limit, windowSec);
+}
+
+/** Fixed-window counter in Postgres: one atomic upsert per call. Throws RateLimitError when over the limit. */
+export async function rateLimitKey(key: string, limit: number, windowSec: number) {
   const expired = sql`${rateLimits.windowStart} < now() - make_interval(secs => ${windowSec})`;
   const [row] = await db
     .insert(rateLimits)
-    .values({ key: `${bucket}:${ipKey(req)}`, windowStart: sql`now()`, count: 1 })
+    .values({ key, windowStart: sql`now()`, count: 1 })
     .onConflictDoUpdate({
       target: rateLimits.key,
       set: {

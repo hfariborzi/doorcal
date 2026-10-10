@@ -6,6 +6,7 @@ import type { Category, Priority, Project, Task, TaskLink, TaskStatus } from "@/
 import { PRIORITY_LABEL } from "@/lib/labels/core";
 import { Dori, type DoriMood } from "@/components/Dori";
 import { blockedTaskIds, compareTasks, dueLabel, formatEstimate, isComplete, progress } from "@/lib/tasks/core";
+import { OPEN_DORI, type OpenDoriDetail } from "../DoriPanel";
 import { addTaskLink, deleteProject, deleteTask, deleteTaskLink, promoteResidue, saveProject, saveTask, setTaskStatus, type TaskInput } from "../actions";
 
 type View = { kind: "area"; id: number | null } | { kind: "all" } | { kind: "loose" } | { kind: "reminders" } | { kind: "completed" };
@@ -110,7 +111,16 @@ export function TasksBoard({ categories, projects, tasks, links, today }: { cate
           <>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-semibold tracking-tight">{view.kind === "all" ? "Everything" : areaOf(view.id).name}</h2>
-              <NewProject categoryId={view.kind === "area" ? view.id : categories[0]?.id ?? null} categories={categories} run={run} pending={pending} />
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="btn-secondary py-1.5"
+                  onClick={() => window.dispatchEvent(new CustomEvent<OpenDoriDetail>(OPEN_DORI, { detail: { prefill: "Here's everything on my plate: " } }))}
+                >
+                  <Dori mood="happy" size={22} /> Tell Dori everything
+                </button>
+                <NewProject categoryId={view.kind === "area" ? view.id : categories[0]?.id ?? null} categories={categories} run={run} pending={pending} />
+              </div>
             </div>
             {projects.length === 0 && tasks.length === 0 && (
               <section className="card flex flex-col items-center gap-5 p-6 text-center sm:flex-row sm:text-left">
@@ -118,10 +128,17 @@ export function TasksBoard({ categories, projects, tasks, links, today }: { cate
                 <div>
                   <h3 className="text-lg font-semibold tracking-tight">Hi, I&apos;m Dori.</h3>
                   <p className="mt-1 max-w-lg text-sm leading-relaxed text-muted">
-                    Projects live under your areas, and tasks live under projects. Start with one project, or jot a task
-                    below. When something is mostly done, call it good enough and note what&apos;s left, so it can go
-                    without being forgotten.
+                    Tell me everything on your plate once, in any order, and I&apos;ll sort it into areas, projects and tasks
+                    and plan them around your calendar. Or add things yourself below. When something is mostly done,
+                    call it good enough and note what&apos;s left.
                   </p>
+                  <button
+                    type="button"
+                    className="btn-primary mt-3 py-1.5"
+                    onClick={() => window.dispatchEvent(new CustomEvent<OpenDoriDetail>(OPEN_DORI, { detail: { prefill: "Here's everything on my plate: " } }))}
+                  >
+                    Tell Dori everything
+                  </button>
                 </div>
               </section>
             )}
@@ -408,7 +425,7 @@ function ProjectForm({ project, defaultCategoryId = null, categories, run, pendi
 function TaskForm({ task, onDone, ...ctx }: Ctx & { task: Task; onDone: () => void }) {
   const [d, setD] = useState<TaskInput>({
     id: task.id, projectId: task.projectId, categoryId: task.categoryId, title: task.title, notes: task.notes, kind: task.kind,
-    estimateMinutes: task.estimateMinutes, dueDate: task.dueDate, hardDeadline: task.hardDeadline, priority: task.priority, energy: task.energy, people: task.people,
+    estimateMinutes: task.estimateMinutes, dueDate: task.dueDate, hardDeadline: task.hardDeadline, priority: task.priority, energy: task.energy, people: task.people, repeat: task.repeat,
   });
   const [linkTo, setLinkTo] = useState("");
   const [linkKind, setLinkKind] = useState<"before" | "together">("before");
@@ -497,6 +514,16 @@ function TaskForm({ task, onDone, ...ctx }: Ctx & { task: Task; onDone: () => vo
           </select>
         </div>
       )}
+      <div>
+        <label className="label">Repeats</label>
+        <select className="input" value={d.repeat ?? ""} onChange={(e) => upd({ repeat: (e.target.value || null) as TaskInput["repeat"] })}>
+          <option value="">Never</option>
+          <option value="daily">Every day</option>
+          <option value="weekdays">Every weekday</option>
+          <option value="weekly">Every week</option>
+          <option value="monthly">Every month</option>
+        </select>
+      </div>
       <div className="sm:col-span-2">
         <label className="label">People involved</label>
         <input className="input" placeholder="Names or emails, comma separated" value={d.people?.join(", ") ?? ""} onChange={(e) => upd({ people: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} />

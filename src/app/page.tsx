@@ -67,8 +67,9 @@ export default async function Home() {
             ))}
           </dl>
           <p className="mx-auto mt-8 max-w-lg border-t border-line pt-6 text-sm leading-relaxed text-faint">
-            {APP_NAME} only uses your calendar to see your free/busy times, list your calendars, and view and edit
-            events for the meetings booked with you. See the{" "}
+            {APP_NAME} only uses your calendar to see your free/busy times, list your calendars, view and edit
+            events for the meetings booked with you, and, if you use them, plan your tasks and power the optional
+            assistant. See the{" "}
             <Link href="/privacy" className="link">privacy policy</Link> and{" "}
             <Link href="/terms" className="link">terms of service</Link>.
           </p>

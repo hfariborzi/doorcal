@@ -381,6 +381,27 @@ export const microsoftCalendar: CalendarProvider = {
     // user out of every app). Deleting our copy of the token is all we can do; users can remove DoorCal at
     // https://account.microsoft.com/privacy/app-access or myapps.microsoft.com.
   },
+
+  // Graph change notifications on the calendar's events (Calendars.ReadWrite covers them). Event
+  // subscriptions last under three days, so the daily job replaces them. Graph calls `address` with a
+  // validationToken first, which the webhook echoes back. Graph picks the subscription id; `channelId` is unused.
+  async watch(account, calendarId, address, _channelId, token) {
+    const resource = calendarId === "primary" ? "/me/events" : `/me/calendars/${encodeURIComponent(calendarId)}/events`;
+    const expires = new Date(Date.now() + 2.5 * 86_400_000);
+    const sub = await graph<{ id: string; expirationDateTime: string }>(account, "/subscriptions", {
+      method: "POST",
+      body: JSON.stringify({ changeType: "created,updated,deleted", notificationUrl: address, resource, expirationDateTime: expires.toISOString(), clientState: token }),
+    });
+    return { channelId: sub.id, resourceId: null, expiresAt: new Date(sub.expirationDateTime) };
+  },
+
+  async unwatch(account, channelId) {
+    try {
+      await graph(account, `/subscriptions/${encodeURIComponent(channelId)}`, { method: "DELETE" });
+    } catch {
+      // Already expired or removed.
+    }
+  },
 };
 
 export type { GraphDateTime };

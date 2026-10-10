@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
+import type { DoriMood } from "@/db/schema";
 
-/** Dori's moods. She is never sad or disappointed at the user: "concerned" is worried for them. */
-export type DoriMood = "happy" | "thinking" | "busy" | "celebrating" | "concerned" | "sleeping";
+export type { DoriMood };
 
 const ALT: Record<DoriMood, string> = {
   happy: "Dori the puppy, smiling",
@@ -13,12 +13,12 @@ const ALT: Record<DoriMood, string> = {
 };
 
 /**
- * The assistant's mascot. Images are 512px squares with a shared baseline, so every mood lines up.
- * Moves gently (a slow bob, a hop when celebrating) unless the user prefers reduced motion.
+ * The assistant's mascot: a still image on a transparent background. All moods are 512px squares on a shared
+ * baseline, so switching mood never shifts the layout. She is never sad at the user: "concerned" is worried
+ * for them.
  */
-export function Dori({ mood = "happy", size = 96, animate = true, className = "" }: { mood?: DoriMood; size?: number; animate?: boolean; className?: string }) {
+export function Dori({ mood = "happy", size = 96, className = "" }: { mood?: DoriMood; size?: number; className?: string }) {
   const src = size > 128 ? `/dori/dori-${mood}-512.webp` : `/dori/dori-${mood}-256.webp`;
-  const motion = !animate || mood === "sleeping" ? "" : mood === "celebrating" ? "dori-hop" : "dori-bob";
   return (
     <img
       src={src}
@@ -26,7 +26,7 @@ export function Dori({ mood = "happy", size = 96, animate = true, className = ""
       width={size}
       height={size}
       draggable={false}
-      className={`pointer-events-none select-none drop-shadow-[0_6px_10px_rgb(76_29_149/0.18)] ${motion} ${className}`}
+      className={`pointer-events-none shrink-0 select-none ${className}`}
       style={{ width: size, height: size }}
     />
   );

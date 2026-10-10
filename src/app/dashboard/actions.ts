@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq, ne } from "drizzle-orm";
@@ -16,7 +17,15 @@ import { RESERVED_USERNAMES } from "@/lib/config";
 import { decrypt } from "@/lib/crypto";
 import { logError } from "@/lib/log";
 import { SESSION_COOKIE } from "@/lib/session";
-import { MAX_LINKS_PER_TASK, MAX_PROJECTS, MAX_TASKS, getProject, getTask, listLinks, listProjects, listTasks, ownedTasks, transition, wouldCycle } from "@/lib/tasks";
+import { MAX_LINKS_PER_TASK, MAX_PROJECTS, MAX_TASKS, applyStatus, getProject, getTask, listLinks, listProjects, listTasks, ownedTasks, wouldCycle } from "@/lib/tasks";
+import { markPlanDirty, replan } from "@/lib/planner";
+import type { User } from "@/db";
+
+/** Tasks changed: mark the plan stale and recompute it after the response, without telling Dori (the user did it). */
+async function planChanged(user: User) {
+  await markPlanDirty(user.id);
+  after(() => replan(user, { notify: false }).catch((err) => logError("replan", err)));
+}
 
 export type ActionResult = { error?: string; id?: number };
 
@@ -510,6 +519,7 @@ export async function saveProject(input: z.input<typeof projectSchema>): Promise
 export async function deleteProject(id: number): Promise<ActionResult> {
   const user = await requireUser();
   await db.delete(projects).where(and(eq(projects.id, id), eq(projects.userId, user.id)));
+  await planChanged(user);
   revalidatePath("/dashboard/tasks");
   return {};
 }
@@ -527,6 +537,7 @@ const taskSchema = z.object({
   priority: prioritySchema.default("normal"),
   energy: z.enum(["deep", "light"]).nullable().default(null),
   people: z.array(z.string().trim().min(1).max(120)).max(20).default([]),
+  repeat: z.enum(["daily", "weekdays", "weekly", "monthly"]).nullable().default(null),
 });
 
 export type TaskInput = z.input<typeof taskSchema>;
@@ -547,12 +558,14 @@ export async function saveTask(input: TaskInput): Promise<ActionResult> {
   if (id) {
     if (!(await getTask(user.id, id))) return { error: "Task not found" };
     await db.update(tasks).set({ ...data, updatedAt: new Date() }).where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
+    await planChanged(user);
     revalidatePath("/dashboard/tasks");
     return { id };
   }
   const count = (await listTasks(user.id)).length;
   if (count >= MAX_TASKS) return { error: `You can have up to ${MAX_TASKS} tasks` };
   const [row] = await db.insert(tasks).values({ ...data, userId: user.id, position: count }).returning({ id: tasks.id });
+  await planChanged(user);
   revalidatePath("/dashboard/tasks");
   return { id: row.id };
 }
@@ -570,12 +583,9 @@ export async function setTaskStatus(input: z.input<typeof statusSchema>): Promis
   if (!parsed.success) return { error: firstIssue(parsed.error) };
   const task = await getTask(user.id, parsed.data.id);
   if (!task) return { error: "Task not found" };
-  const next = transition(task, parsed.data.status, parsed.data.residue);
-  if ("error" in next) return { error: next.error };
-  await db
-    .update(tasks)
-    .set({ status: next.status, residue: next.residue, completedAt: next.completed ? (task.completedAt ?? new Date()) : null, updatedAt: new Date() })
-    .where(and(eq(tasks.id, task.id), eq(tasks.userId, user.id)));
+  const r = await applyStatus(user.id, task, parsed.data.status, parsed.data.residue, user.timezone);
+  if (r.error) return { error: r.error };
+  await planChanged(user);
   revalidatePath("/dashboard/tasks");
   return {};
 }
@@ -593,6 +603,7 @@ export async function promoteResidue(id: number): Promise<ActionResult> {
     .values({ userId: user.id, projectId: task.projectId, categoryId: task.categoryId, title: task.residue, kind: task.kind, priority: task.priority, people: task.people, position: count })
     .returning({ id: tasks.id });
   await db.update(tasks).set({ status: "done", residue: "", updatedAt: new Date() }).where(eq(tasks.id, task.id));
+  await planChanged(user);
   revalidatePath("/dashboard/tasks");
   return { id: row.id };
 }
@@ -600,6 +611,7 @@ export async function promoteResidue(id: number): Promise<ActionResult> {
 export async function deleteTask(id: number): Promise<ActionResult> {
   const user = await requireUser();
   await db.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
+  await planChanged(user);
   revalidatePath("/dashboard/tasks");
   return {};
 }
@@ -619,6 +631,7 @@ export async function addTaskLink(input: z.input<typeof linkSchema>): Promise<Ac
   if (links.some((l) => (l.fromTaskId === fromTaskId && l.toTaskId === toTaskId) || (l.fromTaskId === toTaskId && l.toTaskId === fromTaskId))) return { error: "Those two are already linked" };
   if (kind === "before" && wouldCycle(links, fromTaskId, toTaskId)) return { error: "That would make a loop: the other task already comes after this one" };
   await db.insert(taskLinks).values({ userId: user.id, fromTaskId, toTaskId, kind });
+  await planChanged(user);
   revalidatePath("/dashboard/tasks");
   return {};
 }
@@ -626,6 +639,7 @@ export async function addTaskLink(input: z.input<typeof linkSchema>): Promise<Ac
 export async function deleteTaskLink(id: number): Promise<ActionResult> {
   const user = await requireUser();
   await db.delete(taskLinks).where(and(eq(taskLinks.id, id), eq(taskLinks.userId, user.id)));
+  await planChanged(user);
   revalidatePath("/dashboard/tasks");
   return {};
 }

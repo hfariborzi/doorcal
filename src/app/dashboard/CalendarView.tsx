@@ -2,12 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { DateTime } from "luxon";
-import { ChevronLeft, ChevronRight, ExternalLink, Loader2, MapPin, Plus, Sparkles, Trash2, Users, Video, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, ExternalLink, Loader2, MapPin, Pin, PinOff, Plus, Sparkles, Trash2, Users, Video, X } from "lucide-react";
+import Link from "next/link";
 import type { CalendarPrefs, Category, EventLocationKind, LabelSource, Priority } from "@/db/schema";
 import type { CalendarEvent } from "@/lib/calendar/types";
 import { eventKey, LOCATION_KIND_LABEL, LOCATION_KINDS, PRIORITIES, PRIORITY_COLOR, PRIORITY_LABEL } from "@/lib/labels/core";
 import { meetingLinkLabel } from "@/lib/locations";
-import { labelEvent, saveCalendarPrefs } from "./actions";
+import { labelEvent, saveCalendarPrefs, setTaskStatus } from "./actions";
+import { pinBlock, skipTaskOn, unpinTask } from "./dori-actions";
+import { DORI_CHANGED } from "./DoriPanel";
+
+/** Planned work from the planner, shown on the calendar next to real events. */
+type PlannedBlock = { taskId: number; start: string; end: string; pinned: boolean; title: string; categoryId: number | null; priority: Priority; dueDate: string | null; risk: "late" | "unplaced" | null };
+const PLAN_CAL = "doorcal-plan";
 
 type Problem = { accountId: number; email: string; message: string };
 type Label = { categoryId: number | null; priority: Priority; source: LabelSource | null; location: EventLocationKind };
@@ -102,6 +109,9 @@ export function CalendarView() {
   const [aiRetry, setAiRetry] = useState(0);
   const [reloadTick, setReloadTick] = useState(0);
   const [selected, setSelected] = useState<CalendarEvent | null>(null);
+  const [planned, setPlanned] = useState<{ rangeKey: string; blocks: PlannedBlock[] } | null>(null);
+  const [showPlan, setShowPlan] = useState(true);
+  const [selectedBlock, setSelectedBlock] = useState<PlannedBlock | null>(null);
   const [creating, setCreating] = useState<DateTime | null>(null);
   const [, setClock] = useState(0); // re-renders each minute so "now" stays current
   const scroller = useRef<HTMLDivElement>(null);
@@ -155,6 +165,25 @@ export function CalendarView() {
     };
   }, [range, reloadTick, aiRetry]);
 
+  // Planned work for the same range; reloads with the calendar and whenever Dori changes something.
+  useEffect(() => {
+    let cancelled = false;
+    const q = new URLSearchParams({ start: range.start.toUTC().toISO()!, end: range.end.toUTC().toISO()! });
+    fetch(`/api/plan?${q}`)
+      .then((r) => (r.ok ? r.json() : { blocks: [] }))
+      .then((d: { blocks?: PlannedBlock[] }) => !cancelled && setPlanned({ rangeKey: range.key, blocks: d.blocks ?? [] }))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [range, reloadTick]);
+
+  useEffect(() => {
+    const onChange = () => setReloadTick((t) => t + 1);
+    window.addEventListener(DORI_CHANGED, onChange);
+    return () => window.removeEventListener(DORI_CHANGED, onChange);
+  }, []);
+
   function updatePrefs(next: CalendarPrefs) {
     setPrefs(next);
     void saveCalendarPrefs(next);
@@ -195,10 +224,16 @@ export function CalendarView() {
   }, [tz]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shown = (events ?? []).filter((e) => !isHidden(labels[labelKey(e)], view_prefs));
-  const timed = shown.filter((e) => !e.allDay);
+  const blocks = planned?.rangeKey === range.key ? planned.blocks : [];
+  const blockEvents: CalendarEvent[] = showPlan
+    ? blocks.map((b) => ({ id: `${b.taskId}-${b.start}`, accountId: -1, calendarId: PLAN_CAL, title: b.title, start: b.start, end: b.end, allDay: false, color: categories.find((c) => c.id === b.categoryId)?.color ?? "#8b5cf6", attendees: [], canEdit: false }))
+    : [];
+  const blockFor = (e: CalendarEvent) => blocks.find((b) => `${b.taskId}-${b.start}` === e.id) ?? null;
+  const timed = [...shown.filter((e) => !e.allDay), ...blockEvents];
   const allDay = shown.filter((e) => e.allDay);
   const hiddenCount = (events?.length ?? 0) - shown.length;
-  const styleFor = (e: CalendarEvent) => {
+  const styleFor = (e: CalendarEvent): React.CSSProperties => {
+    if (e.calendarId === PLAN_CAL) return { background: `${e.color}14`, border: `1.5px dashed ${e.color}`, boxShadow: "none" };
     const label = labels[labelKey(e)];
     return { ...eventStyle(eventColor(e, label, categories, view_prefs.colorBy)), opacity: label?.priority === "low" ? 0.65 : 1 };
   };
@@ -312,7 +347,8 @@ export function CalendarView() {
                       key={`${p.e.accountId}-${p.e.calendarId}-${p.e.id}`}
                       onClick={(ev) => {
                         ev.stopPropagation();
-                        setSelected(p.e);
+                        if (p.e.calendarId === PLAN_CAL) setSelectedBlock(blockFor(p.e));
+                        else setSelected(p.e);
                       }}
                       className="absolute z-10 overflow-hidden rounded-md px-1.5 py-0.5 text-left text-xs text-ink shadow-(--shadow-card) hover:z-30 hover:brightness-125"
                       style={{
@@ -324,6 +360,8 @@ export function CalendarView() {
                       }}
                     >
                       <div className="flex items-center gap-1 truncate font-medium">
+                        {p.e.calendarId === PLAN_CAL && blockFor(p.e)?.pinned && <Pin size={10} className="shrink-0" />}
+                        {p.e.calendarId === PLAN_CAL && blockFor(p.e)?.risk && <AlertTriangle size={10} className="shrink-0 text-warning" />}
                         {labels[labelKey(p.e)]?.priority === "high" && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" title="High priority" />}
                         <span className="truncate">{p.e.title}</span>
                       </div>
@@ -346,111 +384,126 @@ export function CalendarView() {
         </div>
       </div>
 
-        {/* Display controls sit beside the calendar on wide screens and below it on narrow ones. */}
-        <aside className="card space-y-4 p-4 text-xs lg:w-56 lg:shrink-0">
-          <div>
-            <p className="mb-1.5 text-faint">Colour by</p>
-            <div className="flex rounded-lg border border-line bg-well p-0.5">
-              {(["calendar", "type", "priority"] as const).map((m) => (
-                <button key={m} onClick={() => updatePrefs({ ...view_prefs, colorBy: m })} className={`flex-1 rounded-md px-2 py-1 capitalize ${view_prefs.colorBy === m ? "bg-accent text-on-accent" : "text-muted hover:text-ink"}`}>
-                  {m}
-                </button>
-              ))}
-            </div>
+      {/* Display controls sit beside the calendar on wide screens and below it on narrow ones. */}
+      <aside className="card space-y-4 p-4 text-xs lg:w-56 lg:shrink-0">
+        <div>
+          <p className="mb-1.5 text-faint">Colour by</p>
+          <div className="flex rounded-lg border border-line bg-well p-0.5">
+            {(["calendar", "type", "priority"] as const).map((m) => (
+              <button key={m} onClick={() => updatePrefs({ ...view_prefs, colorBy: m })} className={`flex-1 rounded-md px-2 py-1 capitalize ${view_prefs.colorBy === m ? "bg-accent text-on-accent" : "text-muted hover:text-ink"}`}>
+                {m}
+              </button>
+            ))}
           </div>
-          <div>
-            <p className="mb-1.5 text-faint">Type</p>
-            <div className="flex flex-wrap gap-1.5">
-              {categories.map((c) => (
-                <Chip key={c.id} color={c.color} label={c.name} off={view_prefs.hidden.categories.includes(c.id)} onClick={() => toggleHidden("categories", c.id)} />
-              ))}
-              <Chip color={OTHER_COLOR} label="Other" off={view_prefs.hidden.other} onClick={() => toggleHidden("other", true)} />
-            </div>
-          </div>
-          <div>
-            <p className="mb-1.5 text-faint">Location</p>
-            <div className="flex flex-wrap gap-1.5">
-              {LOCATION_KINDS.map((k) => (
-                <Chip key={k} label={LOCATION_KIND_LABEL[k]} off={view_prefs.hidden.locations.includes(k)} onClick={() => toggleHidden("locations", k)} icon={k === "video" ? <Video size={11} /> : k === "in_person" ? <MapPin size={11} /> : undefined} />
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="mb-1.5 text-faint">Priority</p>
-            <div className="flex flex-wrap gap-1.5">
-              {PRIORITIES.map((pr) => (
-                <Chip key={pr} color={PRIORITY_COLOR[pr]} label={PRIORITY_LABEL[pr]} off={view_prefs.hidden.priorities.includes(pr)} onClick={() => toggleHidden("priorities", pr)} />
-              ))}
-            </div>
-          </div>
-          <p className="border-t border-line pt-3 leading-relaxed text-faint">
-            {hiddenCount > 0 && <span className="block text-muted">{hiddenCount} hidden by these filters.</span>}
-            Click a chip to hide or show. Click any open time to create a meeting.
-          </p>
-        </aside>
-
-        {selected && (
-          <EventDetails
-            event={selected}
-            label={labels[labelKey(selected)]}
-            categories={categories}
-            tz={tz}
-            onClose={() => setSelected(null)}
-            onDeleted={() => {
-              setSelected(null);
-              load();
-            }}
-            onLabeled={load}
-          />
-        )}
-        {creating && (
-          <NewMeeting
-            start={creating}
-            tz={tz}
-            onClose={() => setCreating(null)}
-            onCreated={() => {
-              setCreating(null);
-              load();
-            }}
-          />
-        )}
-      </div>
-    );
-  }
-
-  function Chip({ label, color, off, onClick, icon }: { label: string; color?: string; off: boolean; onClick: () => void; icon?: React.ReactNode }) {
-    return (
-      <button
-        onClick={onClick}
-        aria-pressed={!off}
-        title={off ? `Show ${label}` : `Hide ${label}`}
-        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 transition ${off ? "border-line text-faint line-through opacity-60" : "border-line-strong text-ink"}`}
-      >
-        {color && <span className="h-2 w-2 rounded-full" style={{ background: color }} />}
-        {icon}
-        {label}
-      </button>
-    );
-  }
-
-  function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-    useEffect(() => {
-      const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-      window.addEventListener("keydown", onKey);
-      return () => window.removeEventListener("keydown", onKey);
-    }, [onClose]);
-    return (
-      <div className="fixed inset-0 z-50 grid place-items-center bg-scrim p-4 backdrop-blur-sm" onClick={onClose}>
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-line-strong bg-modal p-6 shadow-(--shadow-modal) backdrop-blur-xl sm:p-7"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {children}
         </div>
+        <div>
+          <p className="mb-1.5 text-faint">Show</p>
+          <Chip label="Planned work" off={!showPlan} onClick={() => setShowPlan(!showPlan)} />
+        </div>
+        <div>
+          <p className="mb-1.5 text-faint">Type</p>
+          <div className="flex flex-wrap gap-1.5">
+            {categories.map((c) => (
+              <Chip key={c.id} color={c.color} label={c.name} off={view_prefs.hidden.categories.includes(c.id)} onClick={() => toggleHidden("categories", c.id)} />
+            ))}
+            <Chip color={OTHER_COLOR} label="Other" off={view_prefs.hidden.other} onClick={() => toggleHidden("other", true)} />
+          </div>
+        </div>
+        <div>
+          <p className="mb-1.5 text-faint">Location</p>
+          <div className="flex flex-wrap gap-1.5">
+            {LOCATION_KINDS.map((k) => (
+              <Chip key={k} label={LOCATION_KIND_LABEL[k]} off={view_prefs.hidden.locations.includes(k)} onClick={() => toggleHidden("locations", k)} icon={k === "video" ? <Video size={11} /> : k === "in_person" ? <MapPin size={11} /> : undefined} />
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="mb-1.5 text-faint">Priority</p>
+          <div className="flex flex-wrap gap-1.5">
+            {PRIORITIES.map((pr) => (
+              <Chip key={pr} color={PRIORITY_COLOR[pr]} label={PRIORITY_LABEL[pr]} off={view_prefs.hidden.priorities.includes(pr)} onClick={() => toggleHidden("priorities", pr)} />
+            ))}
+          </div>
+        </div>
+        <p className="border-t border-line pt-3 leading-relaxed text-faint">
+          {hiddenCount > 0 && <span className="block text-muted">{hiddenCount} hidden by these filters.</span>}
+          Click a chip to hide or show. Click any open time to create a meeting.
+        </p>
+      </aside>
+
+      {selected && (
+        <EventDetails
+          event={selected}
+          label={labels[labelKey(selected)]}
+          categories={categories}
+          tz={tz}
+          onClose={() => setSelected(null)}
+          onDeleted={() => {
+            setSelected(null);
+            load();
+          }}
+          onLabeled={load}
+        />
+      )}
+      {selectedBlock && (
+        <BlockDetails
+          block={selectedBlock}
+          tz={tz}
+          onClose={() => setSelectedBlock(null)}
+          onChanged={() => {
+            setSelectedBlock(null);
+            load();
+          }}
+        />
+      )}
+      {creating && (
+        <NewMeeting
+          start={creating}
+          tz={tz}
+          onClose={() => setCreating(null)}
+          onCreated={() => {
+            setCreating(null);
+            load();
+          }}
+        />
+      )}
     </div>
   );
+}
+
+function Chip({ label, color, off, onClick, icon }: { label: string; color?: string; off: boolean; onClick: () => void; icon?: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={!off}
+      title={off ? `Show ${label}` : `Hide ${label}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 transition ${off ? "border-line text-faint line-through opacity-60" : "border-line-strong text-ink"}`}
+    >
+      {color && <span className="h-2 w-2 rounded-full" style={{ background: color }} />}
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-scrim p-4 backdrop-blur-sm" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-line-strong bg-modal p-6 shadow-(--shadow-modal) backdrop-blur-xl sm:p-7"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+  </div>
+);
 }
 
 function EventDetails({
@@ -713,6 +766,51 @@ function NewMeeting({ start, tz, onClose, onCreated }: { start: DateTime; tz: st
           <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+/** A planned block: finish the task, push it to another day, or keep it at this time. */
+function BlockDetails({ block, tz, onClose, onChanged }: { block: PlannedBlock; tz: string; onClose: () => void; onChanged: () => void }) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const s = DateTime.fromISO(block.start).setZone(tz);
+  const e = DateTime.fromISO(block.end).setZone(tz);
+  const run = async (fn: () => Promise<{ error?: string }>) => {
+    setPending(true);
+    setError(null);
+    const r = await fn();
+    setPending(false);
+    if (r.error) setError(r.error);
+    else onChanged();
+  };
+  return (
+    <Modal onClose={onClose}>
+      <div className="space-y-4">
+        <div>
+          <p className="eyebrow">Planned work</p>
+          <h3 className="mt-1 text-lg font-semibold tracking-tight">{block.title}</h3>
+          <p className="text-sm text-muted tnum">{s.toFormat("cccc, LLL d · h:mm")} – {e.toFormat("h:mm a")}</p>
+          {block.dueDate && <p className="text-sm text-faint">Due {DateTime.fromISO(block.dueDate).toFormat("ccc, LLL d")}</p>}
+          {block.risk && (
+            <p className="mt-2 flex items-center gap-1.5 text-sm text-warning">
+              <AlertTriangle size={14} /> {block.risk === "late" ? "This won't be finished by its due date at the current pace." : "Not all of this fits in the next two weeks."}
+            </p>
+          )}
+          <p className="mt-2 text-xs text-faint">DoorCal placed this in free time. It moves by itself when your calendar changes, unless you keep it here.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn-primary py-1.5" disabled={pending} onClick={() => run(() => setTaskStatus({ id: block.taskId, status: "done" }))}><Check size={15} /> Done</button>
+          <button className="btn-secondary py-1.5" disabled={pending} onClick={() => run(() => skipTaskOn(block.taskId, s.toISODate()))}>Not this day</button>
+          {block.pinned ? (
+            <button className="btn-secondary py-1.5" disabled={pending} onClick={() => run(() => unpinTask(block.taskId))}><PinOff size={15} /> Let it move</button>
+          ) : (
+            <button className="btn-secondary py-1.5" disabled={pending} onClick={() => run(() => pinBlock(block.taskId, block.start, block.end))}><Pin size={15} /> Keep it here</button>
+          )}
+          <Link href="/dashboard/tasks" className="btn-ghost py-1.5">Open tasks</Link>
+        </div>
+        {error && <p className="text-sm text-danger">{error}</p>}
+      </div>
     </Modal>
   );
 }
