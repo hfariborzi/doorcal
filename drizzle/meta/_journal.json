@@ -43,6 +43,13 @@
       "when": 1791245772669,
       "tag": "0005_categories_preferences_ai",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791660362906,
+      "tag": "0006_projects_tasks",
+      "breakpoints": true
     }
   ]
 }

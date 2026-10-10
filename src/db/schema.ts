@@ -106,7 +106,11 @@ export const calendarAccounts = pgTable(
   ],
 );
 
-/** Event types a user sorts their calendar into (the "type" dimension). At most 10 per user. */
+/**
+ * The areas of a user's life: "Research", "Teaching", "Home". One list serves two purposes: it is the
+ * "type" dimension the calendar is sorted into, and the top level that projects and tasks live under.
+ * At most 20 per user.
+ */
 export const categories = pgTable(
   "categories",
   {
@@ -116,6 +120,7 @@ export const categories = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     color: text("color").notNull(),
+    description: text("description").notNull().default(""), // one line on what belongs here
     defaultPriority: text("default_priority").$type<Priority>().notNull().default("normal"),
     position: integer("position").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -180,6 +185,86 @@ export const aiUsage = pgTable(
     outputTokens: integer("output_tokens").notNull().default(0),
   },
   (t) => [uniqueIndex("ai_usage_user_day_idx").on(t.userId, t.day)],
+);
+
+// --- Projects and tasks ------------------------------------------------------------------------------
+
+export type ProjectStatus = "active" | "paused" | "done";
+export type TaskKind = "task" | "reminder"; // a reminder is something to remember, never scheduled
+export type TaskStatus = "open" | "good_enough" | "done" | "dropped";
+export type TaskEnergy = "deep" | "light";
+export type TaskLinkKind = "before" | "together"; // "from" finishes before "to" starts; or the two are done as one
+
+/** A bounded effort inside an area, e.g. "JIBS revision" under Research. */
+export const projects = pgTable(
+  "projects",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    categoryId: integer("category_id").references(() => categories.id, { onDelete: "set null" }), // null = no area
+    name: text("name").notNull(),
+    notes: text("notes").notNull().default(""),
+    status: text("status").$type<ProjectStatus>().notNull().default("active"),
+    targetDate: text("target_date"), // YYYY-MM-DD, optional
+    position: integer("position").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [index("projects_user_idx").on(t.userId)],
+);
+
+/**
+ * One piece of work. "good_enough" means the job is mostly done and `residue` names the small part left;
+ * it counts as complete, and the residue is collected in the Loose ends list.
+ */
+export const tasks = pgTable(
+  "tasks",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    projectId: integer("project_id").references(() => projects.id, { onDelete: "cascade" }),
+    // The area. Follows the project when there is one; set directly for a task that belongs to no project.
+    categoryId: integer("category_id").references(() => categories.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    notes: text("notes").notNull().default(""),
+    kind: text("kind").$type<TaskKind>().notNull().default("task"),
+    status: text("status").$type<TaskStatus>().notNull().default("open"),
+    residue: text("residue").notNull().default(""), // what is left when the task is "good enough"
+    estimateMinutes: integer("estimate_minutes"), // null = unknown
+    dueDate: text("due_date"), // YYYY-MM-DD, optional
+    hardDeadline: boolean("hard_deadline").notNull().default(false), // a date that cannot move
+    priority: text("priority").$type<Priority>().notNull().default("normal"),
+    energy: text("energy").$type<TaskEnergy>(), // null = either
+    people: jsonb("people").$type<string[]>().notNull().default([]), // who is involved; stays in DoorCal
+    position: integer("position").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [index("tasks_user_status_idx").on(t.userId, t.status), index("tasks_project_idx").on(t.projectId)],
+);
+
+/** Ordering and grouping between tasks. */
+export const taskLinks = pgTable(
+  "task_links",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    fromTaskId: integer("from_task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    toTaskId: integer("to_task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<TaskLinkKind>().notNull(),
+  },
+  (t) => [uniqueIndex("task_links_pair_idx").on(t.fromTaskId, t.toTaskId), index("task_links_user_idx").on(t.userId)],
 );
 
 export const schedules = pgTable(
@@ -280,6 +365,9 @@ export const rateLimits = pgTable("rate_limits", {
 export type User = typeof users.$inferSelect;
 export type CalendarAccount = typeof calendarAccounts.$inferSelect;
 export type Category = typeof categories.$inferSelect;
+export type Project = typeof projects.$inferSelect;
+export type Task = typeof tasks.$inferSelect;
+export type TaskLink = typeof taskLinks.$inferSelect;
 export type LabelRule = typeof labelRules.$inferSelect;
 export type EventLabel = typeof eventLabels.$inferSelect;
 export type Schedule = typeof schedules.$inferSelect;

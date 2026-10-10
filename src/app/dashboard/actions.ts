@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
-import { db, users, schedules, eventTypes, bookings, calendarAccounts, categories, labelRules, eventLabels, type CalendarPrefs, type Priority } from "@/db";
+import { db, users, schedules, eventTypes, bookings, calendarAccounts, categories, labelRules, eventLabels, projects, tasks, taskLinks, type CalendarPrefs, type Priority } from "@/db";
 import { aiConfigured, proposeCategories, toSample } from "@/lib/ai";
 import { eventsForAccounts } from "@/lib/calendar";
 import { CATEGORY_PALETTE, MAX_CATEGORIES, MAX_RULES, eventKey, labelKey, listCategories, listRules, storeLabels, titleHash } from "@/lib/labels";
@@ -16,6 +16,7 @@ import { RESERVED_USERNAMES } from "@/lib/config";
 import { decrypt } from "@/lib/crypto";
 import { logError } from "@/lib/log";
 import { SESSION_COOKIE } from "@/lib/session";
+import { MAX_LINKS_PER_TASK, MAX_PROJECTS, MAX_TASKS, getProject, getTask, listLinks, listProjects, listTasks, ownedTasks, transition, wouldCycle } from "@/lib/tasks";
 
 export type ActionResult = { error?: string; id?: number };
 
@@ -354,6 +355,7 @@ const categorySchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(30),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   defaultPriority: prioritySchema,
+  description: z.string().trim().max(200).optional(),
 });
 
 export async function saveCategory(input: z.input<typeof categorySchema>): Promise<ActionResult> {
@@ -468,6 +470,166 @@ export async function saveCalendarPrefs(input: z.input<typeof prefsSchema>): Pro
 const DEFAULT_PREFS: CalendarPrefs = { colorBy: "calendar", hidden: { categories: [], other: false, locations: [], priorities: [] } };
 
 /** Sidebar: which of an account's calendars are shown in the dashboard. */
+// --- Projects and tasks -------------------------------------------------------------------------------
+
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use a date").nullable();
+
+const projectSchema = z.object({
+  id: z.number().int().optional(),
+  name: z.string().trim().min(1, "Name is required").max(120),
+  notes: z.string().trim().max(2000).default(""),
+  categoryId: z.number().int().nullable(),
+  targetDate: dateSchema.default(null),
+  status: z.enum(["active", "paused", "done"]).default("active"),
+});
+
+export async function saveProject(input: z.input<typeof projectSchema>): Promise<ActionResult> {
+  const user = await requireUser();
+  const parsed = projectSchema.safeParse(input);
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const { id, ...data } = parsed.data;
+  if (data.categoryId !== null && !(await listCategories(user.id)).some((c) => c.id === data.categoryId)) return { error: "Unknown area" };
+  if (id) {
+    const current = await getProject(user.id, id);
+    if (!current) return { error: "Project not found" };
+    const completedAt = data.status === "done" ? (current.completedAt ?? new Date()) : null;
+    await db.update(projects).set({ ...data, completedAt }).where(and(eq(projects.id, id), eq(projects.userId, user.id)));
+    // Tasks follow their project's area.
+    if (current.categoryId !== data.categoryId) await db.update(tasks).set({ categoryId: data.categoryId }).where(and(eq(tasks.projectId, id), eq(tasks.userId, user.id)));
+    revalidatePath("/dashboard/tasks");
+    return { id };
+  }
+  const count = (await listProjects(user.id)).length;
+  if (count >= MAX_PROJECTS) return { error: `You can have up to ${MAX_PROJECTS} projects` };
+  const [row] = await db.insert(projects).values({ ...data, userId: user.id, position: count }).returning({ id: projects.id });
+  revalidatePath("/dashboard/tasks");
+  return { id: row.id };
+}
+
+/** Deletes the project and its tasks. */
+export async function deleteProject(id: number): Promise<ActionResult> {
+  const user = await requireUser();
+  await db.delete(projects).where(and(eq(projects.id, id), eq(projects.userId, user.id)));
+  revalidatePath("/dashboard/tasks");
+  return {};
+}
+
+const taskSchema = z.object({
+  id: z.number().int().optional(),
+  projectId: z.number().int().nullable().default(null),
+  categoryId: z.number().int().nullable().default(null), // ignored when projectId is set
+  title: z.string().trim().min(1, "Title is required").max(200),
+  notes: z.string().trim().max(5000).default(""),
+  kind: z.enum(["task", "reminder"]).default("task"),
+  estimateMinutes: z.number().int().min(5).max(24 * 60).nullable().default(null),
+  dueDate: dateSchema.default(null),
+  hardDeadline: z.boolean().default(false),
+  priority: prioritySchema.default("normal"),
+  energy: z.enum(["deep", "light"]).nullable().default(null),
+  people: z.array(z.string().trim().min(1).max(120)).max(20).default([]),
+});
+
+export type TaskInput = z.input<typeof taskSchema>;
+
+export async function saveTask(input: TaskInput): Promise<ActionResult> {
+  const user = await requireUser();
+  const parsed = taskSchema.safeParse(input);
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const { id, ...data } = parsed.data;
+  if (data.projectId !== null) {
+    const project = await getProject(user.id, data.projectId);
+    if (!project) return { error: "Unknown project" };
+    data.categoryId = project.categoryId;
+  } else if (data.categoryId !== null && !(await listCategories(user.id)).some((c) => c.id === data.categoryId)) {
+    return { error: "Unknown area" };
+  }
+  if (data.kind === "reminder") data.estimateMinutes = null;
+  if (id) {
+    if (!(await getTask(user.id, id))) return { error: "Task not found" };
+    await db.update(tasks).set({ ...data, updatedAt: new Date() }).where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
+    revalidatePath("/dashboard/tasks");
+    return { id };
+  }
+  const count = (await listTasks(user.id)).length;
+  if (count >= MAX_TASKS) return { error: `You can have up to ${MAX_TASKS} tasks` };
+  const [row] = await db.insert(tasks).values({ ...data, userId: user.id, position: count }).returning({ id: tasks.id });
+  revalidatePath("/dashboard/tasks");
+  return { id: row.id };
+}
+
+const statusSchema = z.object({
+  id: z.number().int(),
+  status: z.enum(["open", "good_enough", "done", "dropped"]),
+  residue: z.string().max(300).optional(),
+});
+
+/** Open, good enough (with what is left), done or dropped. */
+export async function setTaskStatus(input: z.input<typeof statusSchema>): Promise<ActionResult> {
+  const user = await requireUser();
+  const parsed = statusSchema.safeParse(input);
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const task = await getTask(user.id, parsed.data.id);
+  if (!task) return { error: "Task not found" };
+  const next = transition(task, parsed.data.status, parsed.data.residue);
+  if ("error" in next) return { error: next.error };
+  await db
+    .update(tasks)
+    .set({ status: next.status, residue: next.residue, completedAt: next.completed ? (task.completedAt ?? new Date()) : null, updatedAt: new Date() })
+    .where(and(eq(tasks.id, task.id), eq(tasks.userId, user.id)));
+  revalidatePath("/dashboard/tasks");
+  return {};
+}
+
+/** Turn a good-enough task's residue into its own open task, and mark the original fully done. */
+export async function promoteResidue(id: number): Promise<ActionResult> {
+  const user = await requireUser();
+  const task = await getTask(user.id, id);
+  if (!task) return { error: "Task not found" };
+  if (task.status !== "good_enough" || !task.residue) return { error: "Nothing left on this task" };
+  const count = (await listTasks(user.id)).length;
+  if (count >= MAX_TASKS) return { error: `You can have up to ${MAX_TASKS} tasks` };
+  const [row] = await db
+    .insert(tasks)
+    .values({ userId: user.id, projectId: task.projectId, categoryId: task.categoryId, title: task.residue, kind: task.kind, priority: task.priority, people: task.people, position: count })
+    .returning({ id: tasks.id });
+  await db.update(tasks).set({ status: "done", residue: "", updatedAt: new Date() }).where(eq(tasks.id, task.id));
+  revalidatePath("/dashboard/tasks");
+  return { id: row.id };
+}
+
+export async function deleteTask(id: number): Promise<ActionResult> {
+  const user = await requireUser();
+  await db.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
+  revalidatePath("/dashboard/tasks");
+  return {};
+}
+
+const linkSchema = z.object({ fromTaskId: z.number().int(), toTaskId: z.number().int(), kind: z.enum(["before", "together"]) });
+
+/** "from" before "to", or the two go together. Refuses loops. */
+export async function addTaskLink(input: z.input<typeof linkSchema>): Promise<ActionResult> {
+  const user = await requireUser();
+  const parsed = linkSchema.safeParse(input);
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const { fromTaskId, toTaskId, kind } = parsed.data;
+  if (fromTaskId === toTaskId) return { error: "A task can't come after itself" };
+  if ((await ownedTasks(user.id, [fromTaskId, toTaskId])).length !== 2) return { error: "Task not found" };
+  const links = await listLinks(user.id);
+  if (links.filter((l) => l.fromTaskId === toTaskId || l.toTaskId === toTaskId).length >= MAX_LINKS_PER_TASK) return { error: "Too many links on that task" };
+  if (links.some((l) => (l.fromTaskId === fromTaskId && l.toTaskId === toTaskId) || (l.fromTaskId === toTaskId && l.toTaskId === fromTaskId))) return { error: "Those two are already linked" };
+  if (kind === "before" && wouldCycle(links, fromTaskId, toTaskId)) return { error: "That would make a loop: the other task already comes after this one" };
+  await db.insert(taskLinks).values({ userId: user.id, fromTaskId, toTaskId, kind });
+  revalidatePath("/dashboard/tasks");
+  return {};
+}
+
+export async function deleteTaskLink(id: number): Promise<ActionResult> {
+  const user = await requireUser();
+  await db.delete(taskLinks).where(and(eq(taskLinks.id, id), eq(taskLinks.userId, user.id)));
+  revalidatePath("/dashboard/tasks");
+  return {};
+}
+
 // --- AI (opt-in) --------------------------------------------------------------------------------------
 
 export async function setAiConsent(enabled: boolean): Promise<ActionResult> {

@@ -20,6 +20,7 @@ Think Calendly, but self-hostable and MIT-licensed.
   - custom invitee questions (text, long text, phone, dropdown)
   - secret events (bookable by link, hidden from your profile)
 - **Availability schedules.** Weekly hours with several ranges per day, date overrides and days off, a time zone per schedule, and multiple schedules (e.g. "Office hours" and "Evenings").
+- **Tasks.** Projects and tasks under the same areas that colour your calendar, with ordering links ("comes after", "goes with"), reminders that are never scheduled, and a "good enough" status: mark a task mostly done, name the small part left, and it lands in a Loose ends list instead of keeping the task open.
 - **Categories, priorities and filters.** Sort your calendar by type (your own list, with colours), location and priority; colour the calendar by any of them and hide what you don't need. Rules ("title contains…") label events automatically; an optional, opt-in AI step suggests a category list from your recent events and labels the rest.
 - **Booking preferences.** Mark preferred times and a preferred location per event type. Every available time stays bookable; invitees see the preferred ones first.
 - **Self-serve reschedule and cancel** for invitees. Google Calendar updates and everyone gets notified.

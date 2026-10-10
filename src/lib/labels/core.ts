@@ -17,7 +17,7 @@ export const CATEGORY_PALETTE = [
   "#fb7185", // rose
 ];
 
-export const MAX_CATEGORIES = 10;
+export const MAX_CATEGORIES = 20;
 export const MAX_RULES = 200;
 
 export const PRIORITIES: Priority[] = ["high", "normal", "low"];

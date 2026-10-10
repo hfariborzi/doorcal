@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Clock, LayoutList, Settings, Timer } from "lucide-react";
+import { CalendarDays, Clock, LayoutList, ListChecks, Settings, Timer } from "lucide-react";
 
 const items = [
   { href: "/dashboard", label: "Calendar", Icon: CalendarDays },
+  { href: "/dashboard/tasks", label: "Tasks", Icon: ListChecks },
   { href: "/dashboard/bookings", label: "Bookings", Icon: Clock },
   { href: "/dashboard/event-types", label: "Event types", Icon: LayoutList },
   { href: "/dashboard/availability", label: "Availability", Icon: Timer },

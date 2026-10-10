@@ -43,10 +43,10 @@ export function CategoriesSettings({ categories, rules }: { categories: Category
   return (
     <section className="card space-y-6 p-6">
       <div>
-        <h2 className="font-semibold">Categories</h2>
+        <h2 className="font-semibold">Areas</h2>
         <p className="text-sm text-faint">
-          Sort your calendar by type. Each category has a colour and a default priority; events you don&apos;t
-          label fall under &ldquo;Other&rdquo;. Up to {MAX_CATEGORIES}.
+          The areas of your life: they colour your calendar by type and hold your projects and tasks. Each has a
+          colour and a default priority; events you don&apos;t label fall under &ldquo;Other&rdquo;. Up to {MAX_CATEGORIES}.
         </p>
       </div>
 
@@ -59,6 +59,13 @@ export function CategoriesSettings({ categories, rules }: { categories: Category
               defaultValue={c.name}
               aria-label="Category name"
               onBlur={(e) => e.target.value.trim() !== c.name && run(() => saveCategory({ id: c.id, name: e.target.value, color: c.color, defaultPriority: c.defaultPriority }))}
+            />
+            <input
+              className="input min-w-40 flex-1 py-1.5 text-sm"
+              defaultValue={c.description}
+              placeholder="What belongs here (optional)"
+              aria-label="Category description"
+              onBlur={(e) => e.target.value.trim() !== c.description && run(() => saveCategory({ id: c.id, name: c.name, color: c.color, defaultPriority: c.defaultPriority, description: e.target.value }))}
             />
             <span className="text-xs text-faint">priority</span>
             <PrioritySelect value={c.defaultPriority} onChange={(p) => run(() => saveCategory({ id: c.id, name: c.name, color: c.color, defaultPriority: p ?? "normal" }))} />
@@ -84,7 +91,7 @@ export function CategoriesSettings({ categories, rules }: { categories: Category
           }}
         >
           <div>
-            <label className="label" htmlFor="cat-name">New category</label>
+            <label className="label" htmlFor="cat-name">New area</label>
             <input id="cat-name" className="input w-48 py-1.5" required maxLength={30} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="e.g. Office hours" />
           </div>
           <div>
