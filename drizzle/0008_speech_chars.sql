@@ -1,0 +1,1 @@
+ALTER TABLE "ai_usage" ADD COLUMN "speech_chars" integer DEFAULT 0 NOT NULL;

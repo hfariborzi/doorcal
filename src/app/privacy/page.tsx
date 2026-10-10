@@ -3,7 +3,14 @@ import { AI_PROVIDER_NAME, aiConfigured } from "@/lib/ai";
 
 const AI_MODEL = process.env.AI_MODEL ?? "";
 const DORI_MODEL = process.env.DORI_MODEL || AI_MODEL;
-const VOICE = !!process.env.ELEVENLABS_API_KEY;
+// Dori's voice goes through OpenRouter (see src/lib/ai/audio.ts).
+const VOICE = (() => {
+  try {
+    return !!process.env.AI_API_KEY && new URL(process.env.AI_BASE_URL ?? "").hostname === "openrouter.ai";
+  } catch {
+    return false;
+  }
+})();
 import { APP_NAME, CONTACT_EMAIL, SOURCE_URL } from "@/lib/config";
 import { ContactLine, LegalPage } from "@/components/LegalPage";
 
@@ -136,9 +143,8 @@ export default function PrivacyPage() {
           </p>
           <p>
             {VOICE
-              ? `If you talk to Dori with the microphone, your recording is sent to ElevenLabs to be turned into text and is not stored by ${APP_NAME}; ElevenLabs handles it under its own terms and privacy policy. Only the resulting text is used as your message.`
-              : "Voice input, where available, uses your browser's own speech recognition."}{" "}
-            Reading answers aloud uses your browser&apos;s built-in voices.
+              ? `If you talk to Dori with the microphone, your recording is sent through OpenRouter to ElevenLabs to be turned into text; only the text is kept, as your message. If you have Dori read an answer aloud, the text of that answer is sent the same way to be turned into speech. Both requests are restricted to endpoints that keep no data (zero data retention) and do not use it for training, and ${APP_NAME} stores neither recordings nor audio.`
+              : "Voice input, where available, uses your browser's own speech recognition, and reading answers aloud uses your browser's built-in voices."}
           </p>
         </>
       ) : (
@@ -217,7 +223,12 @@ export default function PrivacyPage() {
             only what is described above. It may not use the data to train or improve AI models.
           </li>
         )}
-        {VOICE && <li><strong>ElevenLabs</strong>, only for recordings you make with Dori&apos;s microphone, to turn them into text.</li>}
+        {VOICE && (
+          <li>
+            <strong>ElevenLabs</strong>, through OpenRouter, only for Dori&apos;s voice: recordings you make with her
+            microphone and answers you ask her to read aloud, on zero-data-retention endpoints.
+          </li>
+        )}
         <li><strong>When required by law</strong>, or to protect the rights, safety and security of users and the service.</li>
       </ul>
       <p>We don&apos;t sell or rent personal information to anyone.</p>

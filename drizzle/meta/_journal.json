@@ -57,6 +57,13 @@
       "when": 1791663288246,
       "tag": "0007_dori_planner",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791666330332,
+      "tag": "0008_speech_chars",
+      "breakpoints": true
     }
   ]
 }

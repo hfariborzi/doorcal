@@ -27,9 +27,37 @@ function readSpeak() {
   }
 }
 
-function speak(text: string, lang?: string) {
+let playing: HTMLAudioElement | null = null;
+
+function stopSpeaking() {
+  playing?.pause();
+  playing = null;
+  if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+}
+
+/** Read a reply aloud with Dori's voice (ElevenLabs through the server), or the browser's voice as a fallback. */
+async function speak(text: string, lang: string | undefined, natural: boolean) {
+  stopSpeaking();
+  if (natural) {
+    try {
+      const res = await fetch("/api/dori/speak", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text.slice(0, 2500), lang }) });
+      if (res.ok) {
+        const url = URL.createObjectURL(await res.blob());
+        const audio = new Audio(url);
+        audio.onended = () => URL.revokeObjectURL(url);
+        playing = audio;
+        await audio.play();
+        return;
+      }
+    } catch {
+      // fall back to the browser's voice
+    }
+  }
+  browserSpeak(text, lang);
+}
+
+function browserSpeak(text: string, lang?: string) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text.replace(/•/g, ""));
   if (lang) {
     u.lang = lang;
@@ -59,6 +87,7 @@ export function DoriPanel() {
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recorderRef = useRef<{ stop: () => void } | null>(null);
+  const voiceRef = useRef(false); // natural voice (OpenRouter) available
 
   const load = useCallback(async () => {
     const res = await fetch("/api/dori/messages");
@@ -69,7 +98,11 @@ export function DoriPanel() {
     let cancelled = false;
     fetch("/api/dori/messages")
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: State | null) => !cancelled && d && setState(d))
+      .then((d: State | null) => {
+        if (cancelled || !d) return;
+        voiceRef.current = d.voice;
+        setState(d);
+      })
       .catch(() => {});
     return () => {
       cancelled = true;
@@ -113,7 +146,7 @@ export function DoriPanel() {
             else if (ev.type === "reply") {
               const reply: Msg = { id: ev.id!, role: "assistant", content: ev.text ?? "", meta: ev.meta ?? {} };
               setState((s) => (s ? { ...s, news: 0, messages: [...s.messages, reply] } : s));
-              if (readSpeak()) speak(reply.content, reply.meta.lang);
+              if (readSpeak()) void speak(reply.content, reply.meta.lang, !!voiceRef.current);
               if (reply.meta.actions?.length) {
                 window.dispatchEvent(new Event(DORI_CHANGED));
                 router.refresh();
@@ -233,7 +266,7 @@ export function DoriPanel() {
                     try {
                       localStorage.setItem(SPEAK_KEY, next ? "1" : "0");
                     } catch {}
-                    if (!next) window.speechSynthesis?.cancel();
+                    if (!next) stopSpeaking();
                   }}
                 >
                   {speakOn ? <Volume2 size={17} /> : <VolumeX size={17} />}
@@ -280,7 +313,7 @@ export function DoriPanel() {
                   </div>
                 )}
                 {state.messages.map((m) => (
-                  <Message key={m.id} m={m} onChanged={async () => { await load(); window.dispatchEvent(new Event(DORI_CHANGED)); router.refresh(); }} />
+                  <Message key={m.id} m={m} onListen={() => void speak(m.content, m.meta.lang, state.voice)} onChanged={async () => { await load(); window.dispatchEvent(new Event(DORI_CHANGED)); router.refresh(); }} />
                 ))}
                 {busy && (
                   <div className="flex items-center gap-2 text-sm text-faint"><Loader2 size={14} className="animate-spin" /> {busy.text}…</div>
@@ -370,7 +403,7 @@ function Consent({ onEnabled }: { onEnabled: () => void }) {
         <ul className="mt-2 list-disc space-y-1 pl-4">
           <li>Your messages, your areas, projects and tasks, and the titles and times of your events for the coming week go to an AI model through OpenRouter, to OpenAI or Microsoft Azure OpenAI only, with zero data retention and no training on your data.</li>
           <li>Attendee names and emails, event descriptions and locations are never sent.</li>
-          <li>If you use the microphone, your recording goes to ElevenLabs to be turned into text.</li>
+          <li>If you talk to Dori or have her read answers aloud, your recording and her reply go through OpenRouter to ElevenLabs, on zero-data-retention endpoints only: not stored and not used for training.</li>
           <li>Turning Dori off deletes the conversation and the notes she kept.</li>
         </ul>
         <p className="mt-2">Details in the <Link href="/privacy" className="link">privacy policy</Link>.</p>
@@ -391,7 +424,7 @@ function Consent({ onEnabled }: { onEnabled: () => void }) {
   );
 }
 
-function Message({ m, onChanged }: { m: Msg; onChanged: () => Promise<void> }) {
+function Message({ m, onChanged, onListen }: { m: Msg; onChanged: () => Promise<void>; onListen: () => void }) {
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const act = async (fn: () => Promise<{ error?: string }>) => {
@@ -415,6 +448,9 @@ function Message({ m, onChanged }: { m: Msg; onChanged: () => Promise<void> }) {
       <div dir="auto" className="max-w-[92%] rounded-2xl rounded-bl-md border border-line bg-paper px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-ink" lang={m.meta.lang}>
         {m.content}
       </div>
+      <button type="button" onClick={onListen} className="ml-1 inline-flex items-center gap-1 text-xs text-faint hover:text-ink" aria-label="Listen to this answer">
+        <Volume2 size={12} /> Listen
+      </button>
       {m.meta.actions?.length ? (
         <div className={`ml-1 space-y-0.5 text-xs ${m.meta.undone ? "text-faint line-through" : "text-muted"}`}>
           {m.meta.actions.slice(0, 12).map((a, i) => (

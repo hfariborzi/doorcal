@@ -5,6 +5,7 @@ import { db, aiUsage } from "@/db";
 const USER_TURNS = Number(process.env.DORI_MAX_TURNS_PER_USER_PER_DAY) || 100;
 const INSTANCE_TURNS = Number(process.env.DORI_MAX_TURNS_PER_DAY) || 5000;
 const USER_VOICE_SECONDS = Number(process.env.DORI_MAX_VOICE_SECONDS_PER_USER_PER_DAY) || 1800;
+const USER_SPEECH_CHARS = Number(process.env.DORI_MAX_SPEECH_CHARS_PER_USER_PER_DAY) || 20_000;
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -20,11 +21,16 @@ export async function voiceRoomLeft(userId: number): Promise<boolean> {
   return (mine?.s ?? 0) < USER_VOICE_SECONDS;
 }
 
-export async function recordDori(userId: number, add: { turns?: number; requests?: number; inputTokens?: number; outputTokens?: number; voiceSeconds?: number }) {
-  const v = { turns: add.turns ?? 0, requests: add.requests ?? 0, inputTokens: add.inputTokens ?? 0, outputTokens: add.outputTokens ?? 0, voiceSeconds: Math.round(add.voiceSeconds ?? 0) };
+export async function speechRoomLeft(userId: number, chars: number): Promise<boolean> {
+  const [mine] = await db.select({ c: aiUsage.speechChars }).from(aiUsage).where(and(eq(aiUsage.userId, userId), eq(aiUsage.day, today())));
+  return (mine?.c ?? 0) + chars <= USER_SPEECH_CHARS;
+}
+
+export async function recordDori(userId: number, add: { turns?: number; requests?: number; inputTokens?: number; outputTokens?: number; voiceSeconds?: number; speechChars?: number }) {
+  const v = { turns: add.turns ?? 0, requests: add.requests ?? 0, inputTokens: add.inputTokens ?? 0, outputTokens: add.outputTokens ?? 0, voiceSeconds: Math.round(add.voiceSeconds ?? 0), speechChars: add.speechChars ?? 0 };
   await db
     .insert(aiUsage)
-    .values({ userId, day: today(), doriTurns: v.turns, requests: v.requests, inputTokens: v.inputTokens, outputTokens: v.outputTokens, voiceSeconds: v.voiceSeconds })
+    .values({ userId, day: today(), doriTurns: v.turns, requests: v.requests, inputTokens: v.inputTokens, outputTokens: v.outputTokens, voiceSeconds: v.voiceSeconds, speechChars: v.speechChars })
     .onConflictDoUpdate({
       target: [aiUsage.userId, aiUsage.day],
       set: {
@@ -33,6 +39,7 @@ export async function recordDori(userId: number, add: { turns?: number; requests
         inputTokens: sql`${aiUsage.inputTokens} + ${v.inputTokens}`,
         outputTokens: sql`${aiUsage.outputTokens} + ${v.outputTokens}`,
         voiceSeconds: sql`${aiUsage.voiceSeconds} + ${v.voiceSeconds}`,
+        speechChars: sql`${aiUsage.speechChars} + ${v.speechChars}`,
       },
     });
 }

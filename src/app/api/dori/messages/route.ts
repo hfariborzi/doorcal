@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { and, desc, eq, lt } from "drizzle-orm";
 import { db, doriMessages, plans } from "@/db";
 import { aiConfigured } from "@/lib/ai";
+import { speechAvailable } from "@/lib/ai/audio";
 import { getCurrentUser } from "@/lib/auth";
 import { greetingName } from "@/lib/dori/context";
 
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
       available: aiConfigured(),
       enabled: !!user.doriConsentAt,
       name: greetingName(user),
-      voice: !!process.env.ELEVENLABS_API_KEY,
+      voice: speechAvailable(),
       news,
       messages: rows.reverse().map((m) => ({ id: m.id, role: m.role, content: m.content, meta: m.meta, at: m.createdAt })),
     },

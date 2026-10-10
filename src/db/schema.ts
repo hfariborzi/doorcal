@@ -197,6 +197,7 @@ export const aiUsage = pgTable(
     outputTokens: integer("output_tokens").notNull().default(0),
     doriTurns: integer("dori_turns").notNull().default(0), // messages Dori answered
     voiceSeconds: integer("voice_seconds").notNull().default(0), // audio transcribed
+    speechChars: integer("speech_chars").notNull().default(0), // characters read aloud
   },
   (t) => [uniqueIndex("ai_usage_user_day_idx").on(t.userId, t.day)],
 );
