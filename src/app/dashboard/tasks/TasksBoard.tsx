@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { AlertCircle, Bell, Check, ChevronDown, ChevronRight, CircleDashed, Link2, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import type { Category, Priority, Project, Task, TaskLink, TaskStatus } from "@/db/schema";
 import { PRIORITY_LABEL } from "@/lib/labels/core";
+import { Dori, type DoriMood } from "@/components/Dori";
 import { blockedTaskIds, compareTasks, dueLabel, formatEstimate, isComplete, progress } from "@/lib/tasks/core";
 import { addTaskLink, deleteProject, deleteTask, deleteTaskLink, promoteResidue, saveProject, saveTask, setTaskStatus, type TaskInput } from "../actions";
 
@@ -80,7 +81,11 @@ export function TasksBoard({ categories, projects, tasks, links, today }: { cate
                   <button className="btn-ghost px-2.5 py-1.5 text-xs" disabled={pending} onClick={() => run(() => promoteResidue(t.id))}><Plus size={14} /> Make it a task</button>
                 </li>
               ))}
-              {loose.length === 0 && <li className="py-6 text-center text-sm text-faint">Nothing hanging. Good.</li>}
+              {loose.length === 0 && (
+                <li className="py-6">
+                  <EmptyState mood="celebrating" text="Nothing hanging. Good." />
+                </li>
+              )}
             </ul>
           </section>
         )}
@@ -89,7 +94,7 @@ export function TasksBoard({ categories, projects, tasks, links, today }: { cate
           <section className="card p-5">
             <h2 className="font-semibold">Reminders</h2>
             <p className="text-sm text-faint">Things to remember, with no time attached.</p>
-            <TaskList {...ctx} items={reminders} />
+            <TaskList {...ctx} items={reminders} empty={{ mood: "happy", text: "Nothing to remember right now." }} />
             <QuickAdd kind="reminder" placeholder="Something to remember…" projectId={null} categoryId={null} run={run} pending={pending} />
           </section>
         )}
@@ -97,7 +102,7 @@ export function TasksBoard({ categories, projects, tasks, links, today }: { cate
         {view.kind === "completed" && (
           <section className="card p-5">
             <h2 className="font-semibold">Completed</h2>
-            <TaskList {...ctx} items={completed.slice(0, 200)} />
+            <TaskList {...ctx} items={completed.slice(0, 200)} empty={{ mood: "sleeping", text: "Finished tasks will rest here." }} />
           </section>
         )}
 
@@ -107,6 +112,19 @@ export function TasksBoard({ categories, projects, tasks, links, today }: { cate
               <h2 className="text-lg font-semibold tracking-tight">{view.kind === "all" ? "Everything" : areaOf(view.id).name}</h2>
               <NewProject categoryId={view.kind === "area" ? view.id : categories[0]?.id ?? null} categories={categories} run={run} pending={pending} />
             </div>
+            {projects.length === 0 && tasks.length === 0 && (
+              <section className="card flex flex-col items-center gap-5 p-6 text-center sm:flex-row sm:text-left">
+                <Dori mood="happy" size={120} />
+                <div>
+                  <h3 className="text-lg font-semibold tracking-tight">Hi, I&apos;m Dori.</h3>
+                  <p className="mt-1 max-w-lg text-sm leading-relaxed text-muted">
+                    Projects live under your areas, and tasks live under projects. Start with one project, or jot a task
+                    below. When something is mostly done, call it good enough and note what&apos;s left, so it can go
+                    without being forgotten.
+                  </p>
+                </div>
+              </section>
+            )}
             {visibleProjects.filter((p) => p.status !== "done").map((p) => (
               <ProjectCard key={p.id} project={p} area={areaOf(p.categoryId)} {...ctx} />
             ))}
@@ -188,9 +206,18 @@ function Tag({ children, tone }: { children: React.ReactNode; tone?: "overdue" |
   return <span className={`rounded-md px-1.5 py-0.5 text-xs font-medium ${cls}`}>{children}</span>;
 }
 
-function TaskList({ items, ...ctx }: Ctx & { items: Task[] }) {
+function EmptyState({ mood, text }: { mood: DoriMood; text: string }) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-2 text-center text-sm text-faint">
+      <Dori mood={mood} size={88} />
+      <p>{text}</p>
+    </div>
+  );
+}
+
+function TaskList({ items, empty, ...ctx }: Ctx & { items: Task[]; empty?: { mood: DoriMood; text: string } }) {
   const sorted = [...items].sort(compareTasks);
-  if (!sorted.length) return <p className="py-3 text-sm text-faint">Nothing here.</p>;
+  if (!sorted.length) return empty ? <EmptyState {...empty} /> : <p className="py-3 text-sm text-faint">Nothing here.</p>;
   return (
     <ul className="divide-y divide-line">
       {sorted.map((t) => (
