@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { DateTime } from "luxon";
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, ExternalLink, Loader2, MapPin, Pin, PinOff, Plus, Sparkles, Trash2, Users, Video, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, ExternalLink, ListFilter, Loader2, MapPin, Pin, PinOff, Plus, Sparkles, Trash2, Users, Video, X } from "lucide-react";
 import Link from "next/link";
 import type { CalendarPrefs, Category, EventLocationKind, LabelSource, Priority } from "@/db/schema";
 import type { CalendarEvent } from "@/lib/calendar/types";
@@ -11,6 +12,7 @@ import { meetingLinkLabel } from "@/lib/locations";
 import { labelEvent, saveCalendarPrefs, setTaskStatus } from "./actions";
 import { pinBlock, skipTaskOn, unpinTask } from "./dori-actions";
 import { DORI_CHANGED } from "./DoriPanel";
+import { CALENDAR_CONTROLS_ID } from "./TopBar";
 
 /** Planned work from the planner, shown on the calendar next to real events. */
 type PlannedBlock = { taskId: number; start: string; end: string; pinned: boolean; title: string; categoryId: number | null; priority: Priority; dueDate: string | null; risk: "late" | "unplaced" | null };
@@ -82,10 +84,10 @@ function layoutDay(events: CalendarEvent[], dayStart: DateTime) {
   }));
 }
 
-/** Event blocks: a dark tint of the calendar's color with a solid left edge. */
+/** Event blocks: a light wash of the calendar's color with a solid left edge. */
 function eventStyle(color: string): React.CSSProperties {
   return {
-    background: `color-mix(in srgb, ${color} 30%, var(--color-surface))`,
+    background: `color-mix(in srgb, ${color} var(--event-wash), var(--color-surface))`,
     borderLeft: `3px solid ${color}`,
   };
 }
@@ -113,6 +115,9 @@ export function CalendarView() {
   const [showPlan, setShowPlan] = useState(true);
   const [selectedBlock, setSelectedBlock] = useState<PlannedBlock | null>(null);
   const [creating, setCreating] = useState<DateTime | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  // The day/week controls render in the top bar.
+  const controlsSlot = useSyncExternalStore(noopSubscribe, () => document.getElementById(CALENDAR_CONTROLS_ID), () => null);
   const [, setClock] = useState(0); // re-renders each minute so "now" stays current
   const scroller = useRef<HTMLDivElement>(null);
 
@@ -233,159 +238,18 @@ export function CalendarView() {
   const allDay = shown.filter((e) => e.allDay);
   const hiddenCount = (events?.length ?? 0) - shown.length;
   const styleFor = (e: CalendarEvent): React.CSSProperties => {
-    if (e.calendarId === PLAN_CAL) return { background: `${e.color}14`, border: `1.5px dashed ${e.color}`, boxShadow: "none" };
+    if (e.calendarId === PLAN_CAL) {
+      const late = !!blockFor(e)?.risk;
+      return { background: late ? "var(--color-vermilion-subtle)" : "var(--color-amber-subtle)", borderLeft: `3px solid ${late ? "var(--color-vermilion)" : "var(--color-amber)"}` };
+    }
     const label = labels[labelKey(e)];
     return { ...eventStyle(eventColor(e, label, categories, view_prefs.colorBy)), opacity: label?.priority === "low" ? 0.65 : 1 };
   };
   const now = DateTime.now().setZone(tz);
 
-  const title =
-    view === "week"
-      ? range.start.hasSame(range.end.minus({ days: 1 }), "month")
-        ? range.start.toFormat("LLLL yyyy")
-        : `${range.start.toFormat("LLL")} – ${range.end.minus({ days: 1 }).toFormat("LLL yyyy")}`
-      : range.start.toFormat("cccc, LLLL d, yyyy");
-
-  return (
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-      {/* On desktop the card fills the window (minus the page padding), so the time grid scrolls, not the page. */}
-      <div className="card flex min-w-0 flex-1 flex-col overflow-hidden md:h-[calc(100dvh-3rem)]">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2.5">
-          <div className="flex items-center gap-2">
-            <button className="btn-secondary py-1.5" onClick={goToNow}>
-              Today
-            </button>
-            <button className="btn-ghost px-2 py-1.5" aria-label="Previous" onClick={() => setAnchor(anchor.minus(view === "week" ? { weeks: 1 } : { days: 1 }))}><ChevronLeft size={18} /></button>
-            <button className="btn-ghost px-2 py-1.5" aria-label="Next" onClick={() => setAnchor(anchor.plus(view === "week" ? { weeks: 1 } : { days: 1 }))}><ChevronRight size={18} /></button>
-            <h2 className="ml-1 text-base font-semibold tracking-tight">{title}</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-lg border border-line bg-well p-1 text-sm">
-              {(["day", "week"] as View[]).map((v) => (
-                <button key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 capitalize ${view === v ? "bg-accent text-on-accent" : "text-muted hover:text-ink"}`}>
-                  {v}
-                </button>
-              ))}
-            </div>
-            <button className="btn-primary py-1.5" onClick={() => setCreating(now.plus({ hours: 1 }).startOf("hour"))}>
-              <Plus size={16} /> New meeting
-            </button>
-          </div>
-        </div>
-
-        {error && <p className="m-4 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
-        {problems.length > 0 && (
-          <p className="m-4 rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning">
-            {problems.map((p) => `${p.email} ${p.message}`).join(". ")}.
-          </p>
-        )}
-
-        <div className="flex border-b border-line bg-well/60">
-          <div className="w-14 shrink-0" />
-          {range.days.map((d) => {
-            const isToday = d.hasSame(now, "day");
-            return (
-              <div key={d.toISODate()} className="min-w-0 flex-1 border-l border-line px-1 py-1.5 text-center">
-                <div className={`text-xs font-semibold tracking-[0.08em] uppercase ${isToday ? "text-accent-soft" : "text-faint"}`}>{d.toFormat("ccc")}</div>
-                <div className={`mx-auto mt-0.5 grid h-7 w-7 place-items-center rounded-full text-base tnum ${isToday ? "bg-accent font-semibold text-on-accent shadow-[0_0_14px_rgb(124_58_237/0.5)]" : "text-ink"}`}>
-                  {d.day}
-                </div>
-                <div className="mt-1 space-y-0.5">
-                  {allDay
-                    .filter((e) => {
-                      const s = DateTime.fromISO(e.start, { zone: tz });
-                      const en = DateTime.fromISO(e.end, { zone: tz });
-                      return s <= d && en > d;
-                    })
-                    .map((e) => (
-                      <button key={`${e.accountId}-${e.calendarId}-${e.id}`} onClick={() => setSelected(e)} className="block w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs text-ink" style={styleFor(e)}>
-                        {e.title}
-                      </button>
-                    ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div ref={scroller} className="relative h-[65vh] overflow-y-auto md:h-auto md:min-h-0 md:flex-1">
-          <div className="relative flex" style={{ height: 24 * HOUR_PX }}>
-            <div className="w-14 shrink-0">
-              {Array.from({ length: 24 }, (_, h) => (
-                <div key={h} className="relative text-right text-xs text-faint tnum" style={{ height: HOUR_PX }}>
-                  {h > 0 && <span className="absolute -top-2 right-2">{DateTime.fromObject({ hour: h }).toFormat("h a")}</span>}
-                </div>
-              ))}
-            </div>
-            {range.days.map((d) => {
-              const dayStart = d.startOf("day");
-              const dayEvents = timed.filter((e) => {
-                const s = DateTime.fromISO(e.start).toMillis();
-                const en = DateTime.fromISO(e.end).toMillis();
-                return s < dayStart.plus({ days: 1 }).toMillis() && en > dayStart.toMillis();
-              });
-              return (
-                <div
-                  key={d.toISODate()}
-                  className={`relative min-w-0 flex-1 cursor-pointer border-l border-line ${d.hasSame(now, "day") ? "bg-gradient-to-b from-accent/[0.07] to-transparent" : ""}`}
-                  onClick={(ev) => {
-                    const rect = (ev.currentTarget as HTMLDivElement).getBoundingClientRect();
-                    const minutes = Math.floor(((ev.clientY - rect.top) / HOUR_PX) * 2) * 30;
-                    setCreating(dayStart.plus({ minutes }));
-                  }}
-                >
-                  {Array.from({ length: 24 }, (_, h) => (
-                    <div key={h} className="border-t border-line" style={{ height: HOUR_PX }} />
-                  ))}
-                  {d.hasSame(now, "day") && (
-                    <div className="pointer-events-none absolute right-0 left-0 z-20 h-px bg-accent-soft" style={{ top: (now.diff(dayStart, "minutes").minutes / 60) * HOUR_PX }}>
-                      <span className="absolute -top-[5px] -left-1.5 h-2.5 w-2.5 rounded-full bg-accent-soft shadow-[0_0_10px_var(--color-accent-soft)]" />
-                    </div>
-                  )}
-                  {layoutDay(dayEvents, dayStart).map((p) => (
-                    <button
-                      key={`${p.e.accountId}-${p.e.calendarId}-${p.e.id}`}
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        if (p.e.calendarId === PLAN_CAL) setSelectedBlock(blockFor(p.e));
-                        else setSelected(p.e);
-                      }}
-                      className="absolute z-10 overflow-hidden rounded-md px-1.5 py-0.5 text-left text-xs text-ink shadow-(--shadow-card) hover:z-30 hover:brightness-125"
-                      style={{
-                        top: p.top,
-                        height: p.height,
-                        left: `calc(${(p.lane / p.lanes) * 100}% + 2px)`,
-                        width: `calc(${100 / p.lanes}% - 4px)`,
-                        ...styleFor(p.e),
-                      }}
-                    >
-                      <div className="flex items-center gap-1 truncate font-medium">
-                        {p.e.calendarId === PLAN_CAL && blockFor(p.e)?.pinned && <Pin size={10} className="shrink-0" />}
-                        {p.e.calendarId === PLAN_CAL && blockFor(p.e)?.risk && <AlertTriangle size={10} className="shrink-0 text-warning" />}
-                        {labels[labelKey(p.e)]?.priority === "high" && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" title="High priority" />}
-                        <span className="truncate">{p.e.title}</span>
-                      </div>
-                      {p.height > 30 && (
-                        <div className="truncate text-muted tnum">
-                          {DateTime.fromISO(p.e.start).setZone(tz).toFormat("h:mm")} – {DateTime.fromISO(p.e.end).setZone(tz).toFormat("h:mm a")}
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-          {events === null && (
-            <div className="absolute inset-0 grid place-items-center bg-canvas/60 text-sm text-muted">
-              <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Loading your calendar…</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Display controls sit beside the calendar on wide screens and below it on narrow ones. */}
-      <aside className="card space-y-4 p-4 text-xs lg:w-56 lg:shrink-0">
+  // Display controls: a popover from the filter button in the top bar.
+  const filters = (
+      <div className="absolute right-0 z-50 mt-2 w-72 space-y-4 rounded-lg border border-line bg-modal p-4 text-xs shadow-(--shadow-modal)">
         <div>
           <p className="mb-1.5 text-faint">Colour by</p>
           <div className="flex rounded-lg border border-line bg-well p-0.5">
@@ -429,7 +293,169 @@ export function CalendarView() {
           {hiddenCount > 0 && <span className="block text-muted">{hiddenCount} hidden by these filters.</span>}
           Click a chip to hide or show. Click any open time to create a meeting.
         </p>
-      </aside>
+      </div>
+  );
+
+  const last = range.end.minus({ days: 1 });
+  const title =
+    view === "week"
+      ? range.start.hasSame(last, "month")
+        ? `${range.start.toFormat("LLL d")} – ${last.toFormat("d, yyyy")}`
+        : `${range.start.toFormat("LLL d")} – ${last.toFormat("LLL d, yyyy")}`
+      : range.start.toFormat("cccc, LLL d, yyyy");
+  const shortTitle = view === "week" ? `${range.start.toFormat("LLL d")}–${last.toFormat(range.start.hasSame(last, "month") ? "d" : "LLL d")}` : range.start.toFormat("ccc, LLL d");
+
+  return (
+    <div className="flex h-full flex-col">
+      {controlsSlot &&
+        createPortal(
+          <div className="flex w-full min-w-0 items-center gap-1.5">
+            <button className="btn-secondary px-3 py-1" onClick={goToNow}>
+              Today
+            </button>
+            <button className="btn-ghost px-1.5 py-1" aria-label="Previous" onClick={() => setAnchor(anchor.minus(view === "week" ? { weeks: 1 } : { days: 1 }))}><ChevronLeft size={18} /></button>
+            <button className="btn-ghost px-1.5 py-1" aria-label="Next" onClick={() => setAnchor(anchor.plus(view === "week" ? { weeks: 1 } : { days: 1 }))}><ChevronRight size={18} /></button>
+            <h2 className="ml-1 min-w-0 truncate text-base font-semibold tracking-[-0.015em] text-ink sm:text-lg">
+              <span className="sm:hidden">{shortTitle}</span>
+              <span className="hidden sm:inline">{title}</span>
+            </h2>
+            <div className="ml-auto flex items-center gap-1.5 md:ml-3">
+              <div className="flex rounded-md border border-line bg-canvas p-0.5 text-sm">
+                {(["week", "day"] as View[]).map((v) => (
+                  <button key={v} onClick={() => setView(v)} className={`rounded px-2.5 py-0.5 capitalize ${view === v ? "bg-surface font-medium text-ink shadow-(--shadow-card)" : "text-muted hover:text-ink"}`}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <div className="relative">
+                <button className={`btn-ghost px-2 py-1 ${filtersOpen || hiddenCount > 0 ? "text-ink" : ""}`} onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen} title="Filter and colour">
+                  <ListFilter size={17} />
+                  {hiddenCount > 0 && <span className="text-xs tnum">{hiddenCount}</span>}
+                </button>
+                {filtersOpen && filters}
+              </div>
+              <button className="btn-primary px-2.5 py-1" onClick={() => setCreating(now.plus({ hours: 1 }).startOf("hour"))} title="New meeting">
+                <Plus size={16} /> <span className="hidden xl:inline">New</span>
+              </button>
+            </div>
+          </div>,
+          controlsSlot,
+        )}
+      <div className="flex min-h-0 flex-1 flex-col bg-surface">
+        {error && <p className="m-4 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {problems.length > 0 && (
+          <p className="m-4 rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning">
+            {problems.map((p) => `${p.email} ${p.message}`).join(". ")}.
+          </p>
+        )}
+
+        <div className="flex border-b border-line bg-surface">
+          <div className="w-14 shrink-0" />
+          {range.days.map((d) => {
+            const isToday = d.hasSame(now, "day");
+            return (
+              <div key={d.toISODate()} className="min-w-0 flex-1 border-l border-line px-1.5 py-1.5">
+                <div className={`flex items-baseline gap-1.5 rounded-md px-2 py-1 ${isToday ? "bg-accent text-on-accent" : ""}`}>
+                  <span className={`text-[0.6875rem] font-semibold tracking-[0.06em] uppercase ${isToday ? "" : "text-faint"}`}>{d.toFormat("ccc")}</span>
+                  <span className={`text-xl leading-none font-medium tnum ${isToday ? "" : d < now.startOf("day") ? "text-faint" : "text-ink"}`}>{d.day}</span>
+                </div>
+                <div className="mt-1 space-y-0.5">
+                  {allDay
+                    .filter((e) => {
+                      const s = DateTime.fromISO(e.start, { zone: tz });
+                      const en = DateTime.fromISO(e.end, { zone: tz });
+                      return s <= d && en > d;
+                    })
+                    .map((e) => (
+                      <button key={`${e.accountId}-${e.calendarId}-${e.id}`} onClick={() => setSelected(e)} className="block w-full truncate rounded px-1.5 py-0.5 text-left text-xs text-ink" style={styleFor(e)}>
+                        {e.title}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto">
+          <div className="relative flex" style={{ height: 24 * HOUR_PX }}>
+            <div className="w-14 shrink-0">
+              {Array.from({ length: 24 }, (_, h) => (
+                <div key={h} className="relative text-right text-xs text-faint tnum" style={{ height: HOUR_PX }}>
+                  {h > 0 && <span className="absolute -top-2 right-2">{DateTime.fromObject({ hour: h }).toFormat("h a")}</span>}
+                </div>
+              ))}
+            </div>
+            {range.days.map((d) => {
+              const dayStart = d.startOf("day");
+              const dayEvents = timed.filter((e) => {
+                const s = DateTime.fromISO(e.start).toMillis();
+                const en = DateTime.fromISO(e.end).toMillis();
+                return s < dayStart.plus({ days: 1 }).toMillis() && en > dayStart.toMillis();
+              });
+              return (
+                <div
+                  key={d.toISODate()}
+                  className={`relative min-w-0 flex-1 cursor-pointer border-l border-line ${d.hasSame(now, "day") ? "bg-accent/[0.03]" : ""}`}
+                  onClick={(ev) => {
+                    const rect = (ev.currentTarget as HTMLDivElement).getBoundingClientRect();
+                    const minutes = Math.floor(((ev.clientY - rect.top) / HOUR_PX) * 2) * 30;
+                    setCreating(dayStart.plus({ minutes }));
+                  }}
+                >
+                  {Array.from({ length: 24 }, (_, h) => (
+                    <div key={h} className="border-t border-line" style={{ height: HOUR_PX }} />
+                  ))}
+                  {d.hasSame(now, "day") && (
+                    <div className="pointer-events-none absolute right-0 left-0 z-20 h-0.5 bg-vermilion" style={{ top: (now.diff(dayStart, "minutes").minutes / 60) * HOUR_PX }}>
+                      <span className="absolute -top-[4px] -left-1.5 h-2.5 w-2.5 rounded-full bg-vermilion" />
+                    </div>
+                  )}
+                  {layoutDay(dayEvents, dayStart).map((p) => (
+                    <button
+                      key={`${p.e.accountId}-${p.e.calendarId}-${p.e.id}`}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        if (p.e.calendarId === PLAN_CAL) setSelectedBlock(blockFor(p.e));
+                        else setSelected(p.e);
+                      }}
+                      className="absolute z-10 overflow-hidden rounded px-1.5 py-0.5 text-left text-xs text-ink transition hover:z-30 hover:shadow-(--shadow-card) hover:brightness-[1.03]"
+                      style={{
+                        top: p.top,
+                        height: p.height,
+                        left: `calc(${(p.lane / p.lanes) * 100}% + 2px)`,
+                        width: `calc(${100 / p.lanes}% - 4px)`,
+                        ...styleFor(p.e),
+                      }}
+                    >
+                      {p.e.calendarId === PLAN_CAL && p.height > 44 && (
+                        <div className={`text-[0.625rem] font-semibold tracking-[0.06em] uppercase ${blockFor(p.e)?.risk ? "text-vermilion" : "text-amber-ink"}`}>Planned</div>
+                      )}
+                      <div className="flex items-center gap-1 truncate font-medium">
+                        {p.e.calendarId === PLAN_CAL && blockFor(p.e)?.pinned && <Pin size={10} className="shrink-0" />}
+                        {p.e.calendarId === PLAN_CAL && blockFor(p.e)?.risk && <AlertTriangle size={10} className="shrink-0 text-vermilion" />}
+                        {labels[labelKey(p.e)]?.priority === "high" && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" title="High priority" />}
+                        <span className="truncate">{p.e.title}</span>
+                      </div>
+                      {p.height > 30 && (
+                        <div className="truncate text-muted tnum">
+                          {DateTime.fromISO(p.e.start).setZone(tz).toFormat("h:mm")} – {DateTime.fromISO(p.e.end).setZone(tz).toFormat("h:mm a")}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+          {events === null && (
+            <div className="absolute inset-0 grid place-items-center bg-canvas/60 text-sm text-muted">
+              <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Loading your calendar…</span>
+            </div>
+          )}
+        </div>
+      </div>
+
 
       {selected && (
         <EventDetails
@@ -477,7 +503,7 @@ function Chip({ label, color, off, onClick, icon }: { label: string; color?: str
       onClick={onClick}
       aria-pressed={!off}
       title={off ? `Show ${label}` : `Hide ${label}`}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 transition ${off ? "border-line text-faint line-through opacity-60" : "border-line-strong text-ink"}`}
+      className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 transition ${off ? "border-line text-faint line-through opacity-60" : "border-line-strong text-ink"}`}
     >
       {color && <span className="h-2 w-2 rounded-full" style={{ background: color }} />}
       {icon}
@@ -493,11 +519,11 @@ function Modal({ children, onClose }: { children: React.ReactNode; onClose: () =
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-scrim p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-scrim p-4" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-line-strong bg-modal p-6 shadow-(--shadow-modal) backdrop-blur-xl sm:p-7"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-line bg-modal p-6 shadow-(--shadow-modal) sm:p-7"
         onClick={(e) => e.stopPropagation()}
       >
         {children}

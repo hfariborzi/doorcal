@@ -16,6 +16,12 @@ export const OPEN_DORI = "doorcal:open-dori";
 /** Fired after Dori changed tasks or the plan, so the calendar and task views reload. */
 export const DORI_CHANGED = "doorcal:dori-changed";
 export type OpenDoriDetail = { send?: string; prefill?: string; mode?: "day" | "week" };
+/** The top bar's Dori button sends this to open or close the panel. */
+export const TOGGLE_DORI = "midore:toggle-dori";
+/** The panel reports whether it is open and whether Dori has news, so the top bar can show it. */
+export const DORI_STATUS = "midore:dori-status";
+export type DoriStatusDetail = { open: boolean; news: boolean };
+const OPEN_KEY = "dori-open";
 
 const SPEAK_KEY = "dori-speak";
 
@@ -88,6 +94,7 @@ export function DoriPanel() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recorderRef = useRef<{ stop: () => void } | null>(null);
   const voiceRef = useRef(false); // natural voice (OpenRouter) available
+  const restored = useRef(false); // the remembered open state has been read
 
   const load = useCallback(async () => {
     const res = await fetch("/api/dori/messages");
@@ -163,6 +170,28 @@ export function DoriPanel() {
     [busy, router],
   );
 
+  // The panel stays docked across visits on wide screens if it was open last time.
+  useEffect(() => {
+    const reopen = requestAnimationFrame(() => {
+      try {
+        if (localStorage.getItem(OPEN_KEY) === "1" && window.innerWidth >= 768) setOpen(true);
+      } catch {}
+      restored.current = true;
+    });
+    const onToggle = () => setOpen((o) => !o);
+    window.addEventListener(TOGGLE_DORI, onToggle);
+    return () => {
+      cancelAnimationFrame(reopen);
+      window.removeEventListener(TOGGLE_DORI, onToggle);
+    };
+  }, []);
+  useEffect(() => {
+    try {
+      if (restored.current) localStorage.setItem(OPEN_KEY, open ? "1" : "0");
+    } catch {}
+    window.dispatchEvent(new CustomEvent<DoriStatusDetail>(DORI_STATUS, { detail: { open, news: !!state?.news } }));
+  }, [open, state?.news]);
+
   // Open from anywhere: buttons elsewhere dispatch OPEN_DORI.
   useEffect(() => {
     const onOpen = (e: Event) => {
@@ -232,21 +261,8 @@ export function DoriPanel() {
 
   return (
     <>
-      {!open && (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="fixed right-4 bottom-4 z-40 grid h-16 w-16 place-items-center rounded-full border border-line bg-paper shadow-(--shadow-card) transition hover:scale-105 sm:right-6 sm:bottom-6"
-          aria-label="Open Dori, your assistant"
-          title="Dori"
-        >
-          <Dori mood={hour < 6 || hour >= 22 ? "sleeping" : "happy"} size={52} live />
-          {!!state?.news && <span className="absolute top-1 right-1 h-3 w-3 rounded-full border-2 border-paper bg-accent" aria-label="News from Dori" />}
-        </button>
-      )}
-
       {open && (
-        <aside className="fixed inset-0 z-50 flex flex-col border-line bg-canvas shadow-2xl sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[420px] sm:border-l" aria-label="Dori">
+        <aside className="fixed inset-0 z-50 flex flex-col border-line bg-surface md:static md:z-auto md:w-[400px] md:shrink-0 md:border-l" aria-label="Dori">
           <header className="flex items-center gap-3 border-b border-line px-4 py-3">
             <Dori mood={mood} size={44} live />
             <div className="min-w-0 flex-1">
@@ -382,7 +398,7 @@ export function DoriPanel() {
 
 function Quick({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className="rounded-full border border-line bg-paper px-3 py-1 text-xs font-medium text-muted hover:border-accent/50 hover:text-ink disabled:opacity-50">
+    <button type="button" onClick={onClick} disabled={disabled} className="rounded-md border border-line bg-surface px-3 py-1 text-xs font-medium text-muted hover:border-ink/40 hover:text-ink disabled:opacity-50">
       {children}
     </button>
   );
@@ -439,13 +455,13 @@ function Message({ m, onChanged, onListen }: { m: Msg; onChanged: () => Promise<
   if (m.role === "user") {
     return (
       <div className="flex justify-end">
-        <div dir="auto" className="max-w-[85%] rounded-2xl rounded-br-md bg-accent px-3.5 py-2 text-sm whitespace-pre-wrap text-on-accent">{m.content}</div>
+        <div dir="auto" className="max-w-[85%] rounded-lg bg-raised px-3.5 py-2.5 text-sm whitespace-pre-wrap text-ink">{m.content}</div>
       </div>
     );
   }
   return (
     <div className="space-y-2">
-      <div dir="auto" className="max-w-[92%] rounded-2xl rounded-bl-md border border-line bg-paper px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-ink" lang={m.meta.lang}>
+      <div dir="auto" className="max-w-[92%] rounded-lg bg-amber-subtle px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-ink shadow-[inset_3px_0_0_var(--color-amber)]" lang={m.meta.lang}>
         {m.content}
       </div>
       <button type="button" onClick={onListen} className="ml-1 inline-flex items-center gap-1 text-xs text-faint hover:text-ink" aria-label="Listen to this answer">

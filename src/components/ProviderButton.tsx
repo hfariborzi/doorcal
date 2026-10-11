@@ -47,12 +47,14 @@ export function ProviderButton({
   connect = false,
   reconnect,
   compact = false,
+  inline = false,
 }: {
   provider: Provider;
   label?: string;
   connect?: boolean;
   reconnect?: number;
   compact?: boolean;
+  inline?: boolean; // sized to its label instead of the full width
 }) {
   const tz = useSyncExternalStore(noopSubscribe, browserTz, () => "");
   const q = new URLSearchParams();
@@ -62,8 +64,8 @@ export function ProviderButton({
   return (
     <a
       href={`/api/auth/${provider}?${q}`}
-      className={`btn border bg-white hover:bg-[#f2f2f2] ${compact ? "rounded-lg px-3 py-1.5 text-sm" : "w-full rounded-full px-5 shadow-(--shadow-card)"}`}
-      style={{ borderColor: BRAND[provider].border, color: BRAND[provider].color, fontWeight: BRAND[provider].weight, fontFamily: BRAND[provider].font, ...(compact ? {} : { height: 40, fontSize: 14 }) }}
+      className={`btn border bg-white hover:bg-[#f2f2f2] ${compact ? "rounded-md px-3 py-1.5 text-sm" : `${inline ? "w-full sm:w-auto" : "w-full"} rounded-md px-6`}`}
+      style={{ borderColor: BRAND[provider].border, color: BRAND[provider].color, fontWeight: BRAND[provider].weight, fontFamily: BRAND[provider].font, ...(compact ? {} : { height: 44, fontSize: 14 }) }}
     >
       {provider === "google" ? <GoogleLogo /> : <MicrosoftLogo />}
       {label ?? DEFAULT_LABEL[provider]}

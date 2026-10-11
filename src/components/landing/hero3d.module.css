@@ -1,0 +1,459 @@
+/* The landing page's 3D scene. Sizes are in scene pixels (1080 × 640); --s scales the whole scene to fit. */
+
+.stage {
+  --s: 1;
+  --px: 0;
+  --py: 0;
+  position: relative;
+  width: 100%;
+  height: calc(640px * var(--s));
+}
+
+.fit {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1080px;
+  height: 640px;
+  transform: translateX(-50%) scale(var(--s));
+  transform-origin: top center;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  perspective: 1700px;
+  perspective-origin: 50% 20%;
+}
+
+.world {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: translateY(-10px) rotateX(calc(34deg - var(--py) * 5deg)) rotateY(calc(var(--px) * 7deg)) rotateZ(calc(-12deg + var(--px) * 2deg));
+  animation: arrive 1.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(60px) rotateX(48deg) rotateZ(-18deg) scale(0.92);
+  }
+}
+
+/* A soft shadow on the "ground" under the board. */
+.floor {
+  position: absolute;
+  left: 150px;
+  top: 90px;
+  width: 818px;
+  height: 514px;
+  border-radius: 28px;
+  background: rgb(24 24 27 / 0.22);
+  filter: blur(36px);
+  transform: translateZ(-60px) translate(26px, 44px);
+}
+
+.board {
+  position: absolute;
+  left: 131px;
+  top: 63px;
+  width: 818px;
+  height: 514px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  transform-style: preserve-3d;
+  box-shadow:
+    0 1px 0 var(--line-strong),
+    0 2px 0 var(--line-strong),
+    0 3px 0 var(--line-strong),
+    0 4px 0 var(--line-strong),
+    0 5px 0 var(--line-strong),
+    0 6px 0 var(--line-strong);
+}
+
+.head {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.week {
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-left: 8px;
+  background: var(--bar);
+}
+
+.dayHead {
+  position: absolute;
+  top: 30px;
+  height: 26px;
+  padding-left: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.dayHead[data-today] {
+  color: var(--accent-soft);
+}
+
+.hour {
+  position: absolute;
+  left: 0;
+  right: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.hour span {
+  position: absolute;
+  left: 18px;
+  top: -8px;
+  padding: 0 4px;
+  background: var(--surface);
+  font-size: 10px;
+  color: var(--faint);
+}
+
+.col {
+  position: absolute;
+  border-left: 1px solid var(--line);
+}
+
+.now {
+  position: absolute;
+  height: 2px;
+  background: var(--vermilion);
+  transform: translateZ(1px);
+}
+
+.now::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--vermilion);
+}
+
+/* Event tiles: a face lifted by --z with stacked edge layers under it, so each tile reads as a solid block. */
+.tile {
+  position: absolute;
+  transform-style: preserve-3d;
+  animation: drop 0.9s cubic-bezier(0.2, 0.9, 0.25, 1.15) backwards;
+  animation-delay: var(--d);
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateZ(240px);
+  }
+  60% {
+    opacity: 1;
+  }
+}
+
+.tile[data-kind="meeting"],
+.legend i[data-kind="meeting"] {
+  --face: var(--raised);
+  --bar: color-mix(in srgb, var(--ink) 55%, var(--surface));
+  --edge: color-mix(in srgb, var(--ink) 22%, var(--surface));
+  --text: var(--ink);
+}
+.tile[data-kind="plan"],
+.legend i[data-kind="plan"] {
+  --face: var(--amber-subtle);
+  --bar: var(--amber);
+  --edge: color-mix(in srgb, var(--amber) 70%, #78350f);
+  --text: var(--amber-ink);
+}
+.tile[data-kind="booked"],
+.legend i[data-kind="booked"] {
+  --face: var(--accent-subtle);
+  --bar: var(--accent);
+  --edge: color-mix(in srgb, var(--accent) 70%, #2e1065);
+  --text: var(--accent-soft);
+}
+.tile[data-kind="deadline"],
+.legend i[data-kind="deadline"] {
+  --face: var(--vermilion-subtle);
+  --bar: var(--vermilion);
+  --edge: color-mix(in srgb, var(--vermilion) 70%, #4c0519);
+  --text: var(--vermilion);
+}
+
+.shadow {
+  position: absolute;
+  inset: 4px;
+  border-radius: 6px;
+  background: rgb(24 24 27 / 0.28);
+  filter: blur(calc(var(--z) * 0.45));
+  transform: translate(calc(var(--z) * 0.35), calc(var(--z) * 0.55)) translateZ(0.5px);
+}
+
+.edge {
+  position: absolute;
+  inset: 0;
+  border-radius: 7px;
+  background: var(--edge);
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  padding: 5px 8px 5px 11px;
+  border-radius: 7px;
+  background: linear-gradient(160deg, rgb(255 255 255 / 0.55), transparent 60%), var(--face);
+  border: 1px solid color-mix(in srgb, var(--bar) 35%, transparent);
+  box-shadow: inset 3px 0 0 var(--bar);
+  transform: translateZ(var(--z));
+  font-size: 11.5px;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+:global([data-theme="dark"]) .face {
+  background: linear-gradient(160deg, rgb(255 255 255 / 0.08), transparent 60%), color-mix(in srgb, var(--bar) 22%, var(--surface));
+}
+
+.face b {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.face span {
+  font-size: 10px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* Dori's note, floating above the right edge of the board. */
+.dori,
+.doriShadow {
+  position: absolute;
+  left: 770px;
+  top: 150px;
+  width: 280px;
+  height: 244px;
+  border-radius: 14px;
+}
+
+.doriShadow {
+  background: rgb(24 24 27 / 0.25);
+  filter: blur(22px);
+  transform: translateZ(2px) translate(40px, 60px);
+  animation: shadowBob 6s ease-in-out 1.6s infinite;
+}
+
+.dori {
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.6) inset;
+  transform: translateZ(120px);
+  animation:
+    floatIn 1s cubic-bezier(0.16, 1, 0.3, 1) 1.9s backwards,
+    bob 6s ease-in-out 2.9s infinite;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: translateZ(40px);
+  }
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateZ(120px);
+  }
+  50% {
+    transform: translateZ(138px);
+  }
+}
+@keyframes shadowBob {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+.doriHead {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.doriHead span:last-child {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+.doriDot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #c4b5fd, var(--accent) 55%, #4c1d95);
+}
+
+.you {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--muted);
+}
+
+.reply {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--amber-subtle);
+  box-shadow: inset 3px 0 0 var(--amber);
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.actions span {
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 11px;
+  border: 1px solid var(--line);
+}
+
+.actions span:first-child {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+
+/* "Plan updated", floating over the lower left corner. */
+.toast {
+  position: absolute;
+  left: 100px;
+  top: 540px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 12px;
+  font-weight: 500;
+  transform: translateZ(80px);
+  box-shadow: 0 20px 30px -10px rgb(24 24 27 / 0.45);
+  animation: floatIn 1s cubic-bezier(0.16, 1, 0.3, 1) 2.3s backwards;
+}
+
+.toastDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 0 3px rgb(245 158 11 / 0.3);
+}
+
+/* The Midore mark, extruded from stacked layers and turning slowly above the board. It is counter-rotated so it
+   stands up toward the viewer instead of lying on the board. */
+.logo {
+  position: absolute;
+  left: 70px;
+  top: -40px;
+  width: 190px;
+  height: 120px;
+  transform-style: preserve-3d;
+  transform: translateZ(170px) rotateZ(12deg) rotateX(-34deg);
+  animation: floatIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) 1.2s backwards;
+}
+
+.logoSpin {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: spin 7s ease-in-out infinite alternate;
+}
+
+@keyframes spin {
+  from {
+    transform: rotateY(-28deg) rotateX(6deg) translateZ(0);
+  }
+  to {
+    transform: rotateY(24deg) rotateX(-4deg) translateZ(18px);
+  }
+}
+
+.logoLayer,
+.logoFace {
+  position: absolute;
+  inset: 0;
+  -webkit-mask: url("/brand/mark.svg") center / contain no-repeat;
+  mask: url("/brand/mark.svg") center / contain no-repeat;
+}
+
+.logoLayer {
+  background: linear-gradient(135deg, #5b21b6, #2e1065);
+}
+
+.logoFace {
+  background:
+    radial-gradient(120% 90% at 20% 10%, rgb(255 255 255 / 0.55), transparent 45%),
+    linear-gradient(135deg, #a78bfa, #7c3aed 45%, #5b21b6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .world,
+  .tile,
+  .dori,
+  .doriShadow,
+  .toast,
+  .logo,
+  .logoSpin {
+    animation: none;
+  }
+}
