@@ -23,7 +23,7 @@ type Label = { categoryId: number | null; priority: Priority; source: LabelSourc
 type Labels = Record<string, Label>;
 
 const OTHER_COLOR = "#64748b";
-const DEFAULT_PREFS: CalendarPrefs = { colorBy: "calendar", hidden: { categories: [], other: false, locations: [], priorities: [] } };
+const DEFAULT_PREFS: CalendarPrefs = { colorBy: "kind", v: 2, hidden: { categories: [], other: false, locations: [], priorities: [] } };
 
 const labelKey = (e: CalendarEvent) => `${e.accountId}:${eventKey(e)}`;
 
@@ -42,7 +42,7 @@ function isHidden(label: Label | undefined, prefs: CalendarPrefs) {
   return false;
 }
 
-const HOUR_PX = 42;
+const HOUR_PX = 60;
 // A tab left in the background this long comes back on today and the current time.
 const RESET_AFTER_HIDDEN_MS = 15 * 60_000;
 
@@ -106,7 +106,7 @@ export function CalendarView() {
   const [viewChoice, setView] = useState<View | null>(null);
   const view: View = viewChoice ?? (narrow ? "day" : "week");
   const [anchor, setAnchor] = useState<DateTime>(() => DateTime.now().startOf("day"));
-  const [result, setResult] = useState<{ rangeKey: string; events: CalendarEvent[]; problems: Problem[]; labels: Labels; categories: Category[]; error?: string } | null>(null);
+  const [result, setResult] = useState<{ rangeKey: string; events: CalendarEvent[]; problems: Problem[]; labels: Labels; categories: Category[]; booked?: string[]; error?: string } | null>(null);
   const [prefs, setPrefs] = useState<CalendarPrefs | null>(null); // null until the first load brings the saved ones
   const [aiRetry, setAiRetry] = useState(0);
   const [reloadTick, setReloadTick] = useState(0);
@@ -159,7 +159,7 @@ export function CalendarView() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Could not load your calendar");
         if (cancelled) return;
-        setResult({ rangeKey: range.key, events: data.events, problems: data.problems ?? [], labels: data.labels ?? {}, categories: data.categories ?? [] });
+        setResult({ rangeKey: range.key, events: data.events, problems: data.problems ?? [], labels: data.labels ?? {}, categories: data.categories ?? [], booked: data.booked ?? [] });
         setPrefs((p) => p ?? data.prefs ?? DEFAULT_PREFS);
         // The AI labels events after the response; fetch once more to pick its answers up.
         if (data.pendingAi > 0 && aiRetry === 0) setTimeout(() => setAiRetry(1), 4000);
@@ -237,7 +237,23 @@ export function CalendarView() {
   const timed = [...shown.filter((e) => !e.allDay), ...blockEvents];
   const allDay = shown.filter((e) => e.allDay);
   const hiddenCount = (events?.length ?? 0) - shown.length;
+  const booked = new Set(result?.booked ?? []);
+  const isBooked = (e: CalendarEvent) => booked.has(`${e.accountId}:${e.id}`);
+  const byKind = view_prefs.colorBy === "kind";
+  /** The small label at the top of a block in Midore's scheme. */
+  const eyebrow = (e: CalendarEvent): { text: string; className: string } | null => {
+    if (e.calendarId === PLAN_CAL) return blockFor(e)?.risk ? { text: "At risk", className: "text-vermilion" } : { text: "Midore plan", className: "text-amber-ink" };
+    if (!byKind) return null;
+    if (isBooked(e)) return { text: "Booked", className: "text-accent-soft" };
+    const where = e.meetLink ? meetingLinkLabel(e.meetLink) : e.calendarName;
+    return where ? { text: where, className: "text-faint" } : null;
+  };
   const styleFor = (e: CalendarEvent): React.CSSProperties => {
+    if (byKind) {
+      const late = e.calendarId === PLAN_CAL && !!blockFor(e)?.risk;
+      const bg = late ? "var(--color-vermilion-subtle)" : e.calendarId === PLAN_CAL ? "var(--color-amber-subtle)" : isBooked(e) ? "var(--color-accent-subtle)" : "var(--color-meeting)";
+      return { background: bg, boxShadow: "0 1px 2px rgb(24 24 27 / 0.06)", opacity: labels[labelKey(e)]?.priority === "low" ? 0.7 : 1 };
+    }
     if (e.calendarId === PLAN_CAL) {
       const late = !!blockFor(e)?.risk;
       return { background: late ? "var(--color-vermilion-subtle)" : "var(--color-amber-subtle)", borderLeft: `3px solid ${late ? "var(--color-vermilion)" : "var(--color-amber)"}` };
@@ -253,9 +269,9 @@ export function CalendarView() {
         <div>
           <p className="mb-1.5 text-faint">Colour by</p>
           <div className="flex rounded-lg border border-line bg-well p-0.5">
-            {(["calendar", "type", "priority"] as const).map((m) => (
+            {(["kind", "calendar", "type", "priority"] as const).map((m) => (
               <button key={m} onClick={() => updatePrefs({ ...view_prefs, colorBy: m })} className={`flex-1 rounded-md px-2 py-1 capitalize ${view_prefs.colorBy === m ? "bg-accent text-on-accent" : "text-muted hover:text-ink"}`}>
-                {m}
+                {m === "kind" ? "Midore" : m}
               </button>
             ))}
           </div>
@@ -349,15 +365,18 @@ export function CalendarView() {
           </p>
         )}
 
-        <div className="flex border-b border-line bg-surface">
+        <div className="flex gap-1.5 bg-raised px-1.5 pt-2 pb-1.5">
           <div className="w-14 shrink-0" />
           {range.days.map((d) => {
             const isToday = d.hasSame(now, "day");
             return (
-              <div key={d.toISODate()} className="min-w-0 flex-1 border-l border-line px-1.5 py-1.5">
-                <div className={`flex items-baseline gap-1.5 rounded-md px-2 py-1 ${isToday ? "bg-accent text-on-accent" : ""}`}>
-                  <span className={`text-[0.6875rem] font-semibold tracking-[0.06em] uppercase ${isToday ? "" : "text-faint"}`}>{d.toFormat("ccc")}</span>
-                  <span className={`text-xl leading-none font-medium tnum ${isToday ? "" : d < now.startOf("day") ? "text-faint" : "text-ink"}`}>{d.day}</span>
+              <div key={d.toISODate()} className="min-w-0 flex-1">
+                <div className={`rounded px-2 py-1 shadow-[0_1px_2px_rgb(24_24_27/0.06)] ${isToday ? "bg-accent text-on-accent" : "bg-surface"}`}>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className={`text-[0.6875rem] font-semibold tracking-[0.06em] uppercase ${isToday ? "opacity-90" : "text-faint"}`}>{d.toFormat("ccc")}</span>
+                    {isToday && <span className="hidden rounded-sm bg-surface px-1.5 text-[0.625rem] font-bold text-accent-soft sm:inline">TODAY</span>}
+                  </div>
+                  <div className={`text-xl leading-tight font-medium tnum ${isToday ? "font-semibold" : d < now.startOf("day") ? "text-faint" : "text-ink"}`}>{d.day}</div>
                 </div>
                 <div className="mt-1 space-y-0.5">
                   {allDay
@@ -377,8 +396,8 @@ export function CalendarView() {
           })}
         </div>
 
-        <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto">
-          <div className="relative flex" style={{ height: 24 * HOUR_PX }}>
+        <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto bg-raised">
+          <div className="relative flex gap-1.5 px-1.5 pb-1.5" style={{ height: 24 * HOUR_PX }}>
             <div className="w-14 shrink-0">
               {Array.from({ length: 24 }, (_, h) => (
                 <div key={h} className="relative text-right text-xs text-faint tnum" style={{ height: HOUR_PX }}>
@@ -396,7 +415,7 @@ export function CalendarView() {
               return (
                 <div
                   key={d.toISODate()}
-                  className={`relative min-w-0 flex-1 cursor-pointer border-l border-line ${d.hasSame(now, "day") ? "bg-accent/[0.03]" : ""}`}
+                  className={`relative min-w-0 flex-1 cursor-pointer rounded ${d.hasSame(now, "day") ? "bg-accent-subtle/60" : "bg-surface/70"}`}
                   onClick={(ev) => {
                     const rect = (ev.currentTarget as HTMLDivElement).getBoundingClientRect();
                     const minutes = Math.floor(((ev.clientY - rect.top) / HOUR_PX) * 2) * 30;
@@ -404,7 +423,7 @@ export function CalendarView() {
                   }}
                 >
                   {Array.from({ length: 24 }, (_, h) => (
-                    <div key={h} className="border-t border-line" style={{ height: HOUR_PX }} />
+                    <div key={h} className="border-t border-line/70" style={{ height: HOUR_PX }} />
                   ))}
                   {d.hasSame(now, "day") && (
                     <div className="pointer-events-none absolute right-0 left-0 z-20 h-0.5 bg-vermilion" style={{ top: (now.diff(dayStart, "minutes").minutes / 60) * HOUR_PX }}>
@@ -419,17 +438,17 @@ export function CalendarView() {
                         if (p.e.calendarId === PLAN_CAL) setSelectedBlock(blockFor(p.e));
                         else setSelected(p.e);
                       }}
-                      className="absolute z-10 overflow-hidden rounded px-1.5 py-0.5 text-left text-xs text-ink transition hover:z-30 hover:shadow-(--shadow-card) hover:brightness-[1.03]"
+                      className="absolute z-10 overflow-hidden rounded px-2 py-1 text-left text-xs text-ink transition hover:z-30 hover:shadow-(--shadow-card) hover:brightness-[1.03]"
                       style={{
                         top: p.top,
                         height: p.height,
-                        left: `calc(${(p.lane / p.lanes) * 100}% + 2px)`,
-                        width: `calc(${100 / p.lanes}% - 4px)`,
+                        left: `calc(${(p.lane / p.lanes) * 100}% + 4px)`,
+                        width: `calc(${100 / p.lanes}% - 8px)`,
                         ...styleFor(p.e),
                       }}
                     >
-                      {p.e.calendarId === PLAN_CAL && p.height > 44 && (
-                        <div className={`text-[0.625rem] font-semibold tracking-[0.06em] uppercase ${blockFor(p.e)?.risk ? "text-vermilion" : "text-amber-ink"}`}>Planned</div>
+                      {p.height >= 56 && eyebrow(p.e) && (
+                        <div className={`truncate text-[0.625rem] font-semibold tracking-[0.06em] uppercase ${eyebrow(p.e)!.className}`}>{eyebrow(p.e)!.text}</div>
                       )}
                       <div className="flex items-center gap-1 truncate font-medium">
                         {p.e.calendarId === PLAN_CAL && blockFor(p.e)?.pinned && <Pin size={10} className="shrink-0" />}
@@ -437,7 +456,7 @@ export function CalendarView() {
                         {labels[labelKey(p.e)]?.priority === "high" && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" title="High priority" />}
                         <span className="truncate">{p.e.title}</span>
                       </div>
-                      {p.height > 30 && (
+                      {p.height >= 36 && (
                         <div className="truncate text-muted tnum">
                           {DateTime.fromISO(p.e.start).setZone(tz).toFormat("h:mm")} – {DateTime.fromISO(p.e.end).setZone(tz).toFormat("h:mm a")}
                         </div>

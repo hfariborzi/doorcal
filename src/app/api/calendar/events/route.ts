@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { and, eq } from "drizzle-orm";
+import { and, eq, gte, lt } from "drizzle-orm";
 import { db, bookings } from "@/db";
 import { apiError } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
@@ -35,8 +35,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid range" }, { status: 400 });
     const result = await eventsForAccounts(user, await listAccounts(user.id), start, end);
     const { labels, categories, pendingAi } = await labelsForResponse(user, result.events);
+    // Events that came from the user's booking page, so the calendar can show them as bookings.
+    const booked = await db
+      .select({ accountId: bookings.accountId, eventId: bookings.eventId })
+      .from(bookings)
+      .where(and(eq(bookings.userId, user.id), eq(bookings.status, "confirmed"), gte(bookings.start, new Date(start.getTime() - 86_400_000)), lt(bookings.start, end)));
+    // Prefs saved before Midore's own colour scheme existed move onto it once.
+    const saved = user.calendarPrefs;
+    const prefs = saved && !saved.v ? { ...saved, colorBy: "kind" as const, v: 2 } : (saved ?? null);
     return NextResponse.json(
-      { ...result, labels, categories, pendingAi, prefs: user.calendarPrefs ?? null },
+      { ...result, labels, categories, pendingAi, prefs, booked: booked.filter((b) => b.eventId).map((b) => `${b.accountId}:${b.eventId}`) },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (err) {

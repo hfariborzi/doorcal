@@ -106,7 +106,7 @@ export default async function Home() {
             <div className="mt-9">{cta}</div>
             <p className="mt-4 text-xs tracking-wide text-faint">Free to start. No card needed.</p>
           </div>
-          <div className="relative mx-auto mt-6 max-w-6xl px-2 pb-12 sm:mt-10">
+          <div className="relative mx-auto mt-10 max-w-6xl px-2 pb-12 sm:mt-16">
             <Hero3D />
           </div>
         </section>

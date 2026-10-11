@@ -16,7 +16,7 @@ const HEAD = 58;
 
 // Meetings land first, then planned work drops into the gaps, then the deadline.
 const TILES: Tile[] = [
-  { day: 0, from: 9, to: 9.75, kind: "meeting", title: "Team standup", sub: "9:00" },
+  { day: 0, from: 8.5, to: 9.5, kind: "meeting", title: "Team standup", sub: "8:30 · Meet" },
   { day: 0, from: 10, to: 12, kind: "plan", title: "Draft Q4 report", sub: "Planned · 2h" },
   { day: 0, from: 14, to: 15, kind: "booked", title: "Intro call · Ana", sub: "Booked · Meet" },
   { day: 1, from: 9, to: 10.5, kind: "plan", title: "Review contract", sub: "Planned · 1h 30m" },
@@ -85,6 +85,8 @@ export function Hero3D() {
       <div className={styles.fit}>
         <div className={styles.scene}>
           <div className={styles.world}>
+           <div className={styles.sway}>
+            <div className={styles.grid} />
             <div className={styles.floor} />
 
             <div className={styles.board}>
@@ -156,17 +158,34 @@ export function Hero3D() {
               <span className={styles.toastDot} /> Plan updated · 6 blocks placed
             </div>
 
+            <div className={styles.bookShadow} />
+            <div className={styles.book}>
+              <div className={styles.bookUrl}>midore.app/ana</div>
+              <b>Intro call</b>
+              <span className={styles.bookMeta}>30 min · Google Meet · Tue 13</span>
+              <div className={styles.slots}>
+                <span>9:30</span>
+                <span data-on>11:00</span>
+                <span>2:30</span>
+              </div>
+              <div className={styles.bookBtn}>Book 11:00</div>
+            </div>
+
+            <div className={styles.logoShadow} />
             <div className={styles.logo}>
-              <div className={styles.logoSpin}>
-                {Array.from({ length: LOGO_LAYERS }, (_, k) => (
-                  <div
-                    key={k}
-                    className={k === LOGO_LAYERS - 1 ? styles.logoFace : styles.logoLayer}
-                    style={{ transform: `translateZ(${(k - LOGO_LAYERS / 2) * 1.6}px)` }}
-                  />
-                ))}
+              <div className={styles.logoIn}>
+                <div className={styles.logoSpin}>
+                  {Array.from({ length: LOGO_LAYERS }, (_, k) => (
+                    <div
+                      key={k}
+                      className={k === LOGO_LAYERS - 1 ? styles.logoFace : styles.logoLayer}
+                      style={{ transform: `translateZ(${(k - LOGO_LAYERS / 2) * 1.6}px)` }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
+           </div>
           </div>
         </div>
       </div>

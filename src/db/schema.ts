@@ -40,7 +40,9 @@ export type LabelSource = "user" | "rule" | "ai";
 
 /** Dashboard calendar display choices. */
 export type CalendarPrefs = {
-  colorBy: "calendar" | "type" | "priority";
+  // "kind" is Midore's own scheme: meetings neutral, planned work amber, bookings violet, at-risk work vermilion.
+  colorBy: "kind" | "calendar" | "type" | "priority";
+  v?: number; // 2 once prefs saved before "kind" existed have been moved onto it
   hidden: { categories: number[]; other: boolean; locations: EventLocationKind[]; priorities: Priority[] };
   // Calendars shown in the dashboard, per account id. An account with no entry shows its conflict
   // calendars plus the one bookings go to. Separate from what blocks availability (Settings).

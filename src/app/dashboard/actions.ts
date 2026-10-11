@@ -458,7 +458,8 @@ export async function labelEvent(input: z.input<typeof labelSchema>): Promise<Ac
 }
 
 const prefsSchema = z.object({
-  colorBy: z.enum(["calendar", "type", "priority"]),
+  colorBy: z.enum(["kind", "calendar", "type", "priority"]),
+  v: z.number().int().optional(),
   hidden: z.object({
     categories: z.array(z.number().int()).max(50),
     other: z.boolean(),
@@ -476,7 +477,7 @@ export async function saveCalendarPrefs(input: z.input<typeof prefsSchema>): Pro
   return {};
 }
 
-const DEFAULT_PREFS: CalendarPrefs = { colorBy: "calendar", hidden: { categories: [], other: false, locations: [], priorities: [] } };
+const DEFAULT_PREFS: CalendarPrefs = { colorBy: "kind", v: 2, hidden: { categories: [], other: false, locations: [], priorities: [] } };
 
 /** Sidebar: which of an account's calendars are shown in the dashboard. */
 // --- Projects and tasks -------------------------------------------------------------------------------

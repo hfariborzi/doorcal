@@ -30,6 +30,7 @@
   --color-amber-subtle: var(--amber-subtle);
   --color-vermilion: var(--vermilion);
   --color-vermilion-subtle: var(--vermilion-subtle);
+  --color-meeting: var(--meeting);
   --color-danger: var(--danger);
   --color-success: var(--success);
   --color-warning: var(--warning);
@@ -57,64 +58,66 @@
   --radius-3xl: 0.5rem;
 }
 
-/* Light (default): white paper. */
+/* Light (default): the Stitch palette. Lavender-tinted paper, iris buttons, deep violet accents. */
 :root {
   color-scheme: light;
-  --canvas: #fafafa;
+  --canvas: #fbf8fc;
   --surface: #ffffff;
-  --raised: #f4f4f5;
+  --raised: #f6f2f7;
   --well: #ffffff;
   --paper: #ffffff;
-  --hover: rgb(24 24 27 / 0.045);
+  --hover: rgb(99 14 212 / 0.05);
   --modal: #ffffff;
-  --scrim: rgb(24 24 27 / 0.32);
-  --line: #e4e4e7;
-  --line-strong: #d4d4d8;
-  --ink: #18181b;
-  --muted: #52525b;
-  --faint: #71717a;
+  --scrim: rgb(27 27 30 / 0.32);
+  --line: #e4e1e6;
+  --line-strong: #ccc3d8;
+  --ink: #1b1b1e;
+  --muted: #4a4455;
+  --faint: #7b7487;
   --accent: #7c3aed;
   --accent-hover: #6d28d9;
-  --accent-soft: #6d28d9;
+  --accent-soft: #630ed4;
   --accent-subtle: #f5f3ff;
   --amber: #f59e0b;
   --amber-ink: #855300;
   --amber-subtle: #fffbeb;
   --vermilion: #e11d48;
   --vermilion-subtle: #fff1f2;
-  --danger: #e11d48;
+  --meeting: #e4e1e6;
+  --danger: #ba1a1a;
   --success: #15803d;
-  --warning: #b45309;
+  --warning: #855300;
   --event-wash: 16%;
   --shadow-card: 0 4px 20px rgb(24 24 27 / 0.05);
-  --shadow-modal: 0 20px 50px -12px rgb(24 24 27 / 0.25);
+  --shadow-modal: 0 20px 50px -12px rgb(27 27 30 / 0.25);
 }
 
 /* Dark: the same accents on charcoal. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #0e0e10;
-  --surface: #17171a;
-  --raised: #202024;
-  --well: #121214;
-  --paper: #17171a;
+  --canvas: #121016;
+  --surface: #1b1820;
+  --raised: #24212a;
+  --well: #151318;
+  --paper: #1b1820;
   --hover: rgb(255 255 255 / 0.055);
-  --modal: #19191c;
+  --modal: #1e1b23;
   --scrim: rgb(0 0 0 / 0.6);
-  --line: #2a2a2f;
-  --line-strong: #3f3f46;
+  --line: #2e2a35;
+  --line-strong: #4a4455;
   --ink: #fafafa;
   --muted: #d4d4d8;
   --faint: #a1a1aa;
   --accent: #7c3aed;
   --accent-hover: #6d28d9;
-  --accent-soft: #c4b5fd;
+  --accent-soft: #d2bbff;
   --accent-subtle: rgb(124 58 237 / 0.16);
   --amber: #f59e0b;
   --amber-ink: #fbbf24;
   --amber-subtle: rgb(245 158 11 / 0.12);
   --vermilion: #fb7185;
   --vermilion-subtle: rgb(225 29 72 / 0.16);
+  --meeting: #2a2830;
   --danger: #fb7185;
   --success: #86efac;
   --warning: #fcd34d;
