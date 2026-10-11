@@ -48,7 +48,7 @@ export function Sidebar({
         </div>
         {collapsed && (
           <Link href="/dashboard" className="hidden md:block" aria-label="Midore home">
-            <LogoMark size={26} />
+            <LogoMark size={20} />
           </Link>
         )}
         <button
