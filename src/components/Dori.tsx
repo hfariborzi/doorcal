@@ -1,31 +1,42 @@
+"use client";
+
 /* eslint-disable @next/next/no-img-element */
-import type { DoriMood } from "@/db/schema";
+import { createContext, useContext } from "react";
+import type { DoriCharacter, DoriMood } from "@/db/schema";
 import { DoriLive } from "./DoriLive";
 
-export type { DoriMood };
+export type { DoriMood, DoriCharacter };
 
-const ALT: Record<DoriMood, string> = {
-  happy: "Dori the puppy, smiling",
-  thinking: "Dori the puppy, head tilted, thinking",
-  busy: "Dori the puppy, carrying a stack of cards",
-  celebrating: "Dori the puppy, jumping for joy",
-  concerned: "Dori the puppy, looking concerned",
-  sleeping: "Dori the puppy, asleep",
+/** Which character the signed-in user picked for Dori. Set once by the dashboard layout. */
+const CharacterContext = createContext<DoriCharacter>("puppy");
+export function DoriCharacterProvider({ value, children }: { value: DoriCharacter; children: React.ReactNode }) {
+  return <CharacterContext.Provider value={value}>{children}</CharacterContext.Provider>;
+}
+export const useDoriCharacter = () => useContext(CharacterContext);
+
+const MOOD_WORDS: Record<DoriMood, string> = {
+  happy: "smiling",
+  thinking: "head tilted, thinking",
+  busy: "carrying a stack of cards",
+  celebrating: "jumping for joy",
+  concerned: "looking concerned",
+  sleeping: "asleep",
 };
 
 /**
- * The assistant's mascot: a still image on a transparent background. All moods are 512px squares on a shared
- * baseline, so switching mood never shifts the layout. She is never sad at the user: "concerned" is worried
- * for them.
+ * The assistant's mascot, as the user's chosen character. The puppy has a still for every mood on a shared
+ * baseline; the kitten so far has only her idle loop, so her other moods show its first frame. "Concerned" is
+ * worried for the user, never sad at them. `live` plays the happy mood's transparent idle video.
  */
-export function Dori({ mood = "happy", size = 96, className = "", live = false }: { mood?: DoriMood; size?: number; className?: string; live?: boolean }) {
-  // The happy mood has a moving version; the others are stills.
-  if (live && mood === "happy") return <DoriLive size={size} className={className} />;
-  const src = size > 128 ? `/dori/dori-${mood}-512.webp` : `/dori/dori-${mood}-256.webp`;
+export function Dori({ mood = "happy", size = 96, className = "", live = false, character }: { mood?: DoriMood; size?: number; className?: string; live?: boolean; character?: DoriCharacter }) {
+  const chosen = useContext(CharacterContext);
+  const who = character ?? chosen;
+  if (live && mood === "happy") return <DoriLive size={size} className={className} character={who} />;
+  const src = who === "kitten" ? "/dori/kitten-idle-poster.webp" : size > 128 ? `/dori/dori-${mood}-512.webp` : `/dori/dori-${mood}-256.webp`;
   return (
     <img
       src={src}
-      alt={ALT[mood]}
+      alt={`Dori the ${who}, ${MOOD_WORDS[mood]}`}
       width={size}
       height={size}
       draggable={false}

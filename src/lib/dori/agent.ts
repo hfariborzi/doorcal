@@ -8,7 +8,7 @@ import { aiConfigured, chatWithTools, type ChatMessage } from "../ai/client";
 import { logError } from "../log";
 import { freshPlan, listNotes, replan } from "../planner";
 import { buildContext, type EventRefs } from "./context";
-import { DAY_PLAN_PROMPT, DORI_SYSTEM, WEEK_PLAN_PROMPT } from "./prompt";
+import { DAY_PLAN_PROMPT, doriSystem, WEEK_PLAN_PROMPT } from "./prompt";
 import { runTool, TOOL_DEFS, TOOL_STATUS, type ToolContext } from "./tools";
 import { doriRoomLeft, recordDori } from "./usage";
 
@@ -55,7 +55,7 @@ export async function runTurn(user: User, input: TurnInput, emit: (e: DoriEvent)
   lap(`context ${context.text.length} chars`);
 
   const messages: ChatMessage[] = [
-    { role: "system", content: DORI_SYSTEM },
+    { role: "system", content: doriSystem(user.doriPrefs?.character ?? "puppy") },
     { role: "user", content: `My data (JSON):\n${context.text}` },
     { role: "assistant", content: "Got it." },
     ...history.map<ChatMessage>((m) => (m.role === "user" ? { role: "user", content: m.content.slice(0, 1500) } : { role: "assistant", content: m.content.slice(0, 700) })),

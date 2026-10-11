@@ -2,17 +2,18 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { WeeklyHours } from "@/db/schema";
+import type { DoriCharacter, WeeklyHours } from "@/db/schema";
 import { Dori } from "@/components/Dori";
 import { Switch } from "@/components/Switch";
 import { WeeklyHoursEditor } from "@/components/WeeklyHoursEditor";
 import { saveDoriPrefs, saveWorkHours, setDoriEnabled } from "../dori-actions";
 
 /** Dori on or off, what she calls you, and the hours when work can be planned. */
-export function DoriSettings({ available, enabled, nickname, workHours, availabilityHours }: { available: boolean; enabled: boolean; nickname: string; workHours: WeeklyHours | null; availabilityHours: WeeklyHours }) {
+export function DoriSettings({ available, enabled, nickname, character, workHours, availabilityHours }: { available: boolean; enabled: boolean; nickname: string; character: DoriCharacter; workHours: WeeklyHours | null; availabilityHours: WeeklyHours }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [name, setName] = useState(nickname);
+  const [who, setWho] = useState<DoriCharacter>(character);
   const [own, setOwn] = useState(!!workHours);
   const [hours, setHours] = useState<WeeklyHours>(workHours ?? availabilityHours);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -28,7 +29,7 @@ export function DoriSettings({ available, enabled, nickname, workHours, availabi
     <section className="card space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Dori mood={enabled ? "happy" : "sleeping"} size={56} />
+          <Dori mood="happy" size={56} live={enabled} character={who} />
           <div>
             <h2 className="font-semibold">Dori, your assistant</h2>
             <p className="max-w-lg text-sm text-faint">
@@ -49,6 +50,31 @@ export function DoriSettings({ available, enabled, nickname, workHours, availabi
           />
         )}
       </div>
+
+      {available && (
+        <div>
+          <span className="label">Dori is a…</span>
+          <div className="flex flex-wrap gap-3" role="radiogroup" aria-label="Dori's character">
+            {(["puppy", "kitten"] as DoriCharacter[]).map((c) => (
+              <button
+                key={c}
+                type="button"
+                role="radio"
+                aria-checked={who === c}
+                disabled={pending}
+                onClick={() => {
+                  setWho(c);
+                  run(() => saveDoriPrefs({ character: c }), c === "kitten" ? "Dori is a kitten now." : "Dori is a puppy now.");
+                }}
+                className={`flex w-36 flex-col items-center gap-1 rounded-2xl border p-3 text-sm font-medium capitalize transition ${who === c ? "border-accent bg-accent/10 text-ink" : "border-line text-muted hover:border-line-strong"}`}
+              >
+                <Dori mood="happy" size={96} live character={c} />
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {available && enabled && (
         <form

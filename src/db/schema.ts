@@ -48,8 +48,10 @@ export type CalendarPrefs = {
 };
 
 /** Dori settings a user chooses. */
+export type DoriCharacter = "puppy" | "kitten";
 export type DoriPrefs = {
   nickname: string; // how Dori greets you; empty = first name
+  character?: DoriCharacter; // how Dori looks; default puppy
 };
 
 /** Soft preferences shown to invitees; they never remove a slot. */

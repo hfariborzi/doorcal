@@ -44,14 +44,18 @@ export async function setDoriEnabled(enabled: boolean): Promise<Result> {
   return {};
 }
 
-const prefsSchema = z.object({ nickname: z.string().trim().max(40) });
+const prefsSchema = z.object({ nickname: z.string().trim().max(40).optional(), character: z.enum(["puppy", "kitten"]).optional() });
 
 export async function saveDoriPrefs(input: z.input<typeof prefsSchema>): Promise<Result> {
   const user = await requireUser();
   const parsed = prefsSchema.safeParse(input);
   if (!parsed.success) return { error: "Keep the nickname under 40 characters" };
-  await db.update(users).set({ doriPrefs: { ...(user.doriPrefs ?? { nickname: "" }), nickname: parsed.data.nickname } }).where(eq(users.id, user.id));
-  revalidatePath("/dashboard/settings");
+  const current = user.doriPrefs ?? { nickname: "" };
+  await db
+    .update(users)
+    .set({ doriPrefs: { ...current, ...(parsed.data.nickname !== undefined ? { nickname: parsed.data.nickname } : {}), ...(parsed.data.character ? { character: parsed.data.character } : {}) } })
+    .where(eq(users.id, user.id));
+  revalidatePath("/dashboard", "layout");
   return {};
 }
 

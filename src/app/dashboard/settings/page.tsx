@@ -41,7 +41,7 @@ export default async function SettingsPage(props: PageProps<"/dashboard/settings
         initialWrite={{ accountId: user.writeAccountId, calendarId: user.writeCalendarId }}
         flash={typeof sp.error === "string" ? { kind: "error", text: sp.error } : sp.connected === "1" ? { kind: "ok", text: "Calendar connected." } : null}
       />
-      <DoriSettings available={aiConfigured()} enabled={!!user.doriConsentAt} nickname={user.doriPrefs?.nickname ?? ""} workHours={user.workHours} availabilityHours={defaults.schedule.weekly} />
+      <DoriSettings available={aiConfigured()} enabled={!!user.doriConsentAt} nickname={user.doriPrefs?.nickname ?? ""} character={user.doriPrefs?.character ?? "puppy"} workHours={user.workHours} availabilityHours={defaults.schedule.weekly} />
       <CategoriesSettings categories={cats} rules={rules} />
       <AiSettings configured={aiConfigured()} providerName={AI_PROVIDER_NAME} enabled={!!user.aiConsentAt} usage={usage} hasCategories={cats.length > 0} />
       <DangerZone />
