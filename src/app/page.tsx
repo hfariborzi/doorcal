@@ -38,6 +38,9 @@ export default async function Home() {
         <div className="flex items-center rounded-full border border-line bg-paper px-5 py-3 text-ink backdrop-blur">
           <FullLogo height="22px" />
         </div>
+        <p className="mt-3 text-sm text-muted">
+          {APP_NAME}, said <span className="text-ink">mee·doh·ray</span>
+        </p>
 
         <div className="my-auto w-full max-w-2xl py-16 text-center">
           <h1 className="text-5xl font-semibold tracking-[-0.03em] text-ink sm:text-7xl">Simple calendar booking.</h1>
