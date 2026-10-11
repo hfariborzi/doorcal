@@ -318,7 +318,7 @@ export async function removeCalendarAccount(id: number): Promise<ActionResult> {
   const accounts = await listAccounts(user.id);
   const target = accounts.find((a) => a.id === id);
   if (!target) return { error: "Unknown calendar account" };
-  if (accounts.length === 1) return { error: "You can't remove your only account. Connect another one first, or delete your DoorCal account." };
+  if (accounts.length === 1) return { error: "You can't remove your only account. Connect another one first, or delete your Midore account." };
 
   await revokeAccess(target);
   // Bookings and event types that pointed here fall back automatically (foreign keys set null).

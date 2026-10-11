@@ -337,7 +337,7 @@ export async function getBookingByUid(uid: string) {
 async function releaseCalendar(host: User, booking: Booking) {
   if (!booking.eventId || !booking.calendarId) return;
   const account = await bookingAccount(host, booking);
-  if (!account) return; // the account was removed from DoorCal; the event stays under the host's control
+  if (!account) return; // the account was removed from Midore; the event stays under the host's control
   const provider = providerFor(account);
   const others = await db
     .select({ uid: bookings.uid })

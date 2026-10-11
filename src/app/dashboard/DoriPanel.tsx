@@ -296,7 +296,7 @@ export function DoriPanel() {
           ) : !state.available ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center text-sm text-muted">
               <Dori mood="sleeping" size={110} />
-              Dori needs an AI provider, which this DoorCal instance hasn&apos;t set up. Tasks and planning still work.
+              Dori needs an AI provider, which this Midore instance hasn&apos;t set up. Tasks and planning still work.
             </div>
           ) : !state.enabled ? (
             <Consent onEnabled={load} />

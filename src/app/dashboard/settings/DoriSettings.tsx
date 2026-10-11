@@ -94,7 +94,7 @@ export function DoriSettings({ available, enabled, nickname, character, workHour
 
       <div className="border-t border-line pt-5">
         <h3 className="font-semibold">Hours for planned work</h3>
-        <p className="text-sm text-faint">When DoorCal may place your tasks. By default it uses the hours people can book you.</p>
+        <p className="text-sm text-faint">When Midore may place your tasks. By default it uses the hours people can book you.</p>
         <label className="mt-3 flex items-center gap-2 text-sm text-muted">
           <input type="checkbox" checked={own} onChange={(e) => setOwn(e.target.checked)} /> Use different hours for my own work
         </label>

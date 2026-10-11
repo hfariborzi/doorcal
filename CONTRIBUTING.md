@@ -1,6 +1,6 @@
-# Contributing to DoorCal
+# Contributing to Midore
 
-Thanks for your interest. DoorCal is MIT-licensed and you're welcome to fork it, self-host it and
+Thanks for your interest. Midore is MIT-licensed and you're welcome to fork it, self-host it and
 send improvements back.
 
 ## How changes get in

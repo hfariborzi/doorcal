@@ -259,7 +259,7 @@ function RemoveAccount({ id, email, only }: { id: number; email: string; only: b
         disabled={pending}
         title={only ? "Connect another account before removing this one" : "Remove this account"}
         onClick={() =>
-          confirm(`Remove ${email} from DoorCal? Bookings already on its calendar stay there, but DoorCal can no longer update them.`) &&
+          confirm(`Remove ${email} from Midore? Bookings already on its calendar stay there, but Midore can no longer update them.`) &&
           start(async () => {
             const r = await removeCalendarAccount(id);
             if (r.error) setError(r.error);
@@ -280,7 +280,7 @@ export function DangerZone() {
       <h2 className="font-semibold text-danger">Danger zone</h2>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
-          Delete your account, event types and booking history, and revoke DoorCal&apos;s access to your calendars.
+          Delete your account, event types and booking history, and revoke Midore&apos;s access to your calendars.
           Events already on your calendars stay there.
         </p>
         <button

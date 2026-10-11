@@ -56,7 +56,7 @@ async function complete(body: Record<string, unknown>, timeoutMs: number): Promi
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     // The two X- headers are OpenRouter's optional app attribution; other providers ignore them.
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "HTTP-Referer": "https://doorcal.com", "X-Title": "DoorCal" },
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "HTTP-Referer": "https://midore.app", "X-Title": "Midore" },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(timeoutMs),
   });
@@ -172,7 +172,7 @@ export async function chatWithTools(opts: { messages: ChatMessage[]; tools: Tool
   const model = doriModel();
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "HTTP-Referer": "https://doorcal.com", "X-Title": "DoorCal" },
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "HTTP-Referer": "https://midore.app", "X-Title": "Midore" },
     body: JSON.stringify({ model, ...routingFor(baseUrl, model), ...reasoningFor(baseUrl), max_tokens: opts.maxTokens, messages: opts.messages, tools: opts.tools, tool_choice: "auto", parallel_tool_calls: true }),
     signal: AbortSignal.timeout(opts.timeoutMs ?? 60_000),
   });

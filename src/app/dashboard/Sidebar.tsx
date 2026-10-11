@@ -47,7 +47,7 @@ export function Sidebar({
           <Logo href="/dashboard" />
         </div>
         {collapsed && (
-          <Link href="/dashboard" className="hidden md:block" aria-label="DoorCal home">
+          <Link href="/dashboard" className="hidden md:block" aria-label="Midore home">
             <LogoMark size={26} />
           </Link>
         )}

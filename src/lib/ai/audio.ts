@@ -34,7 +34,7 @@ const lang2 = (lang?: string | null) => (lang && /^[a-z]{2}/i.test(lang) ? lang.
 export async function transcribe(audio: ArrayBuffer, format: string, lang?: string | null): Promise<{ text: string; seconds: number }> {
   const res = await fetch(`${base()}/audio/transcriptions`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${process.env.AI_API_KEY}`, "Content-Type": "application/json", "HTTP-Referer": "https://doorcal.com", "X-Title": "DoorCal" },
+    headers: { Authorization: `Bearer ${process.env.AI_API_KEY}`, "Content-Type": "application/json", "HTTP-Referer": "https://midore.app", "X-Title": "Midore" },
     body: JSON.stringify({ model: STT_MODEL(), input_audio: { data: Buffer.from(audio).toString("base64"), format }, ...(lang2(lang) ? { language: lang2(lang) } : {}), provider: PRIVACY }),
     signal: AbortSignal.timeout(30_000),
   });
@@ -47,7 +47,7 @@ export async function synthesize(text: string, lang?: string | null): Promise<Ar
   const l = lang2(lang);
   const res = await fetch(`${base()}/audio/speech`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${process.env.AI_API_KEY}`, "Content-Type": "application/json", "HTTP-Referer": "https://doorcal.com", "X-Title": "DoorCal" },
+    headers: { Authorization: `Bearer ${process.env.AI_API_KEY}`, "Content-Type": "application/json", "HTTP-Referer": "https://midore.app", "X-Title": "Midore" },
     body: JSON.stringify({ model: TTS_MODEL(), input: text, voice: VOICE(), response_format: "mp3", provider: { ...PRIVACY, ...(l ? { options: { elevenlabs: { language_code: l } } } : {}) } }),
     signal: AbortSignal.timeout(30_000),
   });

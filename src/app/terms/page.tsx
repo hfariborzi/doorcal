@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { APP_NAME, CONTACT_EMAIL, SOURCE_URL } from "@/lib/config";
+import { APP_NAME, CONTACT_EMAIL, SOURCE_URL, siteHost } from "@/lib/config";
 import { ContactLine, LegalPage } from "@/components/LegalPage";
 
 export const metadata = {
@@ -7,13 +7,13 @@ export const metadata = {
   description: `The terms for using ${APP_NAME}, a free scheduling service built on Google Calendar.`,
 };
 
-const UPDATED = "October 5, 2026";
+const UPDATED = "October 11, 2026";
 
 export default function TermsPage() {
   return (
     <LegalPage title="Terms of service" updated={UPDATED}>
       <p>
-        These terms govern your use of {APP_NAME} at doorcal.com, a free scheduling service built on Google
+        These terms govern your use of {APP_NAME} at {siteHost()}{APP_NAME === "Midore" && " (called DoorCal until October 2026)"}, a free scheduling service built on Google
         Calendar and Microsoft calendars. By signing in, or by booking a meeting through a {APP_NAME} link, you agree to these terms and to
         the <Link href="/privacy">privacy policy</Link>. If you don&apos;t agree, please don&apos;t use the service.
       </p>
@@ -69,7 +69,7 @@ export default function TermsPage() {
       <p>
         The {APP_NAME} software is open source under the MIT License and available at{" "}
         <a href={SOURCE_URL} target="_blank" rel="noreferrer">{SOURCE_URL.replace(/^https:\/\//, "")}</a>. The
-        license covers the code. These terms cover the hosted service at doorcal.com. Instances that other people run
+        license covers the code. These terms cover the hosted service at {siteHost()}. Instances that other people run
         are not operated by us.
       </p>
 

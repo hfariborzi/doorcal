@@ -797,7 +797,7 @@ function BlockDetails({ block, tz, onClose, onChanged }: { block: PlannedBlock; 
               <AlertTriangle size={14} /> {block.risk === "late" ? "This won't be finished by its due date at the current pace." : "Not all of this fits in the next two weeks."}
             </p>
           )}
-          <p className="mt-2 text-xs text-faint">DoorCal placed this in free time. It moves by itself when your calendar changes, unless you keep it here.</p>
+          <p className="mt-2 text-xs text-faint">Midore placed this in free time. It moves by itself when your calendar changes, unless you keep it here.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button className="btn-primary py-1.5" disabled={pending} onClick={() => run(() => setTaskStatus({ id: block.taskId, status: "done" }))}><Check size={15} /> Done</button>

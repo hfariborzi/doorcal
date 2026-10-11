@@ -11,7 +11,7 @@ const VOICE = (() => {
     return false;
   }
 })();
-import { APP_NAME, CONTACT_EMAIL, SOURCE_URL } from "@/lib/config";
+import { APP_NAME, CONTACT_EMAIL, SOURCE_URL, siteHost } from "@/lib/config";
 import { ContactLine, LegalPage } from "@/components/LegalPage";
 
 export const metadata = {
@@ -19,7 +19,7 @@ export const metadata = {
   description: `How ${APP_NAME} collects, uses, shares, protects and deletes your data, including Google user data.`,
 };
 
-const UPDATED = "October 10, 2026";
+const UPDATED = "October 11, 2026";
 
 export default function PrivacyPage() {
   return (
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         {APP_NAME}, have them planned around their calendar, and, if they choose, talk to Dori, an optional
         assistant. This policy explains what data {APP_NAME}{" "}
         collects, how it is used and shared, how it is protected, and how you can delete it. It applies to the
-        service at doorcal.com. {APP_NAME} works with Google Calendar and with Microsoft (Outlook, Microsoft 365). Copies of the{" "}
+        service at {siteHost()}{APP_NAME === "Midore" && ", which was called DoorCal until October 2026"}. {APP_NAME} works with Google Calendar and with Microsoft (Outlook, Microsoft 365). Copies of the{" "}
         <a href={SOURCE_URL} target="_blank" rel="noreferrer">open-source code</a> run by other people are separate
         services with their own policies.
       </p>

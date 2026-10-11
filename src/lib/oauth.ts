@@ -5,9 +5,9 @@
  * - The flow state lives in a signed, 10-minute cookie: the CSRF `state`, the OpenID `nonce`, the PKCE
  *   verifier, the mode (sign-in or connect) and, for connect, the id of the user who started it.
  * - Accounts are matched only by the provider's stable account id, never by email address, so an attacker
- *   who controls an account with a victim's email elsewhere can't take over the victim's DoorCal account.
+ *   who controls an account with a victim's email elsewhere can't take over the victim's Midore account.
  * - Connecting an account to an existing user requires a live session that matches the user baked into the
- *   state cookie, and a provider account can belong to only one DoorCal account (unique index).
+ *   state cookie, and a provider account can belong to only one Midore account (unique index).
  */
 import { createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
@@ -262,7 +262,7 @@ async function finishConnect(req: NextRequest, flow: FlowState, identity: Provid
     .from(calendarAccounts)
     .where(and(eq(calendarAccounts.provider, flow.provider), eq(calendarAccounts.providerAccountId, identity.providerAccountId)))
     .limit(1);
-  if (existing && existing.userId !== uid) return fail(`${identity.email} is already connected to a different DoorCal account.`);
+  if (existing && existing.userId !== uid) return fail(`${identity.email} is already connected to a different Midore account.`);
   if (!identity.hasCalendarScopes || !identity.refreshToken) return fail("Calendar access was not granted. Please allow all calendar permissions and try again.");
 
   if (existing) {

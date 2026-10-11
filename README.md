@@ -1,4 +1,6 @@
-# DoorCal
+# Midore
+
+Formerly DoorCal. Say it like the notes mi, do, re: "mee-doh-ray".
 
 Open-source scheduling that runs on your Google or Microsoft calendar. People sign in once, set when they're
 free, and share a link. Invitees pick a time, and the meeting goes straight onto the host's calendar, with a
@@ -21,7 +23,7 @@ Think Calendly, but self-hostable and MIT-licensed.
   - secret events (bookable by link, hidden from your profile)
 - **Availability schedules.** Weekly hours with several ranges per day, date overrides and days off, a time zone per schedule, and multiple schedules (e.g. "Office hours" and "Evenings").
 - **Tasks.** Projects and tasks under the same areas that colour your calendar, with ordering links ("comes after", "goes with"), reminders that are never scheduled, and a "good enough" status: mark a task mostly done, name the small part left, and it lands in a Loose ends list instead of keeping the task open.
-- **Planning.** Open tasks are placed into free time around your meetings by DoorCal's own planner (plain code, no AI), in deadline order and respecting "comes after" links, pinned times and notes like "not today". The plan shows on the calendar as dashed blocks and moves by itself when a booking or an accepted invitation lands (Google push notifications and Microsoft change subscriptions).
+- **Planning.** Open tasks are placed into free time around your meetings by Midore's own planner (plain code, no AI), in deadline order and respecting "comes after" links, pinned times and notes like "not today". The plan shows on the calendar as dashed blocks and moves by itself when a booking or an accepted invitation lands (Google push notifications and Microsoft change subscriptions).
 - **Dori, the assistant (optional, opt-in).** A puppy or a kitten (your pick in Settings) in the corner of every dashboard page. Tell her everything once and she proposes areas, projects and tasks for you to accept; after that, "add …", "remove …", "I'm not in the mood for writing today", "clear the next three days for the grant", "when can I meet Sam?", "can I take on a new course?". Day plan and Week plan buttons give headlines. She replies in whatever language you write in. Talking to her and having her read answers aloud use ElevenLabs through OpenRouter (zero-data-retention endpoints), or the browser's own speech features without OpenRouter. Every change she makes can be undone. She never moves calendar events or sends email herself.
 - **Categories, priorities and filters.** Sort your calendar by type (your own list, with colours), location and priority; colour the calendar by any of them and hide what you don't need. Rules ("title contains…") label events automatically; an optional, opt-in AI step suggests a category list from your recent events and labels the rest.
 - **Booking preferences.** Mark preferred times and a preferred location per event type. Every available time stays bookable; invitees see the preferred ones first.
@@ -82,7 +84,7 @@ Skip this to offer Google sign-in only; the Microsoft button appears once both v
 4. Copy the **Application (client) ID** into `MICROSOFT_CLIENT_ID` and the secret into `MICROSOFT_CLIENT_SECRET`.
 5. Optional: complete **publisher verification** (Branding & properties) so users don't see an "unverified" label.
 6. Only if you restrict sign-up with `ALLOWED_EMAILS` / `ALLOWED_DOMAINS`: under **Token configuration → Add
-   optional claim → ID**, add `xms_edov`. With an allow-list set, DoorCal only accepts Microsoft accounts whose
+   optional claim → ID**, add `xms_edov`. With an allow-list set, Midore only accepts Microsoft accounts whose
    email domain Microsoft has verified, because a tenant can otherwise claim any address.
 
 > Organizations often require an admin to approve third-party apps. If sign-in says approval is needed, the
@@ -130,7 +132,7 @@ Skip this to offer Google sign-in only; the Microsoft button appears once both v
 
 ### 4. AI categorisation (optional)
 
-Leave the `AI_*` variables empty and the feature stays hidden. To offer it, point DoorCal at any
+Leave the `AI_*` variables empty and the feature stays hidden. To offer it, point Midore at any
 OpenAI-compatible chat-completions endpoint. The task is sorting event titles into a short list, so the cheapest
 model is enough; a thousand active users cost about a dollar a week.
 
@@ -142,8 +144,8 @@ model is enough; a thousand active users cost about a dollar a week.
 | OpenRouter (many models, one key) | `https://openrouter.ai/api/v1` | `openai/gpt-6-luna-pro` | $0.10 / $0.50 |
 | Self-hosted (vLLM, Ollama) | your server's `/v1` | your model | free |
 
-Reasoning models (GPT-5 nano, gpt-oss) work too; DoorCal leaves them room to think before the short answer.
-On OpenRouter, set **Settings → Privacy** as doorcal.com does: Zero Data Retention on for the model's vendor,
+Reasoning models (GPT-5 nano, gpt-oss) work too; Midore leaves them room to think before the short answer.
+On OpenRouter, set **Settings → Privacy** as the hosted Midore does: Zero Data Retention on for the model's vendor,
 every "allow endpoints that train on request data" toggle off, and the data-discount (logging) toggle off. Name
 the route in `AI_PROVIDER_NAME` (e.g. "OpenRouter (which passes it to OpenAI)").
 

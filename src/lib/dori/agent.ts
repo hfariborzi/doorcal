@@ -35,7 +35,7 @@ export function splitLang(text: string): { text: string; lang?: string } {
 export async function runTurn(user: User, input: TurnInput, emit: (e: DoriEvent) => void): Promise<void> {
   const t0 = Date.now();
   const lap = (label: string) => process.env.DORI_DEBUG && console.log(`[dori] ${label} +${Date.now() - t0}ms`);
-  if (!aiConfigured()) return emit({ type: "error", text: "Dori isn't available on this DoorCal instance." });
+  if (!aiConfigured()) return emit({ type: "error", text: "Dori isn't available on this Midore instance." });
   if (!user.doriConsentAt) return emit({ type: "error", text: "Turn Dori on first." });
   if (!(await doriRoomLeft(user.id))) return emit({ type: "error", text: "Dori has answered a lot today. She'll be back tomorrow." });
 

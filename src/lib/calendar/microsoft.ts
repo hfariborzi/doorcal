@@ -378,7 +378,7 @@ export const microsoftCalendar: CalendarProvider = {
 
   async revoke() {
     // Microsoft has no per-app revocation endpoint for refresh tokens (revokeSignInSessions would sign the
-    // user out of every app). Deleting our copy of the token is all we can do; users can remove DoorCal at
+    // user out of every app). Deleting our copy of the token is all we can do; users can remove Midore at
     // https://account.microsoft.com/privacy/app-access or myapps.microsoft.com.
   },
 

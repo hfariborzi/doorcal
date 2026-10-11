@@ -1,8 +1,17 @@
-export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "DoorCal";
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Midore";
 
 export function appUrl(fallbackOrigin?: string): string {
   const url = process.env.APP_URL || fallbackOrigin || "http://localhost:3000";
   return url.replace(/\/$/, "");
+}
+
+/** This instance's host name (e.g. "midore.app"), taken from APP_URL; used in the privacy policy and terms. */
+export function siteHost(): string {
+  try {
+    return new URL(appUrl()).host;
+  } catch {
+    return "";
+  }
 }
 
 // Paths that can never be used as a username because they collide with app routes.
@@ -15,4 +24,4 @@ export const RESERVED_USERNAMES = new Set([
 /** Shown in the footer, privacy policy and terms. Set CONTACT_EMAIL for a public instance. */
 export const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "";
 
-export const SOURCE_URL = "https://github.com/hfariborzi/doorcal";
+export const SOURCE_URL = "https://github.com/hfariborzi/midore";

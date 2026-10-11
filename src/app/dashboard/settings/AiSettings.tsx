@@ -48,7 +48,7 @@ export function AiSettings({
           disabled={pending}
           label="AI categorisation"
           onChange={(on) => {
-            if (on && !confirm(`Turn on AI categorisation?\n\nFor events no rule covers, DoorCal will send to ${providerName}: the event title, its length, whether it repeats, the number of attendees, whether it has a video link, and the calendar's name. Nothing else: no descriptions, no attendee names or emails, no booking details. You can turn this off at any time, which also removes the AI's labels.`)) return;
+            if (on && !confirm(`Turn on AI categorisation?\n\nFor events no rule covers, Midore will send to ${providerName}: the event title, its length, whether it repeats, the number of attendees, whether it has a video link, and the calendar's name. Nothing else: no descriptions, no attendee names or emails, no booking details. You can turn this off at any time, which also removes the AI's labels.`)) return;
             setError(null);
             start(async () => {
               const r = await setAiConsent(on);

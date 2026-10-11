@@ -93,7 +93,7 @@ export const users = pgTable(
 
 /**
  * A connected Google or Microsoft account. A user can connect several; signing in with any of them opens the
- * same DoorCal account. `refreshToken` is encrypted; null means access was revoked and the user must reconnect.
+ * same Midore account. `refreshToken` is encrypted; null means access was revoked and the user must reconnect.
  * "primary" in calendar ids means the account's default calendar, whatever the provider calls it.
  */
 export const calendarAccounts = pgTable(
