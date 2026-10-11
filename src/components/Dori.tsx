@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { DoriMood } from "@/db/schema";
+import { DoriLive } from "./DoriLive";
 
 export type { DoriMood };
 
@@ -17,7 +18,9 @@ const ALT: Record<DoriMood, string> = {
  * baseline, so switching mood never shifts the layout. She is never sad at the user: "concerned" is worried
  * for them.
  */
-export function Dori({ mood = "happy", size = 96, className = "" }: { mood?: DoriMood; size?: number; className?: string }) {
+export function Dori({ mood = "happy", size = 96, className = "", live = false }: { mood?: DoriMood; size?: number; className?: string; live?: boolean }) {
+  // The happy mood has a moving version; the others are stills.
+  if (live && mood === "happy") return <DoriLive size={size} className={className} />;
   const src = size > 128 ? `/dori/dori-${mood}-512.webp` : `/dori/dori-${mood}-256.webp`;
   return (
     <img

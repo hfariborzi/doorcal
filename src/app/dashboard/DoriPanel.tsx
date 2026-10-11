@@ -240,7 +240,7 @@ export function DoriPanel() {
           aria-label="Open Dori, your assistant"
           title="Dori"
         >
-          <Dori mood={hour < 6 || hour >= 22 ? "sleeping" : "happy"} size={52} />
+          <Dori mood={hour < 6 || hour >= 22 ? "sleeping" : "happy"} size={52} live />
           {!!state?.news && <span className="absolute top-1 right-1 h-3 w-3 rounded-full border-2 border-paper bg-accent" aria-label="News from Dori" />}
         </button>
       )}
@@ -248,7 +248,7 @@ export function DoriPanel() {
       {open && (
         <aside className="fixed inset-0 z-50 flex flex-col border-line bg-canvas shadow-2xl sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[420px] sm:border-l" aria-label="Dori">
           <header className="flex items-center gap-3 border-b border-line px-4 py-3">
-            <Dori mood={mood} size={44} />
+            <Dori mood={mood} size={44} live />
             <div className="min-w-0 flex-1">
               <div className="font-semibold text-ink">Dori</div>
               <div className="truncate text-xs text-faint">{busy ? `${busy.text}…` : state?.enabled ? "Your assistant" : "Your assistant, off"}</div>
@@ -305,7 +305,7 @@ export function DoriPanel() {
               <div ref={listRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
                 {state.messages.length === 0 && (
                   <div className="flex flex-col items-center gap-3 py-6 text-center">
-                    <Dori mood="happy" size={110} />
+                    <Dori mood="happy" size={110} live />
                     <p className="max-w-xs text-sm leading-relaxed text-muted">
                       Hi {state.name}! Tell me everything on your plate, in any order and any language. I&apos;ll sort it into
                       areas, projects and tasks, and keep your week realistic from then on.
@@ -392,7 +392,7 @@ function Consent({ onEnabled }: { onEnabled: () => void }) {
   const [pending, setPending] = useState(false);
   return (
     <div className="flex flex-1 flex-col items-center overflow-y-auto px-6 py-8 text-center">
-      <Dori mood="happy" size={120} />
+      <Dori mood="happy" size={120} live />
       <h2 className="mt-3 text-lg font-semibold">Meet Dori</h2>
       <p className="mt-2 text-sm leading-relaxed text-muted">
         Dori sorts everything you tell her into areas, projects and tasks, plans them around your calendar, and

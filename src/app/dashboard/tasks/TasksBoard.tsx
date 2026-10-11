@@ -124,7 +124,7 @@ export function TasksBoard({ categories, projects, tasks, links, today }: { cate
             </div>
             {projects.length === 0 && tasks.length === 0 && (
               <section className="card flex flex-col items-center gap-5 p-6 text-center sm:flex-row sm:text-left">
-                <Dori mood="happy" size={120} />
+                <Dori mood="happy" size={120} live />
                 <div>
                   <h3 className="text-lg font-semibold tracking-tight">Hi, I&apos;m Dori.</h3>
                   <p className="mt-1 max-w-lg text-sm leading-relaxed text-muted">
