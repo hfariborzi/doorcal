@@ -45,3 +45,4 @@ tsconfig.tsbuildinfo
 
 # Owner-only notes (handoff, verification material); never published
 /docs/private/
+/docs/gtm/
