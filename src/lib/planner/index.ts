@@ -11,7 +11,7 @@ import { listAccounts, isConnected, providerFor } from "../calendar";
 import type { Interval } from "../calendar/types";
 import { ensureDefaults } from "../data";
 import { logWarn } from "../log";
-import { listLinks, listTasks } from "../tasks";
+import { listLinks, listProjects, listTasks } from "../tasks";
 import { describeMoves, freeMinutesUntil, HORIZON_DAYS, meetingSlots, plan as runPlan, type PlanInput, type PlanOutput } from "./core";
 
 export * from "./core";
@@ -60,14 +60,18 @@ export async function listNotes(user: User): Promise<DayNote[]> {
 export async function loadInputs(user: User, horizonDays = HORIZON_DAYS): Promise<Inputs> {
   const now = Date.now();
   const tz = user.timezone;
-  const [hours, tasks, links, pinned, notes, busyResult] = await Promise.all([
+  const [hours, tasks, links, pinned, notes, busyResult, projects] = await Promise.all([
     workingHours(user),
     listTasks(user.id),
     listLinks(user.id),
     db.select().from(pinnedBlocks).where(and(eq(pinnedBlocks.userId, user.id), gte(pinnedBlocks.end, new Date(now)))),
     listNotes(user),
     busyTime(user, new Date(now), new Date(now + (horizonDays + 1) * 86_400_000)),
+    listProjects(user.id),
   ]);
+  // A task without its own due date works toward its project's target date (people, and Dori, often give the
+  // deadline once for the whole project).
+  const projectTarget = new Map(projects.filter((p) => p.status !== "done" && p.targetDate).map((p) => [p.id, p.targetDate!]));
   const input: PlanInput = {
     tz,
     now,
@@ -75,7 +79,7 @@ export async function loadInputs(user: User, horizonDays = HORIZON_DAYS): Promis
     weekly: hours.weekly,
     overrides: hours.overrides,
     busy: busyResult.busy,
-    tasks: tasks.map((t) => ({ id: t.id, title: t.title, estimateMinutes: t.estimateMinutes, dueDate: t.dueDate, hardDeadline: t.hardDeadline, priority: t.priority, energy: t.energy, status: t.status, kind: t.kind, position: t.position })),
+    tasks: tasks.map((t) => ({ id: t.id, title: t.title, estimateMinutes: t.estimateMinutes, dueDate: t.dueDate ?? (t.projectId ? (projectTarget.get(t.projectId) ?? null) : null), hardDeadline: t.hardDeadline, priority: t.priority, energy: t.energy, status: t.status, kind: t.kind, position: t.position })),
     links,
     pinned: pinned.map((p) => ({ taskId: p.taskId, start: p.start.getTime(), end: p.end.getTime() })),
     rules: notes.filter((n) => n.day).map((n) => ({ day: n.day!, avoidEnergy: n.avoidEnergy, skipTaskIds: n.skipTaskIds, reserveForTaskIds: n.reserveForTaskIds, maxWorkMinutes: n.maxWorkMinutes })),
