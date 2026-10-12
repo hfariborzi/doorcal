@@ -49,3 +49,10 @@ tsconfig.tsbuildinfo
 
 # Handoff for the next agent (owner-only)
 /HANDOFF.md
+
+# Impeccable design tooling: scratch output stays local
+/.impeccable/mocks/
+/.impeccable/review/
+/.impeccable/tmp/
+/.impeccable/build/
+/.impeccable/questions/

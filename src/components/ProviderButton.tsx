@@ -36,6 +36,12 @@ const BRAND: Record<Provider, { border: string; color: string; weight: number; f
   google: { border: "#747775", color: "#1F1F1F", weight: 500, font: '"Roboto", "Helvetica Neue", Arial, sans-serif' },
   microsoft: { border: "#8C8C8C", color: "#5E5E5E", weight: 600, font: '"Segoe UI", "Helvetica Neue", Arial, sans-serif' },
 };
+// The dark variants both providers publish: Google #131314 fill, #8E918F border, #E3E3E3 text; Microsoft #2F2F2F
+// fill with white text. Used where the sign-in is the page's primary action.
+const DARK: Record<Provider, { bg: string; border: string; color: string }> = {
+  google: { bg: "#131314", border: "#8E918F", color: "#E3E3E3" },
+  microsoft: { bg: "#2F2F2F", border: "#2F2F2F", color: "#FFFFFF" },
+};
 
 /**
  * Starts the provider's OAuth flow. `connect` links the account to the signed-in user instead of signing in;
@@ -48,6 +54,7 @@ export function ProviderButton({
   reconnect,
   compact = false,
   inline = false,
+  dark = false,
 }: {
   provider: Provider;
   label?: string;
@@ -55,6 +62,7 @@ export function ProviderButton({
   reconnect?: number;
   compact?: boolean;
   inline?: boolean; // sized to its label instead of the full width
+  dark?: boolean; // the providers' dark button, 48px tall, for a primary action
 }) {
   const tz = useSyncExternalStore(noopSubscribe, browserTz, () => "");
   const q = new URLSearchParams();
@@ -64,8 +72,15 @@ export function ProviderButton({
   return (
     <a
       href={`/api/auth/${provider}?${q}`}
-      className={`btn border bg-white hover:bg-[#f2f2f2] ${compact ? "rounded-md px-3 py-1.5 text-sm" : `${inline ? "w-full sm:w-auto" : "w-full"} rounded-md px-6`}`}
-      style={{ borderColor: BRAND[provider].border, color: BRAND[provider].color, fontWeight: BRAND[provider].weight, fontFamily: BRAND[provider].font, ...(compact ? {} : { height: 44, fontSize: 14 }) }}
+      className={`btn border ${dark ? "hover:brightness-125" : "bg-white hover:bg-[#f2f2f2]"} ${compact ? "rounded-md px-3 py-1.5 text-sm" : `${inline ? "w-full sm:w-auto" : "w-full"} rounded-md px-6`}`}
+      style={{
+        borderColor: dark ? DARK[provider].border : BRAND[provider].border,
+        color: dark ? DARK[provider].color : BRAND[provider].color,
+        background: dark ? DARK[provider].bg : undefined,
+        fontWeight: BRAND[provider].weight,
+        fontFamily: BRAND[provider].font,
+        ...(compact ? {} : { height: dark ? 48 : 44, fontSize: dark ? 15 : 14 }),
+      }}
     >
       {provider === "google" ? <GoogleLogo /> : <MicrosoftLogo />}
       {label ?? DEFAULT_LABEL[provider]}

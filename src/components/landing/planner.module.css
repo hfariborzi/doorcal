@@ -1,0 +1,403 @@
+/* The magnetic week planner on the landing page. Light: white enamel board. Dark: black glass board. */
+
+.planner {
+  --row: 22px;
+  --ink: #1b1b1e;
+  --print: #e9e8e4;
+  --print-ink: #3a3a40;
+  --gridline: #e3e6e8;
+  --gridline-hour: #d3d8dc;
+  --plate: #fcfcfa;
+  --work: #e11d48;
+  --work-lip: #a3122f;
+  --life: #f5a524;
+  --life-lip: #b8740a;
+  --people: #557563;
+  --people-lip: #3b5446;
+  --snap: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --out: cubic-bezier(0.23, 1, 0.32, 1);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+:global([data-theme="dark"]) .planner {
+  --ink: #f4f4f5;
+  --print: #26262b;
+  --print-ink: #c9c9cf;
+  --gridline: #222226;
+  --gridline-hour: #2e2e33;
+  --plate: #141416;
+}
+
+/* The week */
+.week {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.25rem 1fr;
+  grid-template-rows: auto auto;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.week::-webkit-scrollbar {
+  display: none;
+}
+
+/* On phones the week scrolls sideways; soft edges show there is more on either side. */
+@media (max-width: 767px) {
+  .week {
+    mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 28px), transparent);
+  }
+}
+
+.days {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  min-width: 560px;
+  padding-bottom: 8px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  font-stretch: 112%;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.days span {
+  padding-left: 6px;
+}
+
+.days span[data-today] {
+  color: var(--work);
+}
+
+.days span[data-weekend] {
+  color: var(--people);
+}
+
+:global([data-theme="dark"]) .days span[data-weekend] {
+  color: #8fb39c;
+}
+
+.rail {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  grid-column: 1;
+  grid-row: 2;
+  background: var(--plate);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.rail span {
+  position: absolute;
+  right: 8px;
+  transform: translateY(-50%);
+}
+
+.grid {
+  position: relative;
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 560px;
+  height: calc(var(--row) * 22);
+  background-image:
+    linear-gradient(to bottom, var(--gridline-hour) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--gridline) 1px, transparent 1px),
+    linear-gradient(to right, var(--gridline-hour) 1px, transparent 1px);
+  background-size:
+    100% calc(var(--row) * 2),
+    100% var(--row),
+    calc(100% / 7) 100%;
+  border-right: 1px solid var(--gridline-hour);
+  border-bottom: 1px solid var(--gridline-hour);
+  touch-action: pan-y;
+}
+
+/* Fixed meetings are printed on the board: flat, no gloss, never draggable. */
+.meeting {
+  position: absolute;
+  left: calc(var(--c) * 100% / 7 + 3px);
+  top: calc(var(--r) * var(--row) + 2px);
+  width: calc(100% / 7 - 6px);
+  height: calc(var(--l) * var(--row) - 3px);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  padding: 0 7px;
+  border-radius: 3px;
+  background: var(--print);
+  color: var(--print-ink);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  animation: print 600ms var(--out) backwards;
+  animation-delay: calc(var(--i) * 45ms);
+}
+
+.meeting[data-booked] {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--work) 55%, transparent);
+}
+
+@keyframes print {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+}
+
+/* Magnets: thick, glossy, with a lip underneath and a real shadow on the board. */
+.magnet {
+  --face: var(--work);
+  --lip: var(--work-lip);
+  --text: #fff;
+  position: absolute;
+  z-index: 2;
+  left: calc(var(--c) * 100% / 7 + 3px);
+  top: calc(var(--r) * var(--row) + 2px);
+  width: calc(100% / 7 - 6px);
+  height: calc(var(--l) * var(--row) - 4px);
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.22), transparent 42%), var(--face);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    inset 0 -3px 0 var(--lip),
+    0 1px 1px rgb(24 24 27 / 0.12),
+    0 6px 12px -6px rgb(24 24 27 / 0.5);
+  color: var(--text);
+  font-family: var(--font-display), sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-stretch: 105%;
+  line-height: 1.2;
+  text-align: left;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition:
+    transform 460ms var(--snap),
+    box-shadow 180ms var(--out);
+  animation: snapIn 700ms var(--snap) backwards;
+  animation-delay: calc(350ms + var(--i) * 50ms);
+}
+
+.magnet span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.magnet[data-kind="life"],
+.loose[data-kind="life"] {
+  --face: var(--life);
+  --lip: var(--life-lip);
+  --text: #1b1b1e;
+}
+
+.magnet[data-kind="people"],
+.loose[data-kind="people"] {
+  --face: var(--people);
+  --lip: var(--people-lip);
+  --text: #fff;
+}
+
+/* Dori's suggestion: not stuck yet, so it shows a dashed outline instead of a solid magnet. */
+.magnet[data-suggested] {
+  background: color-mix(in srgb, var(--face) 14%, transparent);
+  box-shadow: none;
+  outline: 1.5px dashed color-mix(in srgb, var(--life-lip) 80%, transparent);
+  outline-offset: -1.5px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.magnet[data-lifted] {
+  z-index: 5;
+  cursor: grabbing;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    inset 0 -3px 0 var(--lip),
+    0 18px 28px -10px rgb(24 24 27 / 0.55);
+}
+
+.magnet[data-refused] {
+  animation: refuse 380ms var(--out);
+}
+
+.magnet:focus-visible,
+.loose:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+@keyframes snapIn {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(1.06);
+    box-shadow: 0 24px 30px -12px rgb(24 24 27 / 0.4);
+  }
+  55% {
+    opacity: 1;
+  }
+}
+
+@keyframes refuse {
+  20% {
+    translate: -5px 0;
+  }
+  45% {
+    translate: 4px 0;
+  }
+  70% {
+    translate: -2px 0;
+  }
+}
+
+.sunday {
+  position: absolute;
+  left: calc(6 * 100% / 7 + 6px);
+  top: calc(10 * var(--row));
+  width: calc(100% / 7 - 10px);
+  font-family: var(--font-marker), cursive;
+  font-size: 15px;
+  line-height: 1.15;
+  color: color-mix(in srgb, var(--ink) 78%, transparent);
+  transform: rotate(-4deg);
+  animation: print 800ms var(--out) 1.4s backwards;
+}
+
+/* The tray along the bottom edge of the board */
+.tray {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 64px;
+  margin-top: 16px;
+  padding: 10px 112px 10px 14px;
+  border-top: 1px solid rgb(255 255 255 / 0.7);
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.22) 0 1px, rgb(0 0 0 / 0.03) 1px 2px, transparent 2px 4px),
+    linear-gradient(180deg, #eef0f2, #c6cbcf);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    inset 0 -2px 0 rgb(24 24 27 / 0.1);
+}
+
+:global([data-theme="dark"]) .tray {
+  border-top-color: rgb(255 255 255 / 0.08);
+  background:
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.04) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #2f2f35, #1c1c20);
+}
+
+.trayMagnets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.loose {
+  --face: var(--work);
+  --lip: var(--work-lip);
+  --text: #fff;
+  padding: 6px 10px 8px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.22), transparent 45%), var(--face);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    inset 0 -3px 0 var(--lip),
+    0 4px 8px -5px rgb(24 24 27 / 0.6);
+  color: var(--text);
+  font-family: var(--font-display), sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  font-stretch: 105%;
+  transition: transform 160ms var(--out);
+}
+
+.loose:active {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .loose:hover {
+    transform: translateY(-2px) rotate(-1.5deg);
+  }
+}
+
+.trayEmpty {
+  font-family: var(--font-marker), cursive;
+  font-size: 14px;
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+}
+
+.note {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-marker), cursive;
+  font-size: 15px;
+  line-height: 1.2;
+  color: color-mix(in srgb, var(--ink) 75%, transparent);
+  animation: write 300ms var(--out);
+}
+
+.note[data-tone="no"] {
+  color: var(--work);
+}
+
+@keyframes write {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    translate: 0 3px;
+  }
+}
+
+.dori {
+  position: absolute;
+  right: 14px;
+  bottom: 6px;
+  filter: drop-shadow(0 6px 6px rgb(24 24 27 / 0.25));
+}
+
+@media (max-width: 767px) {
+  .planner {
+    --row: 19px;
+  }
+  .tray {
+    flex-wrap: wrap;
+    padding-right: 100px;
+  }
+  .note {
+    flex-basis: 100%;
+    order: -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meeting,
+  .magnet,
+  .sunday,
+  .note {
+    animation: none;
+  }
+  .magnet {
+    transition: box-shadow 180ms var(--out);
+  }
+}

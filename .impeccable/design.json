@@ -1,0 +1,696 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-12T17:40:29+00:00",
+  "title": "Design System: Midore",
+  "extensions": {
+    "colorMeta": {
+      "work-vermilion": {
+        "role": "primary",
+        "displayName": "Kyoto Vermilion",
+        "canonical": "#e11d48",
+        "tonalRamp": [
+          "oklch(15.0% 0.222 17.6)",
+          "oklch(26.4% 0.222 17.6)",
+          "oklch(37.9% 0.222 17.6)",
+          "oklch(49.3% 0.222 17.6)",
+          "oklch(60.7% 0.222 17.6)",
+          "oklch(72.1% 0.222 17.6)",
+          "oklch(83.6% 0.222 17.6)",
+          "oklch(95.0% 0.222 17.6)"
+        ]
+      },
+      "work-lip": {
+        "role": "primary",
+        "displayName": "Lacquer Red",
+        "canonical": "#a3122f",
+        "tonalRamp": [
+          "oklch(15.0% 0.175 18.7)",
+          "oklch(26.4% 0.175 18.7)",
+          "oklch(37.9% 0.175 18.7)",
+          "oklch(49.3% 0.175 18.7)",
+          "oklch(60.7% 0.175 18.7)",
+          "oklch(72.1% 0.175 18.7)",
+          "oklch(83.6% 0.175 18.7)",
+          "oklch(95.0% 0.175 18.7)"
+        ]
+      },
+      "vermilion-deep": {
+        "role": "primary",
+        "displayName": "Deep Vermilion",
+        "canonical": "#be123c",
+        "tonalRamp": [
+          "oklch(15.0% 0.198 16.9)",
+          "oklch(26.4% 0.198 16.9)",
+          "oklch(37.9% 0.198 16.9)",
+          "oklch(49.3% 0.198 16.9)",
+          "oklch(60.7% 0.198 16.9)",
+          "oklch(72.1% 0.198 16.9)",
+          "oklch(83.6% 0.198 16.9)",
+          "oklch(95.0% 0.198 16.9)"
+        ]
+      },
+      "life-amber": {
+        "role": "secondary",
+        "displayName": "Marigold",
+        "canonical": "#f5a524",
+        "tonalRamp": [
+          "oklch(15.0% 0.158 72.3)",
+          "oklch(26.4% 0.158 72.3)",
+          "oklch(37.9% 0.158 72.3)",
+          "oklch(49.3% 0.158 72.3)",
+          "oklch(60.7% 0.158 72.3)",
+          "oklch(72.1% 0.158 72.3)",
+          "oklch(83.6% 0.158 72.3)",
+          "oklch(95.0% 0.158 72.3)"
+        ]
+      },
+      "life-lip": {
+        "role": "secondary",
+        "displayName": "Burnt Marigold",
+        "canonical": "#b8740a",
+        "tonalRamp": [
+          "oklch(15.0% 0.132 68.7)",
+          "oklch(26.4% 0.132 68.7)",
+          "oklch(37.9% 0.132 68.7)",
+          "oklch(49.3% 0.132 68.7)",
+          "oklch(60.7% 0.132 68.7)",
+          "oklch(72.1% 0.132 68.7)",
+          "oklch(83.6% 0.132 68.7)",
+          "oklch(95.0% 0.132 68.7)"
+        ]
+      },
+      "people-sage": {
+        "role": "tertiary",
+        "displayName": "Sage",
+        "canonical": "#557563",
+        "tonalRamp": [
+          "oklch(15.0% 0.046 159.7)",
+          "oklch(26.4% 0.046 159.7)",
+          "oklch(37.9% 0.046 159.7)",
+          "oklch(49.3% 0.046 159.7)",
+          "oklch(60.7% 0.046 159.7)",
+          "oklch(72.1% 0.046 159.7)",
+          "oklch(83.6% 0.046 159.7)",
+          "oklch(95.0% 0.046 159.7)"
+        ]
+      },
+      "people-lip": {
+        "role": "tertiary",
+        "displayName": "Deep Sage",
+        "canonical": "#3b5446",
+        "tonalRamp": [
+          "oklch(15.0% 0.038 159.7)",
+          "oklch(26.4% 0.038 159.7)",
+          "oklch(37.9% 0.038 159.7)",
+          "oklch(49.3% 0.038 159.7)",
+          "oklch(60.7% 0.038 159.7)",
+          "oklch(72.1% 0.038 159.7)",
+          "oklch(83.6% 0.038 159.7)",
+          "oklch(95.0% 0.038 159.7)"
+        ]
+      },
+      "enamel": {
+        "role": "neutral",
+        "displayName": "Enamel",
+        "canonical": "#fcfcfa",
+        "tonalRamp": [
+          "oklch(15.0% 0.003 106.4)",
+          "oklch(26.4% 0.003 106.4)",
+          "oklch(37.9% 0.003 106.4)",
+          "oklch(49.3% 0.003 106.4)",
+          "oklch(60.7% 0.003 106.4)",
+          "oklch(72.1% 0.003 106.4)",
+          "oklch(83.6% 0.003 106.4)",
+          "oklch(95.0% 0.003 106.4)"
+        ],
+        "darkValue": "#141416"
+      },
+      "enamel-sheen": {
+        "role": "neutral",
+        "displayName": "Enamel Sheen",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 89.9)",
+          "oklch(26.4% 0.000 89.9)",
+          "oklch(37.9% 0.000 89.9)",
+          "oklch(49.3% 0.000 89.9)",
+          "oklch(60.7% 0.000 89.9)",
+          "oklch(72.1% 0.000 89.9)",
+          "oklch(83.6% 0.000 89.9)",
+          "oklch(95.0% 0.000 89.9)"
+        ],
+        "darkValue": "#1c1c20"
+      },
+      "steel-light": {
+        "role": "neutral",
+        "displayName": "Brushed Steel",
+        "canonical": "#f3f4f5",
+        "tonalRamp": [
+          "oklch(15.0% 0.002 247.8)",
+          "oklch(26.4% 0.002 247.8)",
+          "oklch(37.9% 0.002 247.8)",
+          "oklch(49.3% 0.002 247.8)",
+          "oklch(60.7% 0.002 247.8)",
+          "oklch(72.1% 0.002 247.8)",
+          "oklch(83.6% 0.002 247.8)",
+          "oklch(95.0% 0.002 247.8)"
+        ],
+        "darkValue": "#34343a"
+      },
+      "steel-shade": {
+        "role": "neutral",
+        "displayName": "Brushed Steel Shade",
+        "canonical": "#d5d9dc",
+        "tonalRamp": [
+          "oklch(15.0% 0.006 239.8)",
+          "oklch(26.4% 0.006 239.8)",
+          "oklch(37.9% 0.006 239.8)",
+          "oklch(49.3% 0.006 239.8)",
+          "oklch(60.7% 0.006 239.8)",
+          "oklch(72.1% 0.006 239.8)",
+          "oklch(83.6% 0.006 239.8)",
+          "oklch(95.0% 0.006 239.8)"
+        ],
+        "darkValue": "#1f1f23"
+      },
+      "print": {
+        "role": "neutral",
+        "displayName": "Print Grey",
+        "canonical": "#e9e8e4",
+        "tonalRamp": [
+          "oklch(15.0% 0.005 95.1)",
+          "oklch(26.4% 0.005 95.1)",
+          "oklch(37.9% 0.005 95.1)",
+          "oklch(49.3% 0.005 95.1)",
+          "oklch(60.7% 0.005 95.1)",
+          "oklch(72.1% 0.005 95.1)",
+          "oklch(83.6% 0.005 95.1)",
+          "oklch(95.0% 0.005 95.1)"
+        ],
+        "darkValue": "#26262b"
+      },
+      "print-ink": {
+        "role": "neutral",
+        "displayName": "Print Ink",
+        "canonical": "#3a3a40",
+        "tonalRamp": [
+          "oklch(15.0% 0.010 285.9)",
+          "oklch(26.4% 0.010 285.9)",
+          "oklch(37.9% 0.010 285.9)",
+          "oklch(49.3% 0.010 285.9)",
+          "oklch(60.7% 0.010 285.9)",
+          "oklch(72.1% 0.010 285.9)",
+          "oklch(83.6% 0.010 285.9)",
+          "oklch(95.0% 0.010 285.9)"
+        ],
+        "darkValue": "#c9c9cf"
+      },
+      "gridline": {
+        "role": "neutral",
+        "displayName": "Grid Rule",
+        "canonical": "#e3e6e8",
+        "tonalRamp": [
+          "oklch(15.0% 0.004 236.5)",
+          "oklch(26.4% 0.004 236.5)",
+          "oklch(37.9% 0.004 236.5)",
+          "oklch(49.3% 0.004 236.5)",
+          "oklch(60.7% 0.004 236.5)",
+          "oklch(72.1% 0.004 236.5)",
+          "oklch(83.6% 0.004 236.5)",
+          "oklch(95.0% 0.004 236.5)"
+        ],
+        "darkValue": "#222226"
+      },
+      "gridline-hour": {
+        "role": "neutral",
+        "displayName": "Hour Rule",
+        "canonical": "#d3d8dc",
+        "tonalRamp": [
+          "oklch(15.0% 0.008 241.7)",
+          "oklch(26.4% 0.008 241.7)",
+          "oklch(37.9% 0.008 241.7)",
+          "oklch(49.3% 0.008 241.7)",
+          "oklch(60.7% 0.008 241.7)",
+          "oklch(72.1% 0.008 241.7)",
+          "oklch(83.6% 0.008 241.7)",
+          "oklch(95.0% 0.008 241.7)"
+        ],
+        "darkValue": "#2e2e33"
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Canvas",
+        "canonical": "#fbf8fc",
+        "tonalRamp": [
+          "oklch(15.0% 0.006 317.8)",
+          "oklch(26.4% 0.006 317.8)",
+          "oklch(37.9% 0.006 317.8)",
+          "oklch(49.3% 0.006 317.8)",
+          "oklch(60.7% 0.006 317.8)",
+          "oklch(72.1% 0.006 317.8)",
+          "oklch(83.6% 0.006 317.8)",
+          "oklch(95.0% 0.006 317.8)"
+        ],
+        "darkValue": "#121016"
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 89.9)",
+          "oklch(26.4% 0.000 89.9)",
+          "oklch(37.9% 0.000 89.9)",
+          "oklch(49.3% 0.000 89.9)",
+          "oklch(60.7% 0.000 89.9)",
+          "oklch(72.1% 0.000 89.9)",
+          "oklch(83.6% 0.000 89.9)",
+          "oklch(95.0% 0.000 89.9)"
+        ],
+        "darkValue": "#1b1820"
+      },
+      "raised": {
+        "role": "neutral",
+        "displayName": "Raised",
+        "canonical": "#f6f2f7",
+        "tonalRamp": [
+          "oklch(15.0% 0.008 319.4)",
+          "oklch(26.4% 0.008 319.4)",
+          "oklch(37.9% 0.008 319.4)",
+          "oklch(49.3% 0.008 319.4)",
+          "oklch(60.7% 0.008 319.4)",
+          "oklch(72.1% 0.008 319.4)",
+          "oklch(83.6% 0.008 319.4)",
+          "oklch(95.0% 0.008 319.4)"
+        ],
+        "darkValue": "#24212a"
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#e4e1e6",
+        "tonalRamp": [
+          "oklch(15.0% 0.007 312.3)",
+          "oklch(26.4% 0.007 312.3)",
+          "oklch(37.9% 0.007 312.3)",
+          "oklch(49.3% 0.007 312.3)",
+          "oklch(60.7% 0.007 312.3)",
+          "oklch(72.1% 0.007 312.3)",
+          "oklch(83.6% 0.007 312.3)",
+          "oklch(95.0% 0.007 312.3)"
+        ],
+        "darkValue": "#2e2a35"
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Strong Line",
+        "canonical": "#ccc3d8",
+        "tonalRamp": [
+          "oklch(15.0% 0.031 305.0)",
+          "oklch(26.4% 0.031 305.0)",
+          "oklch(37.9% 0.031 305.0)",
+          "oklch(49.3% 0.031 305.0)",
+          "oklch(60.7% 0.031 305.0)",
+          "oklch(72.1% 0.031 305.0)",
+          "oklch(83.6% 0.031 305.0)",
+          "oklch(95.0% 0.031 305.0)"
+        ],
+        "darkValue": "#4a4455"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Charcoal Ink",
+        "canonical": "#1b1b1e",
+        "tonalRamp": [
+          "oklch(15.0% 0.006 285.9)",
+          "oklch(26.4% 0.006 285.9)",
+          "oklch(37.9% 0.006 285.9)",
+          "oklch(49.3% 0.006 285.9)",
+          "oklch(60.7% 0.006 285.9)",
+          "oklch(72.1% 0.006 285.9)",
+          "oklch(83.6% 0.006 285.9)",
+          "oklch(95.0% 0.006 285.9)"
+        ],
+        "darkValue": "#fafafa"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#4a4455",
+        "tonalRamp": [
+          "oklch(15.0% 0.029 301.2)",
+          "oklch(26.4% 0.029 301.2)",
+          "oklch(37.9% 0.029 301.2)",
+          "oklch(49.3% 0.029 301.2)",
+          "oklch(60.7% 0.029 301.2)",
+          "oklch(72.1% 0.029 301.2)",
+          "oklch(83.6% 0.029 301.2)",
+          "oklch(95.0% 0.029 301.2)"
+        ],
+        "darkValue": "#d4d4d8"
+      },
+      "faint": {
+        "role": "neutral",
+        "displayName": "Faint",
+        "canonical": "#7b7487",
+        "tonalRamp": [
+          "oklch(15.0% 0.030 302.2)",
+          "oklch(26.4% 0.030 302.2)",
+          "oklch(37.9% 0.030 302.2)",
+          "oklch(49.3% 0.030 302.2)",
+          "oklch(60.7% 0.030 302.2)",
+          "oklch(72.1% 0.030 302.2)",
+          "oklch(83.6% 0.030 302.2)",
+          "oklch(95.0% 0.030 302.2)"
+        ],
+        "darkValue": "#a1a1aa"
+      },
+      "signin-dark": {
+        "role": "neutral",
+        "displayName": "Google Dark",
+        "canonical": "#131314",
+        "tonalRamp": [
+          "oklch(15.0% 0.002 286.2)",
+          "oklch(26.4% 0.002 286.2)",
+          "oklch(37.9% 0.002 286.2)",
+          "oklch(49.3% 0.002 286.2)",
+          "oklch(60.7% 0.002 286.2)",
+          "oklch(72.1% 0.002 286.2)",
+          "oklch(83.6% 0.002 286.2)",
+          "oklch(95.0% 0.002 286.2)"
+        ]
+      },
+      "signin-dark-border": {
+        "role": "neutral",
+        "displayName": "Google Dark Border",
+        "canonical": "#8e918f",
+        "tonalRamp": [
+          "oklch(15.0% 0.005 157.1)",
+          "oklch(26.4% 0.005 157.1)",
+          "oklch(37.9% 0.005 157.1)",
+          "oklch(49.3% 0.005 157.1)",
+          "oklch(60.7% 0.005 157.1)",
+          "oklch(72.1% 0.005 157.1)",
+          "oklch(83.6% 0.005 157.1)",
+          "oklch(95.0% 0.005 157.1)"
+        ]
+      },
+      "signin-dark-text": {
+        "role": "neutral",
+        "displayName": "Google Dark Text",
+        "canonical": "#e3e3e3",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 89.9)",
+          "oklch(26.4% 0.000 89.9)",
+          "oklch(37.9% 0.000 89.9)",
+          "oklch(49.3% 0.000 89.9)",
+          "oklch(60.7% 0.000 89.9)",
+          "oklch(72.1% 0.000 89.9)",
+          "oklch(83.6% 0.000 89.9)",
+          "oklch(95.0% 0.000 89.9)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero headline only; 2.75rem phones, 3.75rem from 640px, 3.4rem at 1024px, 3.9rem from 1280px."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headings; 2.25rem phones, 3rem from 640px, 3.75rem for the two widest statements."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Step titles and the booking card title."
+      },
+      "body-lead": {
+        "displayName": "Body Lead",
+        "purpose": "The one muted paragraph under each heading."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "FAQ answers and step text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Hero checks, booking metadata, trust list."
+      },
+      "board-day": {
+        "displayName": "Board Day",
+        "purpose": "Uppercase day columns on the board; today vermilion, weekend sage."
+      },
+      "magnet": {
+        "displayName": "Magnet",
+        "purpose": "Text on board magnets; tray 12px, marquee 15px."
+      },
+      "print": {
+        "displayName": "Print",
+        "purpose": "Meeting titles printed on the board."
+      },
+      "marker": {
+        "displayName": "Marker",
+        "purpose": "Handwritten notes, replies and captions on the board only."
+      }
+    },
+    "shadows": [
+      {
+        "name": "frame-standoff",
+        "value": "inset 1px 1px 0 rgb(255 255 255 / 0.95), inset -1px -1px 0 rgb(24 24 27 / 0.14), 0 40px 70px -40px rgb(24 24 27 / 0.45), 0 12px 24px -16px rgb(24 24 27 / 0.3)",
+        "purpose": "The aluminium frame around the hero and closing boards. Dark: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 40px 70px -40px rgb(0 0 0 / 0.9)."
+      },
+      {
+        "name": "enamel-recess",
+        "value": "inset 0 0 0 1px rgb(24 24 27 / 0.06), inset 0 2px 6px rgb(24 24 27 / 0.06)",
+        "purpose": "The writing surface sitting inside the frame."
+      },
+      {
+        "name": "magnet-rest",
+        "value": "inset 0 1px 0 rgb(255 255 255 / 0.35), inset 0 -3px 0 var(--lip), 0 1px 1px rgb(24 24 27 / 0.12), 0 6px 12px -6px rgb(24 24 27 / 0.5)",
+        "purpose": "Board magnets: highlight, kind-coloured lip, contact and cast shadow."
+      },
+      {
+        "name": "magnet-lifted",
+        "value": "inset 0 1px 0 rgb(255 255 255 / 0.35), inset 0 -3px 0 var(--lip), 0 18px 28px -10px rgb(24 24 27 / 0.55)",
+        "purpose": "A magnet while it is being dragged."
+      },
+      {
+        "name": "magnet-loose",
+        "value": "inset 0 1px 0 rgb(255 255 255 / 0.35), inset 0 -3px 0 var(--lip), 0 4px 8px -5px rgb(24 24 27 / 0.6)",
+        "purpose": "Spare magnets lying on the tray."
+      },
+      {
+        "name": "dot-magnet",
+        "value": "inset 0 -3px 0 rgb(0 0 0 / 0.2), 0 6px 10px -5px rgb(24 24 27 / 0.55)",
+        "purpose": "Round magnets: step markers and the booking card's pin."
+      },
+      {
+        "name": "card-on-board",
+        "value": "0 1px 0 rgb(24 24 27 / 0.04), 0 30px 50px -30px rgb(24 24 27 / 0.45)",
+        "purpose": "The booking card held up by one magnet."
+      },
+      {
+        "name": "tray-bevel",
+        "value": "inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 -2px 0 rgb(24 24 27 / 0.1)",
+        "purpose": "The metal tray ledge under the week."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-snap",
+        "value": "cubic-bezier(0.34, 1.45, 0.64, 1)",
+        "purpose": "Magnet snap with one damped overshoot; 460ms settle after a drop, 700ms on arrival."
+      },
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Printing, writing, reveals, shadow changes."
+      },
+      {
+        "name": "print-in",
+        "value": "600ms ease-out, from opacity 0 and blur(3px), 45ms stagger",
+        "purpose": "Meetings appearing on the board, in order."
+      },
+      {
+        "name": "snap-in",
+        "value": "700ms ease-snap, delay 350ms + 50ms per magnet, from translateY(-16px) scale(1.06)",
+        "purpose": "Magnets arriving after the meetings are printed."
+      },
+      {
+        "name": "refuse",
+        "value": "380ms ease-out, sideways shake -5px / 4px / -2px",
+        "purpose": "A magnet dropped on a meeting, another magnet, or off the board."
+      },
+      {
+        "name": "write",
+        "value": "300ms ease-out, from blur(2px) and 3px down",
+        "purpose": "The marker status note changing."
+      },
+      {
+        "name": "reveal",
+        "value": "700ms ease-out on view() timeline, entry 0% to 40%, from 24px down",
+        "purpose": "Dori section entering the viewport."
+      },
+      {
+        "name": "marquee-drift",
+        "value": "48s linear infinite, pauses on hover",
+        "purpose": "The single marquee of magnets; disabled under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px",
+        "purpose": "Below this the week scrolls sideways, rows shrink to 19px, the step rail hides."
+      },
+      {
+        "name": "lg",
+        "value": "1024px",
+        "purpose": "Hero splits into offer and week; board padding widens."
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Magnet (work, life, people)",
+      "kind": "custom",
+      "refersTo": "magnet-work",
+      "description": "The board's movable time blocks; colour states the kind of time.",
+      "html": "<div class=\"ds-mag-row\"><button class=\"ds-magnet ds-work\">Draft Q4 report</button><button class=\"ds-magnet ds-life\">Gym</button><button class=\"ds-magnet ds-people\">Dinner with Maya</button></div>",
+      "css": ".ds-mag-row { display: flex; gap: 8px; padding: 16px; background: #fcfcfa; } .ds-magnet { --face: #e11d48; --lip: #a3122f; --text: #fff; width: 104px; height: 62px; padding: 4px 7px; font-size: 11.5px; line-height: 1.2; text-align: left; display: flex; align-items: flex-start; font-family: Archivo, sans-serif; font-weight: 700; font-stretch: 105%; border: 0; border-radius: 5px; background: linear-gradient(180deg, rgb(255 255 255 / 0.22), transparent 42%), var(--face); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), inset 0 -3px 0 var(--lip), 0 1px 1px rgb(24 24 27 / 0.12), 0 6px 12px -6px rgb(24 24 27 / 0.5); color: var(--text); cursor: grab; transition: transform 460ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 180ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-life { --face: #f5a524; --lip: #b8740a; --text: #1b1b1e; } .ds-people { --face: #557563; --lip: #3b5446; --text: #fff; } .ds-magnet:hover { transform: translateY(-1px); } .ds-magnet:active { cursor: grabbing; transform: rotate(-2deg); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), inset 0 -3px 0 var(--lip), 0 18px 28px -10px rgb(24 24 27 / 0.55); } .ds-magnet:focus-visible { outline: 2px solid #1b1b1e; outline-offset: 2px; }"
+    },
+    {
+      "name": "Printed meeting",
+      "kind": "custom",
+      "refersTo": "meeting-print",
+      "description": "A fixed meeting printed on the board: flat, no gloss, not interactive; booked ones carry a vermilion hairline.",
+      "html": "<div class=\"ds-print-row\"><div class=\"ds-meeting\">Design review</div><div class=\"ds-meeting ds-booked\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\"><path d=\"M9 17H7A5 5 0 0 1 7 7h2\"/><path d=\"M15 7h2a5 5 0 1 1 0 10h-2\"/><line x1=\"8\" x2=\"16\" y1=\"12\" y2=\"12\"/></svg>Intro call · Ana</div></div>",
+      "css": ".ds-print-row { display: flex; gap: 8px; padding: 16px; background: #fcfcfa; } .ds-meeting { width: 110px; height: 41px; display: flex; align-items: center; gap: 4px; padding: 0 7px; border-radius: 3px; background: #e9e8e4; color: #3a3a40; font-family: Geist, sans-serif; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; } .ds-booked { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, #e11d48 55%, transparent); }"
+    },
+    {
+      "name": "Suggested magnet (Dori)",
+      "kind": "custom",
+      "refersTo": "magnet-life",
+      "description": "A suggestion not yet pinned: colour wash with a dashed outline; tapping pins it.",
+      "html": "<div class=\"ds-sug-wrap\"><button class=\"ds-suggested\">Long walk?</button></div>",
+      "css": ".ds-sug-wrap { padding: 16px; background: #fcfcfa; } .ds-suggested { width: 104px; height: 40px; padding: 4px 7px; border: 0; border-radius: 5px; background: color-mix(in srgb, #f5a524 14%, transparent); outline: 1.5px dashed color-mix(in srgb, #b8740a 80%, transparent); outline-offset: -1.5px; color: #1b1b1e; font-family: Archivo, sans-serif; font-size: 11.5px; font-weight: 700; font-stretch: 105%; text-align: left; cursor: pointer; transition: background 180ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-suggested:hover { background: color-mix(in srgb, #f5a524 24%, transparent); } .ds-suggested:focus-visible { outline: 2px solid #1b1b1e; outline-offset: 2px; }"
+    },
+    {
+      "name": "Board and tray",
+      "kind": "card",
+      "refersTo": "board",
+      "description": "The aluminium frame, the enamel board with its half-hour grid, and the tray with loose magnets and a marker note.",
+      "html": "<div class=\"ds-frame\"><div class=\"ds-board\"><div class=\"ds-grid\"></div><div class=\"ds-tray\"><button class=\"ds-loose ds-l-life\">Read a book</button><button class=\"ds-loose ds-l-people\">Movie night</button><p class=\"ds-note\">Drag a magnet, or tap one on the tray.</p></div></div></div>",
+      "css": ".ds-frame { padding: 10px; border-radius: 26px; border: 1px solid rgb(24 24 27 / 0.1); background: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.22) 0 1px, rgb(0 0 0 / 0.03) 1px 2px, transparent 2px 3px), linear-gradient(160deg, rgb(255 255 255 / 0.6), transparent 35%, transparent 65%, rgb(24 24 27 / 0.08)), linear-gradient(180deg, #f3f4f5, #d5d9dc); box-shadow: inset 1px 1px 0 rgb(255 255 255 / 0.95), inset -1px -1px 0 rgb(24 24 27 / 0.14), 0 40px 70px -40px rgb(24 24 27 / 0.45), 0 12px 24px -16px rgb(24 24 27 / 0.3); } .ds-board { border-radius: 18px; padding: 18px; background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.55) 38%, transparent 46%), radial-gradient(120% 90% at 18% 0%, #ffffff, #fcfcfa 60%); box-shadow: inset 0 0 0 1px rgb(24 24 27 / 0.06), inset 0 2px 6px rgb(24 24 27 / 0.06); } .ds-grid { height: 132px; background-image: linear-gradient(to bottom, #d3d8dc 1px, transparent 1px), linear-gradient(to bottom, #e3e6e8 1px, transparent 1px), linear-gradient(to right, #d3d8dc 1px, transparent 1px); background-size: 100% 44px, 100% 22px, calc(100% / 7) 100%; border-right: 1px solid #d3d8dc; border-bottom: 1px solid #d3d8dc; } .ds-tray { display: flex; align-items: center; gap: 8px; min-height: 64px; margin-top: 16px; padding: 10px 14px; border-radius: 10px; border-top: 1px solid rgb(255 255 255 / 0.7); background: repeating-linear-gradient(90deg, rgb(255 255 255 / 0.22) 0 1px, rgb(0 0 0 / 0.03) 1px 2px, transparent 2px 4px), linear-gradient(180deg, #eef0f2, #c6cbcf); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 -2px 0 rgb(24 24 27 / 0.1); } .ds-loose { --face: #e11d48; --lip: #a3122f; --text: #fff; padding: 6px 10px 8px; border: 0; border-radius: 5px; background: linear-gradient(180deg, rgb(255 255 255 / 0.22), transparent 45%), var(--face); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), inset 0 -3px 0 var(--lip), 0 4px 8px -5px rgb(24 24 27 / 0.6); color: var(--text); font-family: Archivo, sans-serif; font-size: 12px; font-weight: 700; font-stretch: 105%; cursor: pointer; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-l-life { --face: #f5a524; --lip: #b8740a; --text: #1b1b1e; } .ds-l-people { --face: #557563; --lip: #3b5446; } .ds-loose:hover { transform: translateY(-2px) rotate(-1.5deg); } .ds-loose:active { transform: scale(0.96); } .ds-loose:focus-visible { outline: 2px solid #1b1b1e; outline-offset: 2px; } .ds-note { flex: 1; margin: 0 0 0 8px; font-family: 'Permanent Marker', cursive; font-size: 15px; line-height: 1.2; color: color-mix(in srgb, #1b1b1e 75%, transparent); }"
+    },
+    {
+      "name": "Sign-in button (Google dark)",
+      "kind": "button",
+      "refersTo": "button-signin-dark",
+      "description": "The page's primary action: Google's own published dark sign-in button, never recoloured.",
+      "html": "<a class=\"ds-signin\" href=\"#\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 48 48\"><path fill=\"#FFC107\" d=\"M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z\"/><path fill=\"#FF3D00\" d=\"m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z\"/><path fill=\"#4CAF50\" d=\"M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z\"/><path fill=\"#1976D2\" d=\"M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z\"/></svg>Continue with Google</a>",
+      "css": ".ds-signin { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 24px; border: 1px solid #8e918f; border-radius: 4px; background: #131314; color: #e3e3e3; font-family: Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 15px; font-weight: 500; text-decoration: none; transition: filter 150ms, transform 150ms; } .ds-signin:hover { filter: brightness(1.25); } .ds-signin:active { transform: scale(0.98); } .ds-signin:focus-visible { outline: 2px solid #e11d48; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "The small header action on the board; shared with the app.",
+      "html": "<a class=\"ds-btn-secondary\" href=\"#\">Start free <svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border: 1px solid var(--line, #e4e1e6); border-radius: 4px; background: var(--surface, #fff); color: var(--ink, #1b1b1e); font-family: Geist, sans-serif; font-size: 0.9375rem; font-weight: 500; text-decoration: none; transition: border-color 150ms, background 150ms, transform 150ms; } .ds-btn-secondary:hover { border-color: rgb(27 27 30 / 0.4); background: rgb(225 29 72 / 0.05); } .ds-btn-secondary:active { transform: scale(0.98); } .ds-btn-secondary:focus-visible { outline: 2px solid #e11d48; outline-offset: 2px; }"
+    },
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Vermilion action shown to a signed-in visitor (Open Midore).",
+      "html": "<a class=\"ds-btn-primary\" href=\"#\">Open Midore</a>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 24px; border-radius: 4px; background: #e11d48; color: #fff; font-family: Geist, sans-serif; font-size: 1.0625rem; font-weight: 500; text-decoration: none; transition: background 150ms, transform 150ms; } .ds-btn-primary:hover { background: #be123c; } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid #1b1b1e; outline-offset: 2px; }"
+    },
+    {
+      "name": "Booking card",
+      "kind": "card",
+      "refersTo": "booking-card",
+      "description": "A booking page card held up by one sage dot magnet, tilted slightly; slots select in vermilion.",
+      "html": "<div class=\"ds-bk-wrap\"><div class=\"ds-bk\"><p class=\"ds-bk-url\">midore.app/ana</p><h3 class=\"ds-bk-title\">Intro call</h3><p class=\"ds-bk-meta\">30 min · Google Meet</p><div class=\"ds-bk-slots\"><button class=\"ds-slot\">9:30 am</button><button class=\"ds-slot\" aria-pressed=\"true\">11:00 am</button><button class=\"ds-slot\">1:30 pm</button></div><div class=\"ds-bk-bar\">Book 11:00 am</div></div></div>",
+      "css": ".ds-bk-wrap { padding: 28px; } .ds-bk { position: relative; max-width: 320px; padding: 28px; border-radius: 14px; background: #fff; box-shadow: 0 1px 0 rgb(24 24 27 / 0.04), 0 30px 50px -30px rgb(24 24 27 / 0.45); rotate: -1.5deg; font-family: Geist, sans-serif; } .ds-bk::before { content: ''; position: absolute; top: -12px; left: 50%; width: 26px; height: 26px; margin-left: -13px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.5), transparent 40%), #557563; box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.2), 0 5px 8px -4px rgb(24 24 27 / 0.6); } .ds-bk-url { margin: 0; font-size: 0.9375rem; color: #7b7487; } .ds-bk-title { margin: 4px 0 0; font-family: Archivo, sans-serif; font-weight: 800; font-stretch: 108%; letter-spacing: -0.035em; font-size: 1.5rem; color: #1b1b1e; } .ds-bk-meta { margin: 4px 0 0; font-size: 0.9375rem; color: #4a4455; } .ds-bk-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 20px; } .ds-slot { padding: 8px 0; border: 1px solid #e4e1e6; border-radius: 6px; background: #fff; color: #1b1b1e; font-size: 0.9375rem; font-variant-numeric: tabular-nums; cursor: pointer; transition: background-color 160ms ease, border-color 160ms ease, transform 120ms ease-out; } .ds-slot:hover { border-color: #ccc3d8; } .ds-slot:active { transform: scale(0.97); } .ds-slot:focus-visible { outline: 2px solid #e11d48; outline-offset: 2px; } .ds-slot[aria-pressed='true'] { border-color: #e11d48; background: color-mix(in srgb, #e11d48 8%, #fff); color: #e11d48; } .ds-bk-bar { margin-top: 20px; padding: 10px 16px; border-radius: 4px; background: #1b1b1e; color: #fbf8fc; text-align: center; font-size: 0.9375rem; font-weight: 600; }"
+    },
+    {
+      "name": "Dot magnet step",
+      "kind": "custom",
+      "refersTo": "board",
+      "description": "Round vermilion magnets holding numbered steps on a dashed rail.",
+      "html": "<div class=\"ds-rail\"><span class=\"ds-dot\">1</span><span class=\"ds-dot\">2</span><span class=\"ds-dot\">3</span></div>",
+      "css": ".ds-rail { position: relative; display: flex; justify-content: space-between; padding: 8px 0; max-width: 420px; } .ds-rail::before { content: ''; position: absolute; top: calc(8px + 1.125rem - 1px); left: 1.125rem; right: 1.125rem; height: 2px; background: repeating-linear-gradient(90deg, #ccc3d8 0 8px, transparent 8px 14px); } .ds-dot { position: relative; display: inline-grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 999px; background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.45), transparent 40%), #e11d48; box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.2), 0 6px 10px -5px rgb(24 24 27 / 0.55); color: #fff; font-family: Archivo, sans-serif; font-weight: 800; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Fridge-Door Week",
+    "overview": "Midore's public face is a physical object: a white enamel planner board in a brushed aluminium frame, the kind that hangs on a kitchen wall. The week is a printed half-hour grid. Meetings are part of the printing, flat and grey, and cannot be moved. Everything a person chooses to do (work, errands, rest, people) is a magnet: a thick, glossy strip with a darker lip on its bottom edge and a real shadow on the board. The page's whole argument is the difference between print and magnet.\n\nThe world is calm and domestic rather than corporate. Headlines are heavy and slightly wide, like the lettering printed on a board; notes are scrawled in dry-erase marker; the colour comes almost entirely from the magnets. Outside the board, the page goes quiet: the signed-in app's paper-white canvas, hairline rules and charcoal ink carry the section bodies, and the board's materials reappear only as small echoes (a marquee of magnets, round dot magnets as step markers, a booking card held up by one magnet). In dark mode the enamel becomes black glass and the frame darkens; the magnets keep their colours.\n\nMotion is physical and ordered. Things snap into place with one damped overshoot, in the order they were printed, and a magnet dropped on a meeting shakes and springs back. The page rejects the category default of a tilted app screenshot floating over gradient blobs.",
+    "keyCharacteristics": [
+      "One framed board is the hero and the closing panel; nothing else on the page is framed.",
+      "Three magnet colours, each meaning one kind of time: vermilion work, amber life, sage people.",
+      "Printed meetings are flat; magnets are thick. Depth is how the eye tells fixed from movable.",
+      "Archivo at 800 weight and 108% width for every headline; Geist for reading; Permanent Marker only for handwriting.",
+      "Snap with one overshoot, staged in sequence; nothing drifts or scatters except the one marquee."
+    ],
+    "rules": [
+      {
+        "name": "The Three Kinds Rule",
+        "body": "A magnet is vermilion, amber or sage, and the colour always states the kind of time: work, life, people. There is no fourth magnet colour, and no magnet colour is used for decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Printed Meeting Rule",
+        "body": "Fixed meetings are Print Grey with Print Ink, flat, with no kind colour. The only mark a meeting may carry is a 1.5px vermilion hairline (55% strength) and a link glyph when it was booked through Midore.",
+        "section": "colors"
+      },
+      {
+        "name": "The Stretched Heavy Rule",
+        "body": "Every heading on the landing world is Archivo 800 at 108% width with -0.035em tracking. No lighter display weights and no second display face.",
+        "section": "typography"
+      },
+      {
+        "name": "The Marker Is Handwriting Rule",
+        "body": "Permanent Marker is only for what a person would write on the board: notes, replies, captions. Never headings, buttons or body copy.",
+        "section": "typography"
+      },
+      {
+        "name": "The Thickness Rule",
+        "body": "Only movable things have thickness. A magnet always carries a lip and a cast shadow; printed things never do. If an element on the board has no gloss, it cannot be dragged.",
+        "section": "elevation"
+      },
+      {
+        "name": "The One Frame Rule",
+        "body": "The aluminium frame appears around the hero board and the closing board only. Other sections are unframed paper.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do map every magnet to a kind: vermilion work, amber life, sage people, each with its own lip colour.",
+      "Do keep meetings flat Print Grey; mark a Midore booking only with the 55% vermilion hairline and a link glyph.",
+      "Do give anything draggable the full magnet material: top gloss, 3px lip, contact and cast shadow.",
+      "Do stage arrival in order: meetings print first (45ms apart), then magnets snap in (from 350ms, 50ms apart) with one overshoot (`cubic-bezier(0.34, 1.45, 0.64, 1)`).",
+      "Do write the board's replies in marker: confirmations at 75% ink, refusals in vermilion.",
+      "Do switch off the marquee, reveals and snap-ins under reduced motion, keeping the final layout.",
+      "Do keep the board scrollable on phones with the weekend in view first and the hour rail sticky."
+    ],
+    "donts": [
+      "Don't put an app screenshot, a device mockup or gradient blobs behind the hero; the board is the product shown working.",
+      "Don't add gloss, a lip or a kind colour to a printed meeting.",
+      "Don't introduce a fourth magnet colour or use magnet colours as decoration away from magnets.",
+      "Don't set headings, buttons or body copy in Permanent Marker.",
+      "Don't frame sections other than the hero board and the closing board.",
+      "Don't recolour or restyle the Google or Microsoft sign-in buttons.",
+      "Don't scatter or loop motion on the board; the one continuous motion on the page is the marquee of magnets, which pauses on hover."
+    ]
+  }
+}
