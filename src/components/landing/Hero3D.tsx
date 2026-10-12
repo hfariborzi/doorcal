@@ -1,45 +1,63 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { LogoMark } from "@/components/Logo";
 import styles from "./hero3d.module.css";
 
-type Kind = "meeting" | "plan" | "booked" | "deadline";
-type Tile = { day: number; from: number; to: number; kind: Kind; title: string; sub: string };
+type EventTone = "meeting" | "focus" | "booking" | "deadline";
+type CalendarEvent = { title: string; meta: string; tone: EventTone; top: number; height: number };
 
-const DAYS = ["Mon 12", "Tue 13", "Wed 14", "Thu 15", "Fri 16"];
-const FIRST_HOUR = 8;
-const HOURS = 10; // 8 am to 6 pm
-const ROW = 44; // px per hour on the board
-const COL = 150;
-const RAIL = 52;
-const HEAD = 58;
-
-// Meetings land first, then planned work drops into the gaps, then the deadline.
-const TILES: Tile[] = [
-  { day: 0, from: 8.5, to: 9.5, kind: "meeting", title: "Team standup", sub: "8:30 · Meet" },
-  { day: 0, from: 10, to: 12, kind: "plan", title: "Draft Q4 report", sub: "Planned · 2h" },
-  { day: 0, from: 14, to: 15, kind: "booked", title: "Intro call · Ana", sub: "Booked · Meet" },
-  { day: 1, from: 9, to: 10.5, kind: "plan", title: "Review contract", sub: "Planned · 1h 30m" },
-  { day: 1, from: 12, to: 13, kind: "meeting", title: "Lunch with Sam", sub: "12:00" },
-  { day: 1, from: 15, to: 16.5, kind: "meeting", title: "Design review", sub: "3:00 · Teams" },
-  { day: 2, from: 10, to: 11, kind: "booked", title: "Interview · J. Park", sub: "Booked · Meet" },
-  { day: 2, from: 13, to: 16, kind: "plan", title: "Q4 report, part 2", sub: "Planned · 3h" },
-  { day: 3, from: 8.5, to: 9.5, kind: "plan", title: "Run", sub: "Reminder · 3× a week" },
-  { day: 3, from: 11, to: 12, kind: "meeting", title: "1:1 with Lee", sub: "11:00" },
-  { day: 3, from: 14, to: 15.5, kind: "plan", title: "Send invoices", sub: "Planned · 1h 30m" },
-  { day: 4, from: 9, to: 10, kind: "meeting", title: "Client call", sub: "9:00 · Meet" },
-  { day: 4, from: 11, to: 13, kind: "plan", title: "Finish report", sub: "Planned · 2h" },
-  { day: 4, from: 16, to: 17, kind: "deadline", title: "Report due", sub: "Friday · 5 pm" },
+const DAYS: { day: string; date: string; today?: boolean; events: CalendarEvent[] }[] = [
+  {
+    day: "MON",
+    date: "12",
+    events: [
+      { title: "Team standup", meta: "9:00 · Meet", tone: "meeting", top: 16, height: 52 },
+      { title: "Write Q4 report", meta: "10:30 · 2h", tone: "focus", top: 86, height: 96 },
+      { title: "Intro call", meta: "2:00 · Booked", tone: "booking", top: 236, height: 62 },
+    ],
+  },
+  {
+    day: "TUE",
+    date: "13",
+    today: true,
+    events: [
+      { title: "Review contract", meta: "9:30 · 1h 30m", tone: "focus", top: 46, height: 78 },
+      { title: "Lunch with Sam", meta: "12:00", tone: "meeting", top: 170, height: 50 },
+      { title: "Design review", meta: "3:00 · Teams", tone: "meeting", top: 278, height: 66 },
+    ],
+  },
+  {
+    day: "WED",
+    date: "14",
+    events: [
+      { title: "Interview · J. Park", meta: "10:00 · Booked", tone: "booking", top: 74, height: 56 },
+      { title: "Q4 report · part 2", meta: "1:00 · 3h", tone: "focus", top: 218, height: 122 },
+    ],
+  },
+  {
+    day: "THU",
+    date: "15",
+    events: [
+      { title: "Morning run", meta: "8:30 · 45m", tone: "focus", top: 18, height: 50 },
+      { title: "1:1 with Lee", meta: "11:00", tone: "meeting", top: 126, height: 54 },
+      { title: "Send invoices", meta: "2:00 · 1h", tone: "focus", top: 252, height: 70 },
+    ],
+  },
+  {
+    day: "FRI",
+    date: "16",
+    events: [
+      { title: "Client call", meta: "9:00 · Meet", tone: "meeting", top: 42, height: 58 },
+      { title: "Finish report", meta: "11:00 · 2h", tone: "focus", top: 126, height: 96 },
+      { title: "Report due", meta: "5:00 pm", tone: "deadline", top: 326, height: 48 },
+    ],
+  },
 ];
 
-const ORDER: Record<Kind, number> = { meeting: 0, booked: 1, plan: 2, deadline: 3 };
-const LIFT: Record<Kind, number> = { meeting: 6, booked: 10, plan: 16, deadline: 24 };
-const EDGE_LAYERS = 6;
-const LOGO_LAYERS = 18;
-
 /**
- * The landing page's 3D scene: a week on Midore, tilted in space. Meetings sit on the board, planned work drops
- * into the gaps, and Dori's note and the logo float above. Pure CSS 3D; the pointer tilts the scene.
+ * Product-led hero scene. The calendar remains almost front-facing and readable; depth comes from a few
+ * raised utility cards and restrained pointer parallax instead of exaggerated 3D extrusion.
  */
 export function Hero3D() {
   const stage = useRef<HTMLDivElement>(null);
@@ -47,146 +65,130 @@ export function Hero3D() {
   useEffect(() => {
     const el = stage.current;
     if (!el) return;
-    const fit = () => el.style.setProperty("--s", String(Math.min(1, el.clientWidth / 1080)));
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(el);
 
-    let raf = 0;
-    let tx = 0;
-    let ty = 0;
-    let cx = 0;
-    let cy = 0;
-    const tick = () => {
-      cx += (tx - cx) * 0.07;
-      cy += (ty - cy) * 0.07;
-      el.style.setProperty("--px", cx.toFixed(4));
-      el.style.setProperty("--py", cy.toFixed(4));
-      raf = Math.abs(tx - cx) + Math.abs(ty - cy) > 0.001 ? requestAnimationFrame(tick) : 0;
+    const fit = () => el.style.setProperty("--scale", String(Math.min(1, el.clientWidth / 1120)));
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+
+    let frame = 0;
+    let targetX = 0;
+    let targetY = 0;
+    let currentX = 0;
+    let currentY = 0;
+
+    const animate = () => {
+      currentX += (targetX - currentX) * 0.08;
+      currentY += (targetY - currentY) * 0.08;
+      el.style.setProperty("--pointer-x", currentX.toFixed(3));
+      el.style.setProperty("--pointer-y", currentY.toFixed(3));
+      frame = Math.abs(targetX - currentX) + Math.abs(targetY - currentY) > 0.002 ? requestAnimationFrame(animate) : 0;
     };
-    const onMove = (e: PointerEvent) => {
-      tx = (e.clientX / window.innerWidth - 0.5) * 2;
-      ty = (e.clientY / window.innerHeight - 0.5) * 2;
-      if (!raf) raf = requestAnimationFrame(tick);
+
+    const onPointerMove = (event: PointerEvent) => {
+      const bounds = el.getBoundingClientRect();
+      targetX = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
+      targetY = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
+      if (!frame) frame = requestAnimationFrame(animate);
     };
-    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!still) window.addEventListener("pointermove", onMove, { passive: true });
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduceMotion) el.addEventListener("pointermove", onPointerMove, { passive: true });
+
     return () => {
-      ro.disconnect();
-      window.removeEventListener("pointermove", onMove);
-      cancelAnimationFrame(raf);
+      observer.disconnect();
+      el.removeEventListener("pointermove", onPointerMove);
+      cancelAnimationFrame(frame);
     };
   }, []);
-
-  const sorted = [...TILES].sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || a.day - b.day || a.from - b.from);
 
   return (
     <div ref={stage} className={styles.stage} aria-hidden>
       <div className={styles.fit}>
+        <div className={styles.ambient} />
         <div className={styles.scene}>
-          <div className={styles.world}>
-           <div className={styles.sway}>
-            <div className={styles.grid} />
-            <div className={styles.floor} />
+          <div className={styles.depthBack} />
+          <div className={styles.depthMid} />
+          <div className={styles.shell}>
+            <div className={styles.chrome}>
+              <div className={styles.traffic}><i /><i /><i /></div>
+              <div className={styles.brand}><LogoMark size={12} style={{ color: "var(--accent)" }} /> midore</div>
+              <div className={styles.sync}><i /> All calendars synced</div>
+            </div>
 
-            <div className={styles.board}>
-              <div className={styles.head}>
-                <span className={styles.week}>Oct 12 – 16</span>
-                <span className={styles.legend}>
-                  <i data-kind="meeting" /> Meetings <i data-kind="plan" /> Planned <i data-kind="booked" /> Booked
-                </span>
-              </div>
-              {DAYS.map((d, i) => (
-                <div key={d} className={styles.dayHead} style={{ left: RAIL + i * COL, width: COL }} data-today={i === 1 || undefined}>
-                  {d}
+            <div className={styles.app}>
+              <aside className={styles.sidebar}>
+                <p className={styles.sideLabel}>WORKSPACE</p>
+                <div className={styles.sideItem} data-active><span>◫</span> Calendar</div>
+                <div className={styles.sideItem}><span>✓</span> Tasks <b>7</b></div>
+                <div className={styles.sideItem}><span>↗</span> Booking</div>
+                <p className={styles.sideLabel}>CALENDARS</p>
+                <div className={styles.calendarItem}><i data-color="purple" /> Work</div>
+                <div className={styles.calendarItem}><i data-color="amber" /> Personal</div>
+                <div className={styles.calendarItem}><i data-color="rose" /> Deadlines</div>
+                <div className={styles.capacity}>
+                  <span>Week capacity</span><b>82%</b>
+                  <div><i /></div>
+                  <small>4h 30m still open</small>
                 </div>
-              ))}
-              {Array.from({ length: HOURS + 1 }, (_, h) => (
-                <div key={h} className={styles.hour} style={{ top: HEAD + h * ROW }}>
-                  <span>{((FIRST_HOUR + h - 1) % 12) + 1}</span>
-                </div>
-              ))}
-              {DAYS.map((d, i) => (
-                <div key={d} className={styles.col} style={{ left: RAIL + i * COL, top: HEAD, height: HOURS * ROW }} />
-              ))}
-              <div className={styles.now} style={{ left: RAIL + COL, top: HEAD + (13.4 - FIRST_HOUR) * ROW, width: COL }} />
+              </aside>
 
-              {sorted.map((t, i) => (
-                <div
-                  key={`${t.day}-${t.from}`}
-                  className={styles.tile}
-                  data-kind={t.kind}
-                  style={
-                    {
-                      left: RAIL + t.day * COL + 6,
-                      top: HEAD + (t.from - FIRST_HOUR) * ROW + 2,
-                      width: COL - 12,
-                      height: (t.to - t.from) * ROW - 4,
-                      "--z": `${LIFT[t.kind]}px`,
-                      "--d": `${0.25 + i * 0.09 + (t.kind === "plan" ? 0.35 : 0) + (t.kind === "deadline" ? 0.6 : 0)}s`,
-                    } as React.CSSProperties
-                  }
-                >
-                  <div className={styles.shadow} />
-                  {Array.from({ length: EDGE_LAYERS }, (_, k) => (
-                    <div key={k} className={styles.edge} style={{ transform: `translateZ(calc(var(--z) * ${k / EDGE_LAYERS}))` }} />
-                  ))}
-                  <div className={styles.face}>
-                    <b>{t.title}</b>
-                    {(t.to - t.from) * ROW > 30 && <span>{t.sub}</span>}
+              <div className={styles.calendar}>
+                <div className={styles.toolbar}>
+                  <div>
+                    <span className={styles.toolbarLabel}>YOUR WEEK</span>
+                    <strong>October 12–16</strong>
                   </div>
+                  <div className={styles.toolbarActions}><span>Today</span><b>Week</b><span>Day</span></div>
                 </div>
-              ))}
-            </div>
 
-            <div className={styles.doriShadow} />
-            <div className={styles.dori}>
-              <div className={styles.doriHead}>
-                <span className={styles.doriDot} />
-                <b>Dori</b>
-                <span>just now</span>
-              </div>
-              <p className={styles.you}>&ldquo;Q4 report due Friday, review the contract, send invoices, and I want to run three times a week.&rdquo;</p>
-              <p className={styles.reply}>Added 4 tasks and a reminder. The report fits in three blocks before Friday, around all your meetings.</p>
-              <div className={styles.actions}>
-                <span>Looks good</span>
-                <span>Undo</span>
-              </div>
-            </div>
-
-            <div className={styles.toast}>
-              <span className={styles.toastDot} /> Plan updated · 6 blocks placed
-            </div>
-
-            <div className={styles.bookShadow} />
-            <div className={styles.book}>
-              <div className={styles.bookUrl}>midore.app/ana</div>
-              <b>Intro call</b>
-              <span className={styles.bookMeta}>30 min · Google Meet · Tue 13</span>
-              <div className={styles.slots}>
-                <span>9:30</span>
-                <span data-on>11:00</span>
-                <span>2:30</span>
-              </div>
-              <div className={styles.bookBtn}>Book 11:00</div>
-            </div>
-
-            <div className={styles.logoShadow} />
-            <div className={styles.logo}>
-              <div className={styles.logoIn}>
-                <div className={styles.logoSpin}>
-                  {Array.from({ length: LOGO_LAYERS }, (_, k) => (
-                    <div
-                      key={k}
-                      className={k === LOGO_LAYERS - 1 ? styles.logoFace : styles.logoLayer}
-                      style={{ transform: `translateZ(${(k - LOGO_LAYERS / 2) * 1.6}px)` }}
-                    />
+                <div className={styles.dayGrid}>
+                  {DAYS.map(({ day, date, today, events }) => (
+                    <div key={day} className={styles.day} data-today={today || undefined}>
+                      <div className={styles.dayHeader}><span>{day}</span><b>{date}</b>{today && <small>TODAY</small>}</div>
+                      <div className={styles.track}>
+                        {events.map((event) => (
+                          <div
+                            key={`${event.title}-${event.top}`}
+                            className={styles.event}
+                            data-tone={event.tone}
+                            style={{ top: event.top, height: event.height }}
+                          >
+                            <b>{event.title}</b><span>{event.meta}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
+                <div className={styles.nowLine}><i /><span>10:45</span></div>
               </div>
             </div>
-           </div>
           </div>
+
+          <div className={styles.doriCard}>
+            <div className={styles.doriHead}>
+              <span className={styles.doriAvatar}>✦</span>
+              <div><b>Dori</b><small>Calendar assistant</small></div>
+              <i />
+            </div>
+            <p>“Report due Friday, review the contract, and run three times this week.”</p>
+            <div className={styles.doriReply}>
+              <span>✦</span>
+              <p>I found room for all four tasks without moving a meeting.</p>
+            </div>
+            <div className={styles.cardActions}><b>Show the plan</b><span>Undo</span></div>
+          </div>
+
+          <div className={styles.bookingCard}>
+            <span className={styles.cardEyebrow}>BOOKING PAGE</span>
+            <b>Intro call</b>
+            <small>30 min · Google Meet</small>
+            <div className={styles.slots}><span>9:30</span><span data-selected>11:00</span><span>2:30</span></div>
+            <div className={styles.bookButton}>Book 11:00</div>
+          </div>
+
+          <div className={styles.planToast}><i /> Plan updated <span>6 blocks placed</span></div>
         </div>
       </div>
     </div>

@@ -2,8 +2,9 @@
 
 /*
  * Midore design tokens, from the "Luminous Editorial Chrono" Stitch design (kept with the owner's design files):
- * white paper, hairline borders, charcoal ink, iris violet for actions, amber for planned work and vermilion for
- * deadlines. Light is the default; the dark theme keeps the same accents on charcoal. The theme is chosen with
+ * white paper, hairline borders and charcoal ink. The application uses Kyoto vermilion for primary actions,
+ * amber for planned work and iris violet for annotations. The landing page scopes an amber-led variant below.
+ * Light is the default; the dark theme keeps the same accents on charcoal. The theme is chosen with
  * data-theme="light" | "dark" on <html>; see src/components/ThemeToggle.tsx.
  */
 @theme inline {
@@ -58,7 +59,7 @@
   --radius-3xl: 0.5rem;
 }
 
-/* Light (default): the Stitch palette. Lavender-tinted paper, iris buttons, deep violet accents. */
+/* Light (default): the Stitch calendar palette, led by Kyoto vermilion. */
 :root {
   color-scheme: light;
   --canvas: #fbf8fc;
@@ -66,7 +67,7 @@
   --raised: #f6f2f7;
   --well: #ffffff;
   --paper: #ffffff;
-  --hover: rgb(99 14 212 / 0.05);
+  --hover: rgb(225 29 72 / 0.05);
   --modal: #ffffff;
   --scrim: rgb(27 27 30 / 0.32);
   --line: #e4e1e6;
@@ -74,10 +75,10 @@
   --ink: #1b1b1e;
   --muted: #4a4455;
   --faint: #7b7487;
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
-  --accent-soft: #630ed4;
-  --accent-subtle: #f5f3ff;
+  --accent: #e11d48;
+  --accent-hover: #be123c;
+  --accent-soft: #b80035;
+  --accent-subtle: #fff1f2;
   --amber: #f59e0b;
   --amber-ink: #855300;
   --amber-subtle: #fffbeb;
@@ -108,10 +109,10 @@
   --ink: #fafafa;
   --muted: #d4d4d8;
   --faint: #a1a1aa;
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
-  --accent-soft: #d2bbff;
-  --accent-subtle: rgb(124 58 237 / 0.16);
+  --accent: #e11d48;
+  --accent-hover: #be123c;
+  --accent-soft: #ffb3b6;
+  --accent-subtle: rgb(225 29 72 / 0.16);
   --amber: #f59e0b;
   --amber-ink: #fbbf24;
   --amber-subtle: rgb(245 158 11 / 0.12);
@@ -126,6 +127,87 @@
   --shadow-modal: 0 20px 50px -12px rgb(0 0 0 / 0.8);
 }
 
+/* The marketing site uses the owner's vermilion primary from the supplied Stitch system. */
+.landing-primary {
+  --hover: rgb(225 29 72 / 0.06);
+  --accent: #e11d48;
+  --accent-hover: #be123c;
+  --accent-soft: #b80035;
+  --accent-subtle: #fff1f2;
+  --landing-glow-primary: rgb(225 29 72 / 0.2);
+  --landing-glow-secondary: rgb(124 58 237 / 0.12);
+  --landing-glow-tertiary: rgb(244 63 94 / 0.1);
+}
+
+:root[data-theme="dark"] .landing-primary {
+  --hover: rgb(225 29 72 / 0.09);
+  --accent: #e11d48;
+  --accent-hover: #fb7185;
+  --accent-soft: #fda4af;
+  --accent-subtle: rgb(225 29 72 / 0.16);
+  --landing-glow-primary: rgb(225 29 72 / 0.18);
+  --landing-glow-secondary: rgb(124 58 237 / 0.16);
+  --landing-glow-tertiary: rgb(244 63 94 / 0.12);
+}
+
+/* One ambient canvas runs behind the complete marketing page. The oversized fixed
+   layer drifts slowly, so scrolling never reveals a new section background. */
+.landing-ambient {
+  position: relative;
+  isolation: isolate;
+  background: var(--canvas);
+}
+
+.landing-ambient::before {
+  position: fixed;
+  z-index: -1;
+  inset: -12vmax;
+  content: "";
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, var(--landing-glow-primary) 0, transparent 68%),
+    radial-gradient(circle, var(--landing-glow-secondary) 0, transparent 68%),
+    radial-gradient(circle, var(--landing-glow-tertiary) 0, transparent 70%);
+  background-repeat: no-repeat;
+  background-size: 66vmax 66vmax, 60vmax 60vmax, 54vmax 54vmax;
+  background-position:
+    -18vmax -20vmax,
+    calc(100% + 16vmax) 4vh,
+    42vw calc(100% + 16vmax);
+  filter: blur(14px);
+  animation: landing-gradient-drift 18s ease-in-out infinite alternate;
+  will-change: background-position, transform;
+}
+
+.landing-ambient > footer {
+  border-top-color: transparent;
+  background: transparent;
+}
+
+@keyframes landing-gradient-drift {
+  0% {
+    background-position:
+      -18vmax -20vmax,
+      calc(100% + 16vmax) 4vh,
+      42vw calc(100% + 16vmax);
+    transform: scale(1.02);
+  }
+  50% {
+    background-position:
+      12vw 16vh,
+      -12vmax 38vh,
+      calc(100% - 24vw) 6vh;
+    transform: scale(1.06);
+  }
+  100% {
+    background-position:
+      calc(100% + 10vmax) -12vmax,
+      48vw calc(100% - 22vmax),
+      -14vmax 18vh;
+    transform: scale(1.03);
+  }
+}
+
 body {
   background: var(--canvas);
   color: var(--ink);
@@ -133,7 +215,7 @@ body {
 }
 
 ::selection {
-  background: rgb(124 58 237 / 0.25);
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 @utility tnum {
@@ -196,6 +278,7 @@ select option {
   animation: sheet-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @media (prefers-reduced-motion: reduce) {
+  .landing-ambient::before,
   .animate-sheet {
     animation: none;
   }
