@@ -222,6 +222,12 @@ Neutral enamel, aluminium and paper, with all saturation reserved for three magn
 - **Charcoal Ink** (`ink`), **Muted** (`muted`), **Faint** (`faint`): headlines and strong text, body copy, tertiary text.
 - **Google Dark** (`signin-dark`, `signin-dark-border`, `signin-dark-text`): the provider's own published dark sign-in button, used as the page's primary action.
 
+### The Midore palette (categories, calendars, meeting types)
+Ten shades built around the three magnet colours, at matched depth so they read as one set: **Vermilion** #e11d48, **Coral** #e2603f, **Amber** #f5a524, **Ochre** #b8861f, **Moss** #7d9550, **Sage** #557563, **Teal** #2f7a78, **Slate** #4a6a8c, **Iris** #6b5bb5, **Plum** #9a4a78, plus **Graphite** #6b6b74 for "other" and no colour. Defined in `src/lib/palette.ts`. Category and meeting-type pickers offer only these. Colours from elsewhere (Google calendar colours, categories saved before the palette) are shown as their nearest shade through `toPalette`, never raw. Priority: high Vermilion, normal Slate, low Graphite. Light faces (Amber, Ochre, Moss, Coral) carry ink text; the rest carry white.
+
+### In the app (the calendar)
+The calendar is the same board: Enamel ground, printed half-hour and hour rules, day names in Archivo caps (weekend in sage), today's date on a round vermilion magnet, and a red now line. Calendar events are printed (Print Grey in Midore's scheme, or a palette tint with a printed 3px edge when colouring by calendar, type or priority). Midore's planned work is the only thing drawn as a magnet: vermilion in Midore's scheme, or its area's palette shade when colouring by type. Magnets can be dragged to a free quarter hour, which pins them; a drop onto a meeting is refused with a marker note ("Meetings stay put.").
+
 ### Named Rules
 **The Three Kinds Rule.** A magnet is vermilion, amber or sage, and the colour always states the kind of time: work, life, people. There is no fourth magnet colour, and no magnet colour is used for decoration.
 

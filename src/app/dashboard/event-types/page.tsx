@@ -7,6 +7,7 @@ import { locationLabel } from "@/lib/locations";
 import { CopyButton } from "@/components/CopyButton";
 import { LocationIcon } from "@/components/LocationIcon";
 import { EventTypeActions } from "./EventTypeActions";
+import { toPalette } from "@/lib/palette";
 
 export const metadata = { title: "Event types" };
 
@@ -38,7 +39,7 @@ export default async function EventTypesPage() {
                 key={t.id}
                 className={`card relative flex flex-col gap-4 overflow-hidden p-5 sm:flex-row sm:items-center sm:justify-between ${t.active ? "" : "opacity-60"}`}
               >
-                <span className="absolute inset-y-0 left-0 w-1" style={{ background: t.color }} />
+                <span className="absolute inset-y-0 left-0 w-1" style={{ background: toPalette(t.color) }} />
                 <div className="min-w-0 space-y-2.5 pl-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <Link href={`/dashboard/event-types/${t.id}`} className="text-lg font-semibold tracking-tight hover:text-accent-soft">

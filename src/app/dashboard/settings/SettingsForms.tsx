@@ -8,6 +8,7 @@ import type { CalendarListItem } from "@/lib/calendar/types";
 import { ProviderButton } from "@/components/ProviderButton";
 import { deleteAccount, removeCalendarAccount, saveCalendarSettings, saveProfile } from "../actions";
 import { TimezoneOptions } from "@/components/TimezoneOptions";
+import { toPalette } from "@/lib/palette";
 
 const PROVIDER_LABEL: Record<Provider, string> = { google: "Google", microsoft: "Microsoft" };
 
@@ -170,7 +171,7 @@ export function ConnectedCalendars({
                 {a.calendars.map((c) => (
                   <div key={c.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: c.color }} />
+                      <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: toPalette(c.color) }} />
                       <span className="truncate text-ink">{c.summary}</span>
                       {c.primary && <span className="text-xs text-faint">(main)</span>}
                       {!c.canReadEvents && <span className="text-xs text-faint">(free/busy only)</span>}

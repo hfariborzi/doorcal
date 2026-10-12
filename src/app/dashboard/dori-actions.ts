@@ -174,6 +174,20 @@ export async function pinBlock(taskId: number, start: string, end: string): Prom
   return {};
 }
 
+/** Drag on the calendar: the block moves to a new time and is pinned there. A pin at the old time is replaced. */
+export async function moveBlock(taskId: number, fromStart: string, start: string, end: string): Promise<Result> {
+  const user = await requireUser();
+  if (!(await getTask(user.id, taskId))) return { error: "Task not found" };
+  const from = new Date(fromStart);
+  const s = new Date(start);
+  const e = new Date(end);
+  if ([from, s, e].some((d) => Number.isNaN(d.getTime())) || e <= s) return { error: "Invalid time" };
+  await db.delete(pinnedBlocks).where(and(eq(pinnedBlocks.userId, user.id), eq(pinnedBlocks.taskId, taskId), eq(pinnedBlocks.start, from)));
+  await db.insert(pinnedBlocks).values({ userId: user.id, taskId, start: s, end: e });
+  await planChanged(user);
+  return {};
+}
+
 export async function unpinTask(taskId: number): Promise<Result> {
   const user = await requireUser();
   await db.delete(pinnedBlocks).where(and(eq(pinnedBlocks.userId, user.id), eq(pinnedBlocks.taskId, taskId), gte(pinnedBlocks.end, new Date())));

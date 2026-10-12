@@ -7,6 +7,7 @@ import { locationLabel } from "@/lib/locations";
 import { Avatar } from "@/components/Avatar";
 import { LocationIcon } from "@/components/LocationIcon";
 import { PoweredBy } from "@/components/PoweredBy";
+import { toPalette } from "@/lib/palette";
 
 export async function generateMetadata(props: PageProps<"/[username]">) {
   const { username } = await props.params;
@@ -37,7 +38,7 @@ export default async function ProfilePage(props: PageProps<"/[username]">) {
           {types.map((t) => (
             <li key={t.id}>
               <Link href={`/${user.username}/${t.slug}`} className="group flex items-center gap-4 px-2 py-5 transition hover:bg-paper">
-                <span className="h-9 w-1 shrink-0 rounded-full" style={{ background: t.color }} />
+                <span className="h-9 w-1 shrink-0 rounded-full" style={{ background: toPalette(t.color) }} />
                 <div className="min-w-0 flex-1">
                   <h2 className="font-medium text-ink">{t.title}</h2>
                   <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-faint">

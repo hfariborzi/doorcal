@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import type { Category, LabelRule, Priority } from "@/db/schema";
 import { CATEGORY_PALETTE, MAX_CATEGORIES, PRIORITIES, PRIORITY_LABEL } from "@/lib/labels/core";
 import { deleteCategory, deleteRule, saveCategory, saveRule } from "../actions";
+import { toPalette } from "@/lib/palette";
 
 function PrioritySelect({ value, onChange, allowDefault, id }: { value: Priority | null; onChange: (p: Priority | null) => void; allowDefault?: boolean; id?: string }) {
   return (
@@ -21,7 +22,7 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (c: string)
   return (
     <div className="flex flex-wrap gap-1.5">
       {CATEGORY_PALETTE.map((c) => (
-        <button key={c} type="button" onClick={() => onChange(c)} aria-label={c} className={`h-6 w-6 rounded-full ring-offset-2 ring-offset-canvas ${value === c ? "ring-2 ring-ink" : ""}`} style={{ background: c }} />
+        <button key={c} type="button" onClick={() => onChange(c)} aria-label={c} className={`h-6 w-6 rounded-full ring-offset-2 ring-offset-canvas ${toPalette(value) === c ? "ring-2 ring-ink" : ""}`} style={{ background: c }} />
       ))}
     </div>
   );
@@ -53,7 +54,7 @@ export function CategoriesSettings({ categories, rules }: { categories: Category
       <ul className="divide-y divide-line border-y border-line">
         {categories.map((c) => (
           <li key={c.id} className="flex flex-wrap items-center gap-3 py-3">
-            <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: c.color }} />
+            <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: toPalette(c.color) }} />
             <input
               className="input w-48 py-1.5"
               defaultValue={c.name}

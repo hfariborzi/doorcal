@@ -33,6 +33,11 @@
   --color-vermilion: var(--vermilion);
   --color-vermilion-subtle: var(--vermilion-subtle);
   --color-meeting: var(--meeting);
+  --color-board: var(--board);
+  --color-print: var(--print);
+  --color-print-ink: var(--print-ink);
+  --font-board: var(--font-display);
+  --font-hand: var(--font-marker);
   --color-danger: var(--danger);
   --color-success: var(--success);
   --color-warning: var(--warning);
@@ -86,6 +91,18 @@
   --vermilion: #e11d48;
   --vermilion-subtle: #fff1f2;
   --meeting: #e4e1e6;
+  /* The planner board (landing page and calendar): enamel, printed ink, ruled lines and magnet colours. */
+  --board: #fcfcfa;
+  --print: #e9e8e4;
+  --print-ink: #3a3a40;
+  --gridline: #e8eaec;
+  --gridline-hour: #d8dcdf;
+  --work: #e11d48;
+  --work-lip: #a3122f;
+  --life: #f5a524;
+  --life-lip: #b8740a;
+  --people: #557563;
+  --people-lip: #3b5446;
   --danger: #ba1a1a;
   --success: #15803d;
   --warning: #855300;
@@ -120,6 +137,11 @@
   --vermilion: #fb7185;
   --vermilion-subtle: rgb(225 29 72 / 0.16);
   --meeting: #2a2830;
+  --board: #141416;
+  --print: #26262b;
+  --print-ink: #c9c9cf;
+  --gridline: #1f1f23;
+  --gridline-hour: #2b2b30;
   --danger: #fb7185;
   --success: #86efac;
   --warning: #fcd34d;

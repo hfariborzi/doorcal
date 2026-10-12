@@ -10,7 +10,9 @@ import type { CalendarEvent } from "@/lib/calendar/types";
 import { eventKey, LOCATION_KIND_LABEL, LOCATION_KINDS, PRIORITIES, PRIORITY_COLOR, PRIORITY_LABEL } from "@/lib/labels/core";
 import { meetingLinkLabel } from "@/lib/locations";
 import { labelEvent, saveCalendarPrefs, setTaskStatus } from "./actions";
-import { pinBlock, skipTaskOn, unpinTask } from "./dori-actions";
+import { moveBlock, pinBlock, skipTaskOn, unpinTask } from "./dori-actions";
+import { GRAPHITE, toPalette } from "@/lib/palette";
+import board from "./board.module.css";
 import { DORI_CHANGED } from "./DoriPanel";
 import { CALENDAR_CONTROLS_ID } from "./TopBar";
 
@@ -22,16 +24,16 @@ type Problem = { accountId: number; email: string; message: string };
 type Label = { categoryId: number | null; priority: Priority; source: LabelSource | null; location: EventLocationKind };
 type Labels = Record<string, Label>;
 
-const OTHER_COLOR = "#64748b";
+const OTHER_COLOR = GRAPHITE;
 const DEFAULT_PREFS: CalendarPrefs = { colorBy: "kind", v: 2, hidden: { categories: [], other: false, locations: [], priorities: [] } };
 
 const labelKey = (e: CalendarEvent) => `${e.accountId}:${eventKey(e)}`;
 
 /** The colour an event block takes under the chosen "colour by". */
 function eventColor(e: CalendarEvent, label: Label | undefined, cats: Category[], colorBy: CalendarPrefs["colorBy"]) {
-  if (colorBy === "type") return cats.find((c) => c.id === label?.categoryId)?.color ?? OTHER_COLOR;
+  if (colorBy === "type") return toPalette(cats.find((c) => c.id === label?.categoryId)?.color ?? OTHER_COLOR);
   if (colorBy === "priority") return PRIORITY_COLOR[label?.priority ?? "normal"];
-  return e.color;
+  return toPalette(e.color);
 }
 
 function isHidden(label: Label | undefined, prefs: CalendarPrefs) {
@@ -84,12 +86,24 @@ function layoutDay(events: CalendarEvent[], dayStart: DateTime) {
   }));
 }
 
-/** Event blocks: a light wash of the calendar's color with a solid left edge. */
+/** Printed events in a colour: a light wash of the ink with a solid printed edge. */
 function eventStyle(color: string): React.CSSProperties {
   return {
-    background: `color-mix(in srgb, ${color} var(--event-wash), var(--color-surface))`,
+    background: `color-mix(in srgb, ${color} var(--event-wash), var(--board))`,
     borderLeft: `3px solid ${color}`,
+    color: "var(--ink)",
   };
+}
+
+/** Magnet faces in light colours (amber, ochre, moss, coral) carry dark text; the rest carry white. */
+function magnetText(hex: string) {
+  const n = parseInt(hex.slice(1), 16);
+  const lin = (v: number) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const l = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+  return l > 0.22 ? "#1b1b1e" : "#ffffff";
 }
 
 function stripHtml(html: string) {
@@ -116,6 +130,11 @@ export function CalendarView() {
   const [selectedBlock, setSelectedBlock] = useState<PlannedBlock | null>(null);
   const [creating, setCreating] = useState<DateTime | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [note, setNote] = useState<{ text: string; tone: "ok" | "no"; key: number } | null>(null);
+  const [dropped, setDropped] = useState<string | null>(null);
+  const grabbed = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const suppressClick = useRef(false);
+  const noteSeq = useRef(0);
   // The day/week controls render in the top bar.
   const controlsSlot = useSyncExternalStore(noopSubscribe, () => document.getElementById(CALENDAR_CONTROLS_ID), () => null);
   const [, setClock] = useState(0); // re-renders each minute so "now" stays current
@@ -203,6 +222,13 @@ export function CalendarView() {
     updatePrefs({ ...view_prefs, hidden: h });
   }
 
+  // Board notes fade after a few seconds.
+  useEffect(() => {
+    if (!note) return;
+    const t = setTimeout(() => setNote(null), 3500);
+    return () => clearTimeout(t);
+  }, [note]);
+
   // Open on the current time, and keep it there when switching between day and week.
   useEffect(scrollToNow, [view, tz]);
 
@@ -231,7 +257,7 @@ export function CalendarView() {
   const shown = (events ?? []).filter((e) => !isHidden(labels[labelKey(e)], view_prefs));
   const blocks = planned?.rangeKey === range.key ? planned.blocks : [];
   const blockEvents: CalendarEvent[] = showPlan
-    ? blocks.map((b) => ({ id: `${b.taskId}-${b.start}`, accountId: -1, calendarId: PLAN_CAL, title: b.title, start: b.start, end: b.end, allDay: false, color: categories.find((c) => c.id === b.categoryId)?.color ?? "#8b5cf6", attendees: [], canEdit: false }))
+    ? blocks.map((b) => ({ id: `${b.taskId}-${b.start}`, accountId: -1, calendarId: PLAN_CAL, title: b.title, start: b.start, end: b.end, allDay: false, color: toPalette(categories.find((c) => c.id === b.categoryId)?.color ?? "#e11d48"), attendees: [], canEdit: false }))
     : [];
   const blockFor = (e: CalendarEvent) => blocks.find((b) => `${b.taskId}-${b.start}` === e.id) ?? null;
   const timed = [...shown.filter((e) => !e.allDay), ...blockEvents];
@@ -242,26 +268,76 @@ export function CalendarView() {
   const byKind = view_prefs.colorBy === "kind";
   /** The small label at the top of a block in Midore's scheme. */
   const eyebrow = (e: CalendarEvent): { text: string; className: string } | null => {
-    if (e.calendarId === PLAN_CAL) return blockFor(e)?.risk ? { text: "At risk", className: "text-vermilion" } : { text: "Midore plan", className: "text-amber-ink" };
+    if (e.calendarId === PLAN_CAL) return null;
     if (!byKind) return null;
     if (isBooked(e)) return { text: "Booked", className: "text-accent-soft" };
     const where = e.meetLink ? meetingLinkLabel(e.meetLink) : e.calendarName;
     return where ? { text: where, className: "text-faint" } : null;
   };
+  /** Planned work is a magnet: vermilion in Midore's scheme, or its area's colour when colouring by type. */
+  const magnetFace = (e: CalendarEvent) => (view_prefs.colorBy === "type" ? e.color : "#e11d48");
   const styleFor = (e: CalendarEvent): React.CSSProperties => {
-    if (byKind) {
-      const late = e.calendarId === PLAN_CAL && !!blockFor(e)?.risk;
-      const bg = late ? "var(--color-vermilion-subtle)" : e.calendarId === PLAN_CAL ? "var(--color-amber-subtle)" : isBooked(e) ? "var(--color-accent-subtle)" : "var(--color-meeting)";
-      return { background: bg, boxShadow: "0 1px 2px rgb(24 24 27 / 0.06)", opacity: labels[labelKey(e)]?.priority === "low" ? 0.7 : 1 };
-    }
     if (e.calendarId === PLAN_CAL) {
-      const late = !!blockFor(e)?.risk;
-      return { background: late ? "var(--color-vermilion-subtle)" : "var(--color-amber-subtle)", borderLeft: `3px solid ${late ? "var(--color-vermilion)" : "var(--color-amber)"}` };
+      const face = magnetFace(e);
+      return { "--face": face, "--text": magnetText(face) } as React.CSSProperties;
     }
     const label = labels[labelKey(e)];
-    return { ...eventStyle(eventColor(e, label, categories, view_prefs.colorBy)), opacity: label?.priority === "low" ? 0.65 : 1 };
+    const low = label?.priority === "low" ? 0.7 : 1;
+    if (byKind) return { opacity: low };
+    return { ...eventStyle(eventColor(e, label, categories, view_prefs.colorBy)), opacity: low };
   };
   const now = DateTime.now().setZone(tz);
+
+  // Dragging a magnet: it follows the pointer, then snaps to the nearest quarter hour on the day it was dropped on.
+  // Meetings are printed on the board, so a drop that would cover one is refused and the magnet springs back.
+  function grab(ev: React.PointerEvent<HTMLButtonElement>, b: PlannedBlock) {
+    if (ev.button !== 0 || !b) return;
+    ev.currentTarget.setPointerCapture(ev.pointerId);
+    grabbed.current = { x: ev.clientX, y: ev.clientY, moved: false };
+  }
+  function moveGrab(ev: React.PointerEvent<HTMLButtonElement>) {
+    const g = grabbed.current;
+    if (!g) return;
+    const dx = ev.clientX - g.x;
+    const dy = ev.clientY - g.y;
+    if (!g.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+    g.moved = true;
+    ev.currentTarget.dataset.lifted = "";
+    ev.currentTarget.style.transition = "none";
+    ev.currentTarget.style.transform = `translate(${dx}px, ${dy}px) rotate(-1.5deg)`;
+  }
+  function drop(ev: React.PointerEvent<HTMLButtonElement>, b: PlannedBlock) {
+    const g = grabbed.current;
+    grabbed.current = null;
+    const el = ev.currentTarget;
+    delete el.dataset.lifted;
+    el.style.transition = "";
+    el.style.transform = "";
+    if (!g?.moved) return;
+    suppressClick.current = true;
+    const colW = (el.parentElement?.getBoundingClientRect().width ?? 1) || 1;
+    const days = Math.round((ev.clientX - g.x) / colW);
+    const minutes = Math.round((ev.clientY - g.y) / (HOUR_PX / 4)) * 15;
+    if (days === 0 && minutes === 0) return;
+    const s = DateTime.fromISO(b.start).setZone(tz).plus({ days, minutes });
+    const e = DateTime.fromISO(b.end).setZone(tz).plus({ days, minutes });
+    const refuse = (text: string) => {
+      el.dataset.refused = "";
+      setTimeout(() => delete el.dataset.refused, 400);
+      setNote({ text, tone: "no", key: ++noteSeq.current });
+    };
+    if (s < range.start || e > range.end) return refuse("Keep it on this week's board.");
+    if (!s.hasSame(e.minus({ milliseconds: 1 }), "day")) return refuse("It has to fit inside one day.");
+    const clash = shown.find((x) => !x.allDay && DateTime.fromISO(x.start) < e && DateTime.fromISO(x.end) > s);
+    if (clash) return refuse(`${clash.title} is there. Meetings stay put.`);
+    setPlanned((p) => (p ? { ...p, blocks: p.blocks.map((x) => (x === b ? { ...x, start: s.toISO()!, end: e.toISO()!, pinned: true } : x)) } : p));
+    setDropped(`${b.taskId}-${s.toISO()}`);
+    setNote({ text: `${b.title}: ${s.toFormat("ccc h:mm a")}, pinned`, tone: "ok", key: ++noteSeq.current });
+    void moveBlock(b.taskId, b.start, s.toISO()!, e.toISO()!).then((r) => {
+      if (r.error) setNote({ text: r.error, tone: "no", key: ++noteSeq.current });
+      load();
+    });
+  }
 
   // Display controls: a popover from the filter button in the top bar.
   const filters = (
@@ -357,7 +433,7 @@ export function CalendarView() {
           </div>,
           controlsSlot,
         )}
-      <div className="flex min-h-0 flex-1 flex-col bg-surface">
+      <div className={`${board.board} relative flex min-h-0 flex-1 flex-col`}>
         {error && <p className="m-4 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
         {problems.length > 0 && (
           <p className="m-4 rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning">
@@ -365,18 +441,20 @@ export function CalendarView() {
           </p>
         )}
 
-        <div className="flex gap-1.5 bg-raised px-1.5 pt-2 pb-1.5">
+        <div className={`${board.head} pt-2 pb-1.5`}>
           <div className="w-14 shrink-0" />
           {range.days.map((d) => {
             const isToday = d.hasSame(now, "day");
+            const weekend = d.weekday > 5;
             return (
-              <div key={d.toISODate()} className="min-w-0 flex-1">
-                <div className={`rounded px-2 py-1 shadow-[0_1px_2px_rgb(24_24_27/0.06)] ${isToday ? "bg-accent text-on-accent" : "bg-surface"}`}>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className={`text-[0.6875rem] font-semibold tracking-[0.06em] uppercase ${isToday ? "opacity-90" : "text-faint"}`}>{d.toFormat("ccc")}</span>
-                    {isToday && <span className="hidden rounded-sm bg-surface px-1.5 text-[0.625rem] font-bold text-accent-soft sm:inline">TODAY</span>}
-                  </div>
-                  <div className={`text-xl leading-tight font-medium tnum ${isToday ? "font-semibold" : d < now.startOf("day") ? "text-faint" : "text-ink"}`}>{d.day}</div>
+              <div key={d.toISODate()} className="min-w-0 flex-1 px-2">
+                <div className="flex items-center gap-2" aria-label={isToday ? `Today, ${d.toFormat("cccc d")}` : d.toFormat("cccc d")}>
+                  <span className={board.dayName} data-today={isToday || undefined} data-weekend={(weekend && !isToday) || undefined}>
+                    {d.toFormat("ccc")}
+                  </span>
+                  <span className={board.date} data-today={isToday || undefined} data-past={(!isToday && d < now.startOf("day")) || undefined}>
+                    {d.day}
+                  </span>
                 </div>
                 <div className="mt-1 space-y-0.5">
                   {allDay
@@ -386,7 +464,7 @@ export function CalendarView() {
                       return s <= d && en > d;
                     })
                     .map((e) => (
-                      <button key={`${e.accountId}-${e.calendarId}-${e.id}`} onClick={() => setSelected(e)} className="block w-full truncate rounded px-1.5 py-0.5 text-left text-xs text-ink" style={styleFor(e)}>
+                      <button key={`${e.accountId}-${e.calendarId}-${e.id}`} onClick={() => setSelected(e)} className={`${board.allDay} block w-full truncate text-left text-xs`} style={styleFor(e)}>
                         {e.title}
                       </button>
                     ))}
@@ -396,11 +474,11 @@ export function CalendarView() {
           })}
         </div>
 
-        <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto bg-raised">
-          <div className="relative flex gap-1.5 px-1.5 pb-1.5" style={{ height: 24 * HOUR_PX }}>
+        <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto">
+          <div className="relative flex" style={{ height: 24 * HOUR_PX, "--hour": `${HOUR_PX}px` } as React.CSSProperties}>
             <div className="w-14 shrink-0">
               {Array.from({ length: 24 }, (_, h) => (
-                <div key={h} className="relative text-right text-xs text-faint tnum" style={{ height: HOUR_PX }}>
+                <div key={h} className={`${board.hour} relative text-right`} style={{ height: HOUR_PX }}>
                   {h > 0 && <span className="absolute -top-2 right-2">{DateTime.fromObject({ hour: h }).toFormat("h a")}</span>}
                 </div>
               ))}
@@ -415,30 +493,40 @@ export function CalendarView() {
               return (
                 <div
                   key={d.toISODate()}
-                  className={`relative min-w-0 flex-1 cursor-pointer rounded ${d.hasSame(now, "day") ? "bg-accent-subtle/60" : "bg-surface/70"}`}
+                  data-day={d.toISODate()}
+                  className={board.col}
+                  data-today={d.hasSame(now, "day") || undefined}
                   onClick={(ev) => {
                     const rect = (ev.currentTarget as HTMLDivElement).getBoundingClientRect();
                     const minutes = Math.floor(((ev.clientY - rect.top) / HOUR_PX) * 2) * 30;
                     setCreating(dayStart.plus({ minutes }));
                   }}
                 >
-                  {Array.from({ length: 24 }, (_, h) => (
-                    <div key={h} className="border-t border-line/70" style={{ height: HOUR_PX }} />
-                  ))}
                   {d.hasSame(now, "day") && (
                     <div className="pointer-events-none absolute right-0 left-0 z-20 h-0.5 bg-vermilion" style={{ top: (now.diff(dayStart, "minutes").minutes / 60) * HOUR_PX }}>
                       <span className="absolute -top-[4px] -left-1.5 h-2.5 w-2.5 rounded-full bg-vermilion" />
                     </div>
                   )}
-                  {layoutDay(dayEvents, dayStart).map((p) => (
+                  {layoutDay(dayEvents, dayStart).map((p) => {
+                    const isPlan = p.e.calendarId === PLAN_CAL;
+                    const blk = isPlan ? blockFor(p.e) : null;
+                    return (
                     <button
                       key={`${p.e.accountId}-${p.e.calendarId}-${p.e.id}`}
                       onClick={(ev) => {
                         ev.stopPropagation();
-                        if (p.e.calendarId === PLAN_CAL) setSelectedBlock(blockFor(p.e));
+                        if (suppressClick.current) return void (suppressClick.current = false);
+                        if (isPlan) setSelectedBlock(blk);
                         else setSelected(p.e);
                       }}
-                      className="absolute z-10 overflow-hidden rounded px-2 py-1 text-left text-xs text-ink transition hover:z-30 hover:shadow-(--shadow-card) hover:brightness-[1.03]"
+                      onPointerDown={isPlan && blk ? (ev) => grab(ev, blk) : undefined}
+                      onPointerMove={isPlan ? moveGrab : undefined}
+                      onPointerUp={isPlan && blk ? (ev) => drop(ev, blk) : undefined}
+                      onPointerCancel={isPlan && blk ? (ev) => drop(ev, blk) : undefined}
+                      data-booked={(!isPlan && byKind && isBooked(p.e)) || undefined}
+                      data-dropped={(isPlan && dropped === p.e.id) || undefined}
+                      className={isPlan ? board.magnet : board.print}
+                      title={isPlan ? "Drag to another free time to pin it there" : undefined}
                       style={{
                         top: p.top,
                         height: p.height,
@@ -447,26 +535,33 @@ export function CalendarView() {
                         ...styleFor(p.e),
                       }}
                     >
-                      {p.height >= 56 && eyebrow(p.e) && (
+                      {!isPlan && p.height >= 56 && eyebrow(p.e) && (
                         <div className={`truncate text-[0.625rem] font-semibold tracking-[0.06em] uppercase ${eyebrow(p.e)!.className}`}>{eyebrow(p.e)!.text}</div>
                       )}
-                      <div className="flex items-center gap-1 truncate font-medium">
-                        {p.e.calendarId === PLAN_CAL && blockFor(p.e)?.pinned && <Pin size={10} className="shrink-0" />}
-                        {p.e.calendarId === PLAN_CAL && blockFor(p.e)?.risk && <AlertTriangle size={10} className="shrink-0 text-vermilion" />}
+                      <div className={`flex items-center gap-1 truncate ${isPlan ? "" : "font-medium"}`}>
+                        {blk?.pinned && <Pin size={11} strokeWidth={2.5} className="shrink-0" aria-label="Pinned" />}
+                        {blk?.risk && <AlertTriangle size={11} strokeWidth={2.5} className="shrink-0" aria-label="At risk" />}
                         {labels[labelKey(p.e)]?.priority === "high" && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" title="High priority" />}
                         <span className="truncate">{p.e.title}</span>
                       </div>
                       {p.height >= 36 && (
-                        <div className="truncate text-muted tnum">
+                        <div className={`truncate tnum ${isPlan ? board.time : "opacity-75"}`}>
                           {DateTime.fromISO(p.e.start).setZone(tz).toFormat("h:mm")} – {DateTime.fromISO(p.e.end).setZone(tz).toFormat("h:mm a")}
+                          {blk?.risk && <span className={`${board.late} ml-1.5`}>{blk.risk === "late" ? "late?" : "no room"}</span>}
                         </div>
                       )}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               );
             })}
           </div>
+          {note && (
+            <p key={note.key} className={board.note} data-tone={note.tone} role="status">
+              {note.text}
+            </p>
+          )}
           {events === null && (
             <div className="absolute inset-0 grid place-items-center bg-canvas/60 text-sm text-muted">
               <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Loading your calendar…</span>

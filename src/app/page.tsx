@@ -8,7 +8,6 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { DoriLive } from "@/components/DoriLive";
 import { PlannerBoard } from "@/components/landing/PlannerBoard";
 import { BookingCard } from "@/components/landing/BookingCard";
-import { display, marker } from "@/components/landing/fonts";
 import styles from "@/components/landing/landing.module.css";
 
 const WEEK_HOLDS: { text: string; kind: "work" | "life" | "people" }[] = [
@@ -64,7 +63,7 @@ export default async function Home() {
     );
 
   return (
-    <div className={`${styles.root} ${display.variable} ${marker.variable} flex min-h-[100dvh] flex-1 flex-col`}>
+    <div className={`${styles.root} flex min-h-[100dvh] flex-1 flex-col`}>
       <main className="flex-1">
         {/* The board: the whole first viewport is the planner, with the offer written on it. */}
         <section className="px-2 pt-2 sm:px-4 sm:pt-4 lg:px-6 lg:pt-5">

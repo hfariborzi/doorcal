@@ -2,27 +2,17 @@
  * Pure helpers for event categories, priorities and locations (no I/O; unit tested).
  */
 import type { EventLocationKind, LabelRule, Priority } from "@/db/schema";
+import { GRAPHITE, MIDORE_PALETTE } from "../palette.ts";
 
-/** Ten colours that stay distinguishable on the dark canvas; a category picks one. */
-export const CATEGORY_PALETTE = [
-  "#8b5cf6", // violet
-  "#22c55e", // green
-  "#f59e0b", // amber
-  "#38bdf8", // sky
-  "#f472b6", // pink
-  "#f97316", // orange
-  "#2dd4bf", // teal
-  "#a3e635", // lime
-  "#c084fc", // lavender
-  "#fb7185", // rose
-];
+/** A category picks one of the Midore palette's ten shades (src/lib/palette.ts). */
+export const CATEGORY_PALETTE: string[] = [...MIDORE_PALETTE];
 
 export const MAX_CATEGORIES = 20;
 export const MAX_RULES = 200;
 
 export const PRIORITIES: Priority[] = ["high", "normal", "low"];
 export const PRIORITY_LABEL: Record<Priority, string> = { high: "High", normal: "Normal", low: "Low" };
-export const PRIORITY_COLOR: Record<Priority, string> = { high: "#fb7185", normal: "#8b5cf6", low: "#64748b" };
+export const PRIORITY_COLOR: Record<Priority, string> = { high: "#e11d48", normal: "#4a6a8c", low: GRAPHITE };
 
 export const LOCATION_KINDS: EventLocationKind[] = ["video", "in_person", "unspecified"];
 export const LOCATION_KIND_LABEL: Record<EventLocationKind, string> = { video: "Video", in_person: "In person", unspecified: "No location" };

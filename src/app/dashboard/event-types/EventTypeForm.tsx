@@ -8,8 +8,9 @@ import { LOCATION_TYPES, locationLabel } from "@/lib/locations";
 import { EMPTY_PREFERENCES } from "@/lib/preferences";
 import { WeeklyHoursEditor } from "@/components/WeeklyHoursEditor";
 import { saveEventType, type EventTypeInput } from "../actions";
+import { MIDORE_PALETTE, toPalette } from "@/lib/palette";
 
-const COLORS = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0891b2", "#db2777", "#475569"];
+const COLORS: string[] = [...MIDORE_PALETTE];
 
 function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
@@ -165,7 +166,7 @@ export function EventTypeForm({
                 key={c}
                 type="button"
                 onClick={() => set("color", c)}
-                className={`h-7 w-7 rounded-full ring-offset-2 ring-offset-canvas ${v.color === c ? "ring-2 ring-ink" : ""}`}
+                className={`h-7 w-7 rounded-full ring-offset-2 ring-offset-canvas ${toPalette(v.color) === c ? "ring-2 ring-ink" : ""}`}
                 style={{ background: c }}
                 aria-label={c}
               />

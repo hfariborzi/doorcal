@@ -8,10 +8,11 @@ import { Dori, type DoriMood } from "@/components/Dori";
 import { blockedTaskIds, compareTasks, dueLabel, formatEstimate, isComplete, progress } from "@/lib/tasks/core";
 import { OPEN_DORI, type OpenDoriDetail } from "../DoriPanel";
 import { addTaskLink, deleteProject, deleteTask, deleteTaskLink, promoteResidue, saveProject, saveTask, setTaskStatus, type TaskInput } from "../actions";
+import { GRAPHITE, toPalette } from "@/lib/palette";
 
 type View = { kind: "area"; id: number | null } | { kind: "all" } | { kind: "loose" } | { kind: "reminders" } | { kind: "completed" };
 
-const NO_AREA = { id: null, name: "No area", color: "#64748b" };
+const NO_AREA = { id: null, name: "No area", color: GRAPHITE };
 
 export function TasksBoard({ categories, projects, tasks, links, today }: { categories: Category[]; projects: Project[]; tasks: Task[]; links: TaskLink[]; today: string }) {
   const [view, setView] = useState<View>({ kind: "all" });
@@ -55,7 +56,7 @@ export function TasksBoard({ categories, projects, tasks, links, today }: { cate
       <aside className="card p-3 lg:sticky lg:top-6 lg:w-56 lg:shrink-0">
         <p className="eyebrow px-2.5 pb-1.5">Areas</p>
         {navItem("Everything", view.kind === "all", () => setView({ kind: "all" }), count(open.length))}
-        {categories.map((c) => navItem(c.name, view.kind === "area" && view.id === c.id, () => setView({ kind: "area", id: c.id }), count(openCount(c.id)), c.color))}
+        {categories.map((c) => navItem(c.name, view.kind === "area" && view.id === c.id, () => setView({ kind: "area", id: c.id }), count(openCount(c.id)), toPalette(c.color)))}
         {navItem(NO_AREA.name, view.kind === "area" && view.id === null, () => setView({ kind: "area", id: null }), count(openCount(null)), NO_AREA.color)}
         <p className="eyebrow mt-4 px-2.5 pb-1.5">Lists</p>
         {navItem("Loose ends", view.kind === "loose", () => setView({ kind: "loose" }), count(loose.length))}
@@ -186,7 +187,7 @@ function ProjectCard({ project, area, ...ctx }: Ctx & { project: Project; area: 
   const due = dueLabel(project.targetDate, ctx.today);
   return (
     <section className="card relative overflow-hidden">
-      <span className="absolute inset-y-0 left-0 w-1" style={{ background: area.color }} />
+      <span className="absolute inset-y-0 left-0 w-1" style={{ background: toPalette(area.color) }} />
       <div className="flex flex-wrap items-center gap-3 px-5 py-4">
         <button type="button" onClick={() => setOpenCard(!openCard)} className="btn-ghost -ml-2 p-1" aria-label={openCard ? "Collapse" : "Expand"}>
           {openCard ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
