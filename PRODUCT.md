@@ -34,7 +34,7 @@ Visitors arrive from colleagues' recommendations, comparison searches and launch
 ## Brand Commitments
 
 - Name: Midore, said "mee-doh-ray", like the notes mi, do, re. Always written "Midore"; the wordmark is lowercase "midore".
-- Logo: the "do" mark in `docs/private/design/logo/` and `src/components/Logo.tsx`; on the landing page the mark is shown in the primary colour next to the wordmark.
+- Logo (October 12, 2026): a small vermilion block above a large one with a notch cut into its base; source files in `docs/private/design/logo/2026-10-12/`, drawn in `src/components/Logo.tsx`. Always vermilion #E11D48, shown next to the lowercase "midore" wordmark.
 - Primary colour chosen by the owner: Kyoto vermilion (#e11d48).
 - Dori is the in-app assistant: a puppy or a kitten, always called "Dori, your Midore assistant", never "Dory". Real stills and transparent idle videos are in `public/dori/`.
 - Wording is general, not aimed at academics.
