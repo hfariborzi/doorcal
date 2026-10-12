@@ -57,6 +57,12 @@ export async function listNotes(user: User): Promise<DayNote[]> {
   return db.select().from(dayNotes).where(and(eq(dayNotes.userId, user.id), or(isNull(dayNotes.day), gte(dayNotes.day, todayIn(user.timezone))))).orderBy(asc(dayNotes.id));
 }
 
+/** Only the part of a task that is not done yet needs time: a two-hour task at 50% needs one more hour. */
+function remainingMinutes(estimate: number | null, progress: number) {
+  if (estimate === null || progress <= 0) return estimate;
+  return Math.max(15, Math.round((estimate * (100 - Math.min(progress, 95))) / 100 / 15) * 15);
+}
+
 export async function loadInputs(user: User, horizonDays = HORIZON_DAYS): Promise<Inputs> {
   const now = Date.now();
   const tz = user.timezone;
@@ -79,7 +85,7 @@ export async function loadInputs(user: User, horizonDays = HORIZON_DAYS): Promis
     weekly: hours.weekly,
     overrides: hours.overrides,
     busy: busyResult.busy,
-    tasks: tasks.map((t) => ({ id: t.id, title: t.title, estimateMinutes: t.estimateMinutes, dueDate: t.dueDate ?? (t.projectId ? (projectTarget.get(t.projectId) ?? null) : null), hardDeadline: t.hardDeadline, priority: t.priority, energy: t.energy, status: t.status, kind: t.kind, position: t.position })),
+    tasks: tasks.map((t) => ({ id: t.id, title: t.title, estimateMinutes: remainingMinutes(t.estimateMinutes, t.progress), dueDate: t.dueDate ?? (t.projectId ? (projectTarget.get(t.projectId) ?? null) : null), hardDeadline: t.hardDeadline, priority: t.priority, energy: t.energy, status: t.status, kind: t.kind, position: t.position })),
     links,
     pinned: pinned.map((p) => ({ taskId: p.taskId, start: p.start.getTime(), end: p.end.getTime() })),
     rules: notes.filter((n) => n.day).map((n) => ({ day: n.day!, avoidEnergy: n.avoidEnergy, skipTaskIds: n.skipTaskIds, reserveForTaskIds: n.reserveForTaskIds, maxWorkMinutes: n.maxWorkMinutes })),
@@ -93,6 +99,24 @@ const toStored = (out: PlanOutput) => ({
 });
 
 /**
+ * The plan only looks forward, so planned time that has passed would vanish from the calendar. Before a replan,
+ * blocks of the previous plan that have ended are kept as pinned history, so the week shows what was planned
+ * where, done or not. Past pins never affect planning (only pins that end in the future are planning input).
+ */
+async function keepPastBlocks(userId: number, prev: Plan, taskIds: Set<number>) {
+  const now = Date.now();
+  const ended = prev.blocks.filter((b) => !b.pinned && Date.parse(b.end) <= now && taskIds.has(b.taskId));
+  if (!ended.length) return;
+  const since = new Date(Math.min(...ended.map((b) => Date.parse(b.start))));
+  const kept = await db.select().from(pinnedBlocks).where(and(eq(pinnedBlocks.userId, userId), gte(pinnedBlocks.start, since)));
+  const have = new Set(kept.map((k) => `${k.taskId}:${k.start.getTime()}`));
+  const rows = ended
+    .filter((b) => !have.has(`${b.taskId}:${Date.parse(b.start)}`))
+    .map((b) => ({ userId, taskId: b.taskId, start: new Date(b.start), end: new Date(b.end) }));
+  if (rows.length) await db.insert(pinnedBlocks).values(rows);
+}
+
+/**
  * Recompute and store the plan. With `notify`, moves of more than half an hour are kept as notices for Dori
  * to mention (used when the calendar changed under the plan, not when the user just edited a task).
  */
@@ -101,6 +125,7 @@ export async function replan(user: User, opts: { notify?: boolean } = {}): Promi
   const out = runPlan(inputs.input);
   const stored = toStored(out);
   const [prev] = await db.select().from(plans).where(eq(plans.userId, user.id)).limit(1);
+  if (prev) await keepPastBlocks(user.id, prev, new Set(inputs.input.tasks.map((t) => t.id)));
   let notices = prev?.notices ?? [];
   if (opts.notify && prev) {
     const before = prev.blocks.map((b) => ({ taskId: b.taskId, start: Date.parse(b.start), end: Date.parse(b.end), pinned: b.pinned }));

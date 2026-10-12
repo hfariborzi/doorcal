@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { and, eq, gte } from "drizzle-orm";
 import { DateTime } from "luxon";
 import { z } from "zod";
-import { db, dayNotes, doriActions, doriMessages, pinnedBlocks, users, type DoriMeta, type User, type WeeklyHours } from "@/db";
+import { db, dayNotes, doriActions, doriMessages, pinnedBlocks, tasks, users, type DoriMeta, type User, type WeeklyHours } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { listAccounts, providerFor, resolveWriteTarget } from "@/lib/calendar";
 import { randomId } from "@/lib/crypto";
@@ -13,7 +13,7 @@ import { applyProposal } from "@/lib/dori/proposal";
 import { undoMessage } from "@/lib/dori/undo";
 import { logError } from "@/lib/log";
 import { markPlanDirty, replan, todayIn } from "@/lib/planner";
-import { getTask } from "@/lib/tasks";
+import { applyStatus, getTask } from "@/lib/tasks";
 
 type Result = { error?: string };
 
@@ -171,6 +171,44 @@ export async function pinBlock(taskId: number, start: string, end: string): Prom
   if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime()) || e <= s) return { error: "Invalid time" };
   await db.insert(pinnedBlocks).values({ userId: user.id, taskId, start: s, end: e });
   await planChanged(user);
+  return {};
+}
+
+/** How a planned block went, set from the calendar. */
+export type BlockState = { status: "done" } | { status: "good_enough"; residue: string } | { status: "partly"; progress: number } | { status: "not_done" };
+
+/**
+ * Mark how a block went. The block is pinned where it is first, so it stays on the calendar showing its state
+ * instead of disappearing from the plan. Partly done records a percentage; the planner then plans only the rest.
+ */
+export async function markBlock(taskId: number, start: string, end: string, state: BlockState): Promise<Result> {
+  const user = await requireUser();
+  const task = await getTask(user.id, taskId);
+  if (!task) return { error: "Task not found" };
+  const s = new Date(start);
+  const e = new Date(end);
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime()) || e <= s) return { error: "Invalid time" };
+  const [have] = await db
+    .select({ id: pinnedBlocks.id })
+    .from(pinnedBlocks)
+    .where(and(eq(pinnedBlocks.userId, user.id), eq(pinnedBlocks.taskId, taskId), eq(pinnedBlocks.start, s)))
+    .limit(1);
+  if (!have) await db.insert(pinnedBlocks).values({ userId: user.id, taskId, start: s, end: e });
+
+  if (state.status === "partly") {
+    const pct = Math.round(Math.min(95, Math.max(5, state.progress)));
+    if (task.status !== "open") await applyStatus(user.id, task, "open", undefined, user.timezone);
+    await db.update(tasks).set({ progress: pct, updatedAt: new Date() }).where(and(eq(tasks.id, taskId), eq(tasks.userId, user.id)));
+  } else if (state.status === "not_done") {
+    if (task.status !== "open") await applyStatus(user.id, task, "open", undefined, user.timezone);
+    await db.update(tasks).set({ progress: 0, updatedAt: new Date() }).where(and(eq(tasks.id, taskId), eq(tasks.userId, user.id)));
+  } else {
+    const r = await applyStatus(user.id, task, state.status, state.status === "good_enough" ? state.residue : undefined, user.timezone);
+    if (r.error) return { error: r.error };
+    if (state.status === "done") await db.update(tasks).set({ progress: 100 }).where(and(eq(tasks.id, taskId), eq(tasks.userId, user.id)));
+  }
+  await planChanged(user);
+  revalidatePath("/dashboard/tasks");
   return {};
 }
 

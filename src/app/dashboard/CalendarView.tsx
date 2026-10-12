@@ -5,19 +5,41 @@ import { createPortal } from "react-dom";
 import { DateTime } from "luxon";
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, ExternalLink, ListFilter, Loader2, MapPin, Pin, PinOff, Plus, Sparkles, Trash2, Users, Video, X } from "lucide-react";
 import Link from "next/link";
-import type { CalendarPrefs, Category, EventLocationKind, LabelSource, Priority } from "@/db/schema";
+import type { CalendarPrefs, Category, EventLocationKind, LabelSource, Priority, TaskStatus } from "@/db/schema";
 import type { CalendarEvent } from "@/lib/calendar/types";
 import { eventKey, LOCATION_KIND_LABEL, LOCATION_KINDS, PRIORITIES, PRIORITY_COLOR, PRIORITY_LABEL } from "@/lib/labels/core";
 import { meetingLinkLabel } from "@/lib/locations";
-import { labelEvent, saveCalendarPrefs, setTaskStatus } from "./actions";
-import { moveBlock, pinBlock, skipTaskOn, unpinTask } from "./dori-actions";
+import { labelEvent, saveCalendarPrefs } from "./actions";
+import { markBlock, moveBlock, pinBlock, skipTaskOn, unpinTask, type BlockState } from "./dori-actions";
 import { GRAPHITE, toPalette } from "@/lib/palette";
 import board from "./board.module.css";
 import { DORI_CHANGED } from "./DoriPanel";
 import { CALENDAR_CONTROLS_ID } from "./TopBar";
 
 /** Planned work from the planner, shown on the calendar next to real events. */
-type PlannedBlock = { taskId: number; start: string; end: string; pinned: boolean; title: string; categoryId: number | null; priority: Priority; dueDate: string | null; risk: "late" | "unplaced" | null };
+type PlannedBlock = {
+  taskId: number;
+  start: string;
+  end: string;
+  pinned: boolean;
+  title: string;
+  categoryId: number | null;
+  priority: Priority;
+  dueDate: string | null;
+  risk: "late" | "unplaced" | null;
+  status: TaskStatus;
+  progress: number;
+  past: boolean;
+};
+
+/** How a planned block shows: still to do, passed without being done, partly done, good enough, or done. */
+type TaskState = "open" | "missed" | "partly" | "good_enough" | "done";
+function blockState(b: PlannedBlock): TaskState {
+  if (b.status === "done") return "done";
+  if (b.status === "good_enough") return "good_enough";
+  if (b.progress > 0) return "partly";
+  return b.past ? "missed" : "open";
+}
 const PLAN_CAL = "doorcal-plan";
 
 type Problem = { accountId: number; email: string; message: string };
@@ -28,13 +50,6 @@ const OTHER_COLOR = GRAPHITE;
 const DEFAULT_PREFS: CalendarPrefs = { colorBy: "kind", v: 2, hidden: { categories: [], other: false, locations: [], priorities: [] } };
 
 const labelKey = (e: CalendarEvent) => `${e.accountId}:${eventKey(e)}`;
-
-/** The colour an event block takes under the chosen "colour by". */
-function eventColor(e: CalendarEvent, label: Label | undefined, cats: Category[], colorBy: CalendarPrefs["colorBy"]) {
-  if (colorBy === "type") return toPalette(cats.find((c) => c.id === label?.categoryId)?.color ?? OTHER_COLOR);
-  if (colorBy === "priority") return PRIORITY_COLOR[label?.priority ?? "normal"];
-  return toPalette(e.color);
-}
 
 function isHidden(label: Label | undefined, prefs: CalendarPrefs) {
   if (!label) return false;
@@ -256,8 +271,24 @@ export function CalendarView() {
 
   const shown = (events ?? []).filter((e) => !isHidden(labels[labelKey(e)], view_prefs));
   const blocks = planned?.rangeKey === range.key ? planned.blocks : [];
+  // Colour: in Midore's scheme events and tasks take their category's shade, so work on a project and its
+  // meetings match. "Type" from older saved prefs means the same thing now.
+  const mode = view_prefs.colorBy === "type" ? "kind" : view_prefs.colorBy;
+  const catColor = (id: number | null | undefined) => {
+    const c = categories.find((x) => x.id === id);
+    return c ? toPalette(c.color) : null;
+  };
+  function taskInk(b: PlannedBlock) {
+    return mode === "priority" ? PRIORITY_COLOR[b.priority] : (catColor(b.categoryId) ?? "#e11d48");
+  }
+  const eventInk = (e: CalendarEvent): string | null => {
+    const label = labels[labelKey(e)];
+    if (mode === "calendar") return toPalette(e.color);
+    if (mode === "priority") return PRIORITY_COLOR[label?.priority ?? "normal"];
+    return catColor(label?.categoryId);
+  };
   const blockEvents: CalendarEvent[] = showPlan
-    ? blocks.map((b) => ({ id: `${b.taskId}-${b.start}`, accountId: -1, calendarId: PLAN_CAL, title: b.title, start: b.start, end: b.end, allDay: false, color: toPalette(categories.find((c) => c.id === b.categoryId)?.color ?? "#e11d48"), attendees: [], canEdit: false }))
+    ? blocks.map((b) => ({ id: `${b.taskId}-${b.start}`, accountId: -1, calendarId: PLAN_CAL, title: b.title, start: b.start, end: b.end, allDay: false, color: taskInk(b), attendees: [], canEdit: false }))
     : [];
   const blockFor = (e: CalendarEvent) => blocks.find((b) => `${b.taskId}-${b.start}` === e.id) ?? null;
   const timed = [...shown.filter((e) => !e.allDay), ...blockEvents];
@@ -265,7 +296,7 @@ export function CalendarView() {
   const hiddenCount = (events?.length ?? 0) - shown.length;
   const booked = new Set(result?.booked ?? []);
   const isBooked = (e: CalendarEvent) => booked.has(`${e.accountId}:${e.id}`);
-  const byKind = view_prefs.colorBy === "kind";
+  const byKind = mode === "kind";
   /** The small label at the top of a block in Midore's scheme. */
   const eyebrow = (e: CalendarEvent): { text: string; className: string } | null => {
     if (e.calendarId === PLAN_CAL) return null;
@@ -274,17 +305,15 @@ export function CalendarView() {
     const where = e.meetLink ? meetingLinkLabel(e.meetLink) : e.calendarName;
     return where ? { text: where, className: "text-faint" } : null;
   };
-  /** Planned work is a magnet: vermilion in Midore's scheme, or its area's colour when colouring by type. */
-  const magnetFace = (e: CalendarEvent) => (view_prefs.colorBy === "type" ? e.color : "#e11d48");
+  /** Tasks carry their colour as an underline and a wash; events as a printed left edge. */
   const styleFor = (e: CalendarEvent): React.CSSProperties => {
     if (e.calendarId === PLAN_CAL) {
-      const face = magnetFace(e);
-      return { "--face": face, "--text": magnetText(face) } as React.CSSProperties;
+      const b = blockFor(e);
+      return { "--c": e.color, "--text": magnetText(e.color), "--p": `${b?.progress ?? 0}%` } as React.CSSProperties;
     }
-    const label = labels[labelKey(e)];
-    const low = label?.priority === "low" ? 0.7 : 1;
-    if (byKind) return { opacity: low };
-    return { ...eventStyle(eventColor(e, label, categories, view_prefs.colorBy)), opacity: low };
+    const low = labels[labelKey(e)]?.priority === "low" ? 0.7 : 1;
+    const ink = eventInk(e);
+    return ink ? { ...eventStyle(ink), opacity: low } : { opacity: low };
   };
   const now = DateTime.now().setZone(tz);
 
@@ -339,53 +368,52 @@ export function CalendarView() {
     });
   }
 
-  // Display controls: a popover from the filter button in the top bar.
-  const filters = (
-      <div className="absolute right-0 z-50 mt-2 w-72 space-y-4 rounded-lg border border-line bg-modal p-4 text-xs shadow-(--shadow-modal)">
-        <div>
-          <p className="mb-1.5 text-faint">Colour by</p>
-          <div className="flex rounded-lg border border-line bg-well p-0.5">
-            {(["kind", "calendar", "type", "priority"] as const).map((m) => (
-              <button key={m} onClick={() => updatePrefs({ ...view_prefs, colorBy: m })} className={`flex-1 rounded-md px-2 py-1 capitalize ${view_prefs.colorBy === m ? "bg-accent text-on-accent" : "text-muted hover:text-ink"}`}>
-                {m === "kind" ? "Midore" : m}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <p className="mb-1.5 text-faint">Show</p>
-          <Chip label="Planned work" off={!showPlan} onClick={() => setShowPlan(!showPlan)} />
-        </div>
-        <div>
-          <p className="mb-1.5 text-faint">Type</p>
-          <div className="flex flex-wrap gap-1.5">
-            {categories.map((c) => (
-              <Chip key={c.id} color={c.color} label={c.name} off={view_prefs.hidden.categories.includes(c.id)} onClick={() => toggleHidden("categories", c.id)} />
-            ))}
-            <Chip color={OTHER_COLOR} label="Other" off={view_prefs.hidden.other} onClick={() => toggleHidden("other", true)} />
-          </div>
-        </div>
-        <div>
-          <p className="mb-1.5 text-faint">Location</p>
-          <div className="flex flex-wrap gap-1.5">
-            {LOCATION_KINDS.map((k) => (
-              <Chip key={k} label={LOCATION_KIND_LABEL[k]} off={view_prefs.hidden.locations.includes(k)} onClick={() => toggleHidden("locations", k)} icon={k === "video" ? <Video size={11} /> : k === "in_person" ? <MapPin size={11} /> : undefined} />
-            ))}
-          </div>
-        </div>
-        <div>
-          <p className="mb-1.5 text-faint">Priority</p>
-          <div className="flex flex-wrap gap-1.5">
-            {PRIORITIES.map((pr) => (
-              <Chip key={pr} color={PRIORITY_COLOR[pr]} label={PRIORITY_LABEL[pr]} off={view_prefs.hidden.priorities.includes(pr)} onClick={() => toggleHidden("priorities", pr)} />
-            ))}
-          </div>
-        </div>
-        <p className="border-t border-line pt-3 leading-relaxed text-faint">
-          {hiddenCount > 0 && <span className="block text-muted">{hiddenCount} hidden by these filters.</span>}
-          Click a chip to hide or show. Click any open time to create a meeting.
-        </p>
+  // Display controls live in a strip along the top of the board, where they double as the colour legend.
+  // Location and priority filters, used less, sit behind "More".
+  const moreHidden = view_prefs.hidden.locations.length + view_prefs.hidden.priorities.length;
+  const strip = (
+    <div className={board.strip} role="toolbar" aria-label="Colour and filters">
+      <div className={board.seg} role="radiogroup" aria-label="Colour by">
+        {(["kind", "calendar", "priority"] as const).map((m) => (
+          <button key={m} role="radio" aria-checked={mode === m} onClick={() => updatePrefs({ ...view_prefs, colorBy: m })} data-on={mode === m || undefined}>
+            {m === "kind" ? "Category" : m === "calendar" ? "Calendar" : "Priority"}
+          </button>
+        ))}
       </div>
+      <span className={board.rule} aria-hidden />
+      {categories.map((c) => (
+        <Chip key={c.id} color={mode === "kind" ? toPalette(c.color) : undefined} label={c.name} off={view_prefs.hidden.categories.includes(c.id)} onClick={() => toggleHidden("categories", c.id)} />
+      ))}
+      <Chip color={mode === "kind" ? OTHER_COLOR : undefined} label="Other" off={view_prefs.hidden.other} onClick={() => toggleHidden("other", true)} />
+      <span className={board.rule} aria-hidden />
+      <Chip label="Planned work" off={!showPlan} onClick={() => setShowPlan(!showPlan)} />
+      <div className="relative">
+        <button className={`${board.more} ${filtersOpen || moreHidden ? "text-ink" : ""}`} onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen}>
+          <ListFilter size={14} /> More{moreHidden > 0 && <span className="tnum"> ({moreHidden})</span>}
+        </button>
+        {filtersOpen && (
+          <div className="absolute right-0 z-50 mt-2 w-64 space-y-4 rounded-lg border border-line bg-modal p-4 text-xs shadow-(--shadow-modal)">
+            <div>
+              <p className="mb-1.5 text-faint">Location</p>
+              <div className="flex flex-wrap gap-1.5">
+                {LOCATION_KINDS.map((k) => (
+                  <Chip key={k} label={LOCATION_KIND_LABEL[k]} off={view_prefs.hidden.locations.includes(k)} onClick={() => toggleHidden("locations", k)} icon={k === "video" ? <Video size={11} /> : k === "in_person" ? <MapPin size={11} /> : undefined} />
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-1.5 text-faint">Priority</p>
+              <div className="flex flex-wrap gap-1.5">
+                {PRIORITIES.map((pr) => (
+                  <Chip key={pr} color={PRIORITY_COLOR[pr]} label={PRIORITY_LABEL[pr]} off={view_prefs.hidden.priorities.includes(pr)} onClick={() => toggleHidden("priorities", pr)} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      {hiddenCount > 0 && <span className="ml-auto shrink-0 pr-1 text-xs text-faint">{hiddenCount} hidden</span>}
+    </div>
   );
 
   const last = range.end.minus({ days: 1 });
@@ -419,13 +447,6 @@ export function CalendarView() {
                   </button>
                 ))}
               </div>
-              <div className="relative">
-                <button className={`btn-ghost px-2 py-1 ${filtersOpen || hiddenCount > 0 ? "text-ink" : ""}`} onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen} title="Filter and colour">
-                  <ListFilter size={17} />
-                  {hiddenCount > 0 && <span className="text-xs tnum">{hiddenCount}</span>}
-                </button>
-                {filtersOpen && filters}
-              </div>
               <button className="btn-primary px-2.5 py-1" onClick={() => setCreating(now.plus({ hours: 1 }).startOf("hour"))} title="New meeting">
                 <Plus size={16} /> <span className="hidden xl:inline">New</span>
               </button>
@@ -441,14 +462,15 @@ export function CalendarView() {
           </p>
         )}
 
+        {strip}
         <div className={`${board.head} pt-2 pb-1.5`}>
           <div className="w-14 shrink-0" />
           {range.days.map((d) => {
             const isToday = d.hasSame(now, "day");
             const weekend = d.weekday > 5;
             return (
-              <div key={d.toISODate()} className="min-w-0 flex-1 px-2">
-                <div className="flex items-center gap-2" aria-label={isToday ? `Today, ${d.toFormat("cccc d")}` : d.toFormat("cccc d")}>
+              <div key={d.toISODate()} className={`${board.dayCell} min-w-0 flex-1 px-2`} data-today={isToday || undefined}>
+                <div className="flex items-baseline gap-1.5" aria-label={isToday ? `Today, ${d.toFormat("cccc d")}` : d.toFormat("cccc d")}>
                   <span className={board.dayName} data-today={isToday || undefined} data-weekend={(weekend && !isToday) || undefined}>
                     {d.toFormat("ccc")}
                   </span>
@@ -507,9 +529,19 @@ export function CalendarView() {
                       <span className="absolute -top-[4px] -left-1.5 h-2.5 w-2.5 rounded-full bg-vermilion" />
                     </div>
                   )}
-                  {layoutDay(dayEvents, dayStart).map((p) => {
+                  {(() => {
+                    const placed = layoutDay(dayEvents, dayStart);
+                    // Back-to-back tasks in the same lane run into each other with no gap; only events keep hard edges.
+                    const plan = placed.filter((q) => q.e.calendarId === PLAN_CAL);
+                    const above = (q: (typeof placed)[number]) => plan.find((o) => o !== q && o.lane === q.lane && Math.abs(o.en - q.s) < 60_000);
+                    const below = (q: (typeof placed)[number]) => plan.find((o) => o !== q && o.lane === q.lane && Math.abs(o.s - q.en) < 60_000);
+                    return placed.map((p) => {
                     const isPlan = p.e.calendarId === PLAN_CAL;
                     const blk = isPlan ? blockFor(p.e) : null;
+                    const state = blk ? blockState(blk) : null;
+                    const movable = !!blk && state === "open";
+                    const joinTop = isPlan ? above(p) : undefined;
+                    const joinBottom = isPlan ? below(p) : undefined;
                     return (
                     <button
                       key={`${p.e.accountId}-${p.e.calendarId}-${p.e.id}`}
@@ -519,27 +551,33 @@ export function CalendarView() {
                         if (isPlan) setSelectedBlock(blk);
                         else setSelected(p.e);
                       }}
-                      onPointerDown={isPlan && blk ? (ev) => grab(ev, blk) : undefined}
-                      onPointerMove={isPlan ? moveGrab : undefined}
-                      onPointerUp={isPlan && blk ? (ev) => drop(ev, blk) : undefined}
-                      onPointerCancel={isPlan && blk ? (ev) => drop(ev, blk) : undefined}
+                      onPointerDown={movable ? (ev) => grab(ev, blk!) : undefined}
+                      onPointerMove={movable ? moveGrab : undefined}
+                      onPointerUp={movable ? (ev) => drop(ev, blk!) : undefined}
+                      onPointerCancel={movable ? (ev) => drop(ev, blk!) : undefined}
                       data-booked={(!isPlan && byKind && isBooked(p.e)) || undefined}
                       data-dropped={(isPlan && dropped === p.e.id) || undefined}
-                      className={isPlan ? board.magnet : board.print}
-                      title={isPlan ? "Drag to another free time to pin it there" : undefined}
+                      data-state={state ?? undefined}
+                      data-movable={movable || undefined}
+                      data-join-top={joinTop ? "" : undefined}
+                      data-join-bottom={joinBottom ? "" : undefined}
+                      className={isPlan ? board.task : board.print}
+                      title={movable ? "Drag to another free time to pin it there" : undefined}
                       style={{
-                        top: p.top,
-                        height: p.height,
+                        top: isPlan ? p.top : p.top + 1,
+                        height: isPlan ? p.height : p.height - 2,
                         left: `calc(${(p.lane / p.lanes) * 100}% + 4px)`,
                         width: `calc(${100 / p.lanes}% - 8px)`,
                         ...styleFor(p.e),
+                        ...(joinTop ? ({ "--prev": joinTop.e.color } as React.CSSProperties) : {}),
                       }}
                     >
                       {!isPlan && p.height >= 56 && eyebrow(p.e) && (
                         <div className={`truncate text-[0.625rem] font-semibold tracking-[0.06em] uppercase ${eyebrow(p.e)!.className}`}>{eyebrow(p.e)!.text}</div>
                       )}
                       <div className={`flex items-center gap-1 truncate ${isPlan ? "" : "font-medium"}`}>
-                        {blk?.pinned && <Pin size={11} strokeWidth={2.5} className="shrink-0" aria-label="Pinned" />}
+                        {state === "done" && <Check size={12} strokeWidth={3} className="shrink-0" aria-label="Done" />}
+                        {state === "open" && blk?.pinned && <Pin size={11} strokeWidth={2.5} className="shrink-0" aria-label="Pinned" />}
                         {blk?.risk && <AlertTriangle size={11} strokeWidth={2.5} className="shrink-0" aria-label="At risk" />}
                         {labels[labelKey(p.e)]?.priority === "high" && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" title="High priority" />}
                         <span className="truncate">{p.e.title}</span>
@@ -548,11 +586,15 @@ export function CalendarView() {
                         <div className={`truncate tnum ${isPlan ? board.time : "opacity-75"}`}>
                           {DateTime.fromISO(p.e.start).setZone(tz).toFormat("h:mm")} – {DateTime.fromISO(p.e.end).setZone(tz).toFormat("h:mm a")}
                           {blk?.risk && <span className={`${board.late} ml-1.5`}>{blk.risk === "late" ? "late?" : "no room"}</span>}
+                          {state === "partly" && <span className={`${board.late} ml-1.5`}>{blk!.progress}%</span>}
+                          {state === "good_enough" && <span className={`${board.late} ml-1.5`}>good enough</span>}
+                          {state === "missed" && <span className={`${board.late} ml-1.5`}>not done</span>}
                         </div>
                       )}
                     </button>
                     );
-                  })}
+                  });
+                  })()}
                 </div>
               );
             })}
@@ -911,9 +953,14 @@ function NewMeeting({ start, tz, onClose, onCreated }: { start: DateTime; tz: st
 }
 
 /** A planned block: finish the task, push it to another day, or keep it at this time. */
+const PROGRESS_STEPS = [25, 50, 75];
+
 function BlockDetails({ block, tz, onClose, onChanged }: { block: PlannedBlock; tz: string; onClose: () => void; onChanged: () => void }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const current = blockState(block);
+  const [picking, setPicking] = useState<"partly" | "good_enough" | null>(null);
+  const [residue, setResidue] = useState("");
   const s = DateTime.fromISO(block.start).setZone(tz);
   const e = DateTime.fromISO(block.end).setZone(tz);
   const run = async (fn: () => Promise<{ error?: string }>) => {
@@ -924,12 +971,19 @@ function BlockDetails({ block, tz, onClose, onChanged }: { block: PlannedBlock; 
     if (r.error) setError(r.error);
     else onChanged();
   };
+  const mark = (state: BlockState) => run(() => markBlock(block.taskId, block.start, block.end, state));
+  const options: { id: "not_done" | "partly" | "good_enough" | "done"; label: string }[] = [
+    { id: "not_done", label: "Not done" },
+    { id: "partly", label: current === "partly" ? `${block.progress}% done` : "Partly" },
+    { id: "good_enough", label: "Good enough" },
+    { id: "done", label: "Done" },
+  ];
+  const active = current === "missed" || current === "open" ? "not_done" : current;
   return (
     <Modal onClose={onClose}>
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div>
-          <p className="eyebrow">Planned work</p>
-          <h3 className="mt-1 text-lg font-semibold tracking-tight">{block.title}</h3>
+          <h3 className="text-lg font-semibold tracking-tight">{block.title}</h3>
           <p className="text-sm text-muted tnum">{s.toFormat("cccc, LLL d · h:mm")} – {e.toFormat("h:mm a")}</p>
           {block.dueDate && <p className="text-sm text-faint">Due {DateTime.fromISO(block.dueDate).toFormat("ccc, LLL d")}</p>}
           {block.risk && (
@@ -937,20 +991,69 @@ function BlockDetails({ block, tz, onClose, onChanged }: { block: PlannedBlock; 
               <AlertTriangle size={14} /> {block.risk === "late" ? "This won't be finished by its due date at the current pace." : "Not all of this fits in the next two weeks."}
             </p>
           )}
-          <p className="mt-2 text-xs text-faint">Midore placed this in free time. It moves by itself when your calendar changes, unless you keep it here.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button className="btn-primary py-1.5" disabled={pending} onClick={() => run(() => setTaskStatus({ id: block.taskId, status: "done" }))}><Check size={15} /> Done</button>
-          <button className="btn-secondary py-1.5" disabled={pending} onClick={() => run(() => skipTaskOn(block.taskId, s.toISODate()))}>Not this day</button>
-          {block.pinned ? (
-            <button className="btn-secondary py-1.5" disabled={pending} onClick={() => run(() => unpinTask(block.taskId))}><PinOff size={15} /> Let it move</button>
-          ) : (
-            <button className="btn-secondary py-1.5" disabled={pending} onClick={() => run(() => pinBlock(block.taskId, block.start, block.end))}><Pin size={15} /> Keep it here</button>
+
+        <div>
+          <p className="mb-2 text-sm font-medium text-ink">How did it go?</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="How did it go?">
+            {options.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                role="radio"
+                aria-checked={active === o.id}
+                disabled={pending}
+                onClick={() => (o.id === "partly" || o.id === "good_enough" ? setPicking(o.id) : mark({ status: o.id }))}
+                className={`flex flex-col items-start gap-1.5 rounded-md border px-2.5 py-2 text-left text-sm transition ${active === o.id ? "border-ink text-ink" : "border-line text-muted hover:border-line-strong"}`}
+              >
+                <StateSwatch state={o.id === "not_done" ? "missed" : o.id} />
+                {o.label}
+              </button>
+            ))}
+          </div>
+          {picking === "partly" && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted">How much is done?</span>
+              {PROGRESS_STEPS.map((pct) => (
+                <button key={pct} type="button" className="btn-secondary px-3 py-1 tnum" disabled={pending} onClick={() => mark({ status: "partly", progress: pct })}>
+                  {pct}%
+                </button>
+              ))}
+            </div>
           )}
-          <Link href="/dashboard/tasks" className="btn-ghost py-1.5">Open tasks</Link>
+          {picking === "good_enough" && (
+            <form
+              className="mt-3 flex gap-2"
+              onSubmit={(ev) => {
+                ev.preventDefault();
+                void mark({ status: "good_enough", residue });
+              }}
+            >
+              <input className="input py-1.5" placeholder="What's left, in a few words" value={residue} onChange={(ev) => setResidue(ev.target.value)} autoFocus maxLength={300} />
+              <button className="btn-primary py-1.5" disabled={pending || !residue.trim()}>Save</button>
+            </form>
+          )}
+          <p className="mt-2 text-xs text-faint">It stays here on your calendar either way. Partly done means Midore plans only what is left.</p>
         </div>
+
+        {!block.past && current !== "done" && current !== "good_enough" && (
+          <div className="flex flex-wrap gap-2 border-t border-line pt-4">
+            <button className="btn-secondary py-1.5" disabled={pending} onClick={() => run(() => skipTaskOn(block.taskId, s.toISODate()))}>Not this day</button>
+            {block.pinned ? (
+              <button className="btn-secondary py-1.5" disabled={pending} onClick={() => run(() => unpinTask(block.taskId))}><PinOff size={15} /> Let it move</button>
+            ) : (
+              <button className="btn-secondary py-1.5" disabled={pending} onClick={() => run(() => pinBlock(block.taskId, block.start, block.end))}><Pin size={15} /> Keep it here</button>
+            )}
+            <Link href="/dashboard/tasks" className="btn-ghost py-1.5">Open tasks</Link>
+          </div>
+        )}
         {error && <p className="text-sm text-danger">{error}</p>}
       </div>
     </Modal>
   );
+}
+
+/** A tiny sample of how each state looks on the calendar. */
+function StateSwatch({ state }: { state: TaskState | "not_done" }) {
+  return <span className={board.swatch} data-state={state} style={{ "--c": "#e11d48" } as React.CSSProperties} aria-hidden />;
 }

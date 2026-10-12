@@ -64,6 +64,13 @@
       "when": 1791666330332,
       "tag": "0008_speech_chars",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791840783795,
+      "tag": "0009_task_progress",
+      "breakpoints": true
     }
   ]
 }

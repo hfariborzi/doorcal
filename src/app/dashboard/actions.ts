@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
-import { db, users, schedules, eventTypes, bookings, calendarAccounts, categories, labelRules, eventLabels, projects, tasks, taskLinks, type CalendarPrefs, type Priority } from "@/db";
+import { db, users, schedules, eventTypes, bookings, calendarAccounts, categories, labelRules, eventLabels, projects, tasks, taskLinks, plans, pinnedBlocks, type CalendarPrefs, type Priority } from "@/db";
 import { aiConfigured, proposeCategories, toSample } from "@/lib/ai";
 import { eventsForAccounts } from "@/lib/calendar";
 import { CATEGORY_PALETTE, MAX_CATEGORIES, MAX_RULES, eventKey, labelKey, listCategories, listRules, storeLabels, titleHash } from "@/lib/labels";
@@ -584,11 +584,25 @@ export async function setTaskStatus(input: z.input<typeof statusSchema>): Promis
   if (!parsed.success) return { error: firstIssue(parsed.error) };
   const task = await getTask(user.id, parsed.data.id);
   if (!task) return { error: "Task not found" };
+  const finishing = (parsed.data.status === "done" || parsed.data.status === "good_enough") && task.status === "open";
   const r = await applyStatus(user.id, task, parsed.data.status, parsed.data.residue, user.timezone);
   if (r.error) return { error: r.error };
+  if (parsed.data.status === "done") await db.update(tasks).set({ progress: 100 }).where(eq(tasks.id, task.id));
+  if (finishing) await keepTodaysBlocks(user, task.id);
   await planChanged(user);
   revalidatePath("/dashboard/tasks");
   return {};
+}
+
+/** A task finished today keeps its blocks for today on the calendar, so the day shows it done instead of empty. */
+async function keepTodaysBlocks(user: User, taskId: number) {
+  const [plan] = await db.select().from(plans).where(eq(plans.userId, user.id)).limit(1);
+  if (!plan) return;
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: user.timezone });
+  const rows = plan.blocks
+    .filter((b) => b.taskId === taskId && !b.pinned && new Date(b.start).toLocaleDateString("en-CA", { timeZone: user.timezone }) === today)
+    .map((b) => ({ userId: user.id, taskId, start: new Date(b.start), end: new Date(b.end) }));
+  if (rows.length) await db.insert(pinnedBlocks).values(rows);
 }
 
 /** Turn a good-enough task's residue into its own open task, and mark the original fully done. */

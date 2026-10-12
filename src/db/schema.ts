@@ -255,6 +255,7 @@ export const tasks = pgTable(
     status: text("status").$type<TaskStatus>().notNull().default("open"),
     residue: text("residue").notNull().default(""), // what is left when the task is "good enough"
     estimateMinutes: integer("estimate_minutes"), // null = unknown
+    progress: integer("progress").notNull().default(0), // percent done, 0 to 100; the planner plans only what is left
     dueDate: text("due_date"), // YYYY-MM-DD, optional
     hardDeadline: boolean("hard_deadline").notNull().default(false), // a date that cannot move
     priority: text("priority").$type<Priority>().notNull().default("normal"),
