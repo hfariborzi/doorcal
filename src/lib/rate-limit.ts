@@ -17,6 +17,7 @@ export const LIMITS = {
   slots: { limit: 180, windowSec: 60 }, // each call hits the host's Google free/busy
   book: { limit: 30, windowSec: 3600 }, // each booking sends Google invites, possibly to guests
   manage: { limit: 60, windowSec: 3600 }, // invitee cancel and reschedule
+  nativeToken: { limit: 20, windowSec: 600 }, // app sign-in code exchange
 } as const;
 
 export function clientIp(req: NextRequest) {

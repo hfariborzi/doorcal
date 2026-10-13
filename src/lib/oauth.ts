@@ -34,7 +34,14 @@ type FlowState = {
   verifier: string;
   tz?: string;
   reconnect?: number; // connect mode: the account being reconnected
+  next?: string; // sign-in mode: where to land afterwards (only same-site paths from SAFE_NEXT)
 };
+
+/** Places a sign-in may return to instead of the dashboard: the page that links a Midore desktop or phone app. */
+const SAFE_NEXT = /^\/native\/connect(\?[\w=&%.-]*)?$/;
+export function safeNext(next: string | null | undefined) {
+  return next && SAFE_NEXT.test(next) ? next : undefined;
+}
 
 function secret() {
   const s = process.env.AUTH_SECRET;
@@ -138,6 +145,7 @@ export async function startOAuth(req: NextRequest, provider: Provider) {
     verifier,
     tz: q.get("tz") ?? undefined,
     reconnect,
+    next: connecting ? undefined : safeNext(q.get("next")),
   };
   const url = auth.authUrl({
     state: flow.state,
@@ -246,7 +254,7 @@ async function finishSignIn(req: NextRequest, flow: FlowState, identity: Provide
 
   // Providers only issue a refresh token on full consent. If we still have none but the calendar scopes were
   // granted, go straight back through consent for this account; otherwise the dashboard asks to connect.
-  const next = needsToken && identity.hasCalendarScopes ? `/api/auth/${flow.provider}?reconnect=${accountId}` : "/dashboard";
+  const next = needsToken && identity.hasCalendarScopes ? `/api/auth/${flow.provider}?reconnect=${accountId}` : (safeNext(flow.next) ?? "/dashboard");
   const res = NextResponse.redirect(new URL(next, req.url));
   res.cookies.delete(STATE_COOKIE);
   res.cookies.set(SESSION_COOKIE, await signSession(userId), sessionCookieOptions);

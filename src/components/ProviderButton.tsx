@@ -55,6 +55,7 @@ export function ProviderButton({
   compact = false,
   inline = false,
   dark = false,
+  next,
 }: {
   provider: Provider;
   label?: string;
@@ -63,12 +64,14 @@ export function ProviderButton({
   compact?: boolean;
   inline?: boolean; // sized to its label instead of the full width
   dark?: boolean; // the providers' dark button, 48px tall, for a primary action
+  next?: string; // where sign-in should land instead of the dashboard (see safeNext in lib/oauth.ts)
 }) {
   const tz = useSyncExternalStore(noopSubscribe, browserTz, () => "");
   const q = new URLSearchParams();
   if (tz) q.set("tz", tz);
   if (reconnect) q.set("reconnect", String(reconnect));
   else if (connect) q.set("connect", "1");
+  if (next) q.set("next", next);
   return (
     <a
       href={`/api/auth/${provider}?${q}`}

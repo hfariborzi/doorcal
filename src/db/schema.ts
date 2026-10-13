@@ -543,6 +543,40 @@ export const rateLimits = pgTable("rate_limits", {
   count: integer("count").notNull(),
 });
 
+// Desktop and phone apps (the Tauri apps in native/). A device signs in once through the browser and then calls
+// /api/v1 with a bearer token. Only a SHA-256 hash of the token is stored.
+export type DevicePlatform = "macos" | "windows" | "linux" | "ios" | "android";
+export const deviceTokens = pgTable(
+  "device_tokens",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    platform: text("platform").$type<DevicePlatform>().notNull(),
+    name: text("name").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("device_tokens_hash_idx").on(t.tokenHash), index("device_tokens_user_idx").on(t.userId)],
+);
+
+// One-time codes, valid for a few minutes: "connect" codes carry a signed-in browser session to an app
+// (exchanged for a device token), "webview" codes carry a device token into the app's web view as a session.
+export const nativeCodes = pgTable("native_codes", {
+  codeHash: text("code_hash").primaryKey(),
+  kind: text("kind").$type<"connect" | "webview">().notNull(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  platform: text("platform").$type<DevicePlatform>().notNull(),
+  name: text("name").notNull().default(""),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
+
+export type DeviceToken = typeof deviceTokens.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type CalendarAccount = typeof calendarAccounts.$inferSelect;
 export type Category = typeof categories.$inferSelect;
