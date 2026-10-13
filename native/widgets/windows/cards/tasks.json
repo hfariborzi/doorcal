@@ -1,0 +1,33 @@
+{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.5",
+  "body": [
+    { "type": "TextBlock", "text": "Open Midore and sign in", "wrap": true, "isSubtle": true, "$when": "${!signedIn}" },
+    {
+      "type": "Container", "$when": "${signedIn}",
+      "items": [
+        { "type": "TextBlock", "text": "Tasks", "weight": "Bolder", "size": "Medium" },
+        { "type": "TextBlock", "text": "All clear", "isSubtle": true, "$when": "${count(tasks) == 0}" },
+        {
+          "type": "ColumnSet", "$data": "${tasks}", "spacing": "Small",
+          "columns": [
+            {
+              "type": "Column", "width": "auto", "verticalContentAlignment": "Center",
+              "items": [ { "type": "ActionSet", "actions": [ { "type": "Action.Execute", "title": "✓", "verb": "complete", "data": { "taskId": "${id}" }, "tooltip": "Mark done" } ] } ]
+            },
+            {
+              "type": "Column", "width": "stretch", "verticalContentAlignment": "Center",
+              "items": [
+                { "type": "TextBlock", "text": "${title}", "wrap": false },
+                { "type": "TextBlock", "text": "${due}", "isSubtle": true, "size": "Small", "spacing": "None", "$when": "${due != ''}" }
+              ]
+            }
+          ]
+        },
+        { "type": "TextBlock", "text": "${status}", "isSubtle": true, "size": "Small", "$when": "${status != ''}" }
+      ]
+    }
+  ],
+  "selectAction": { "type": "Action.OpenUrl", "url": "midore://open" }
+}

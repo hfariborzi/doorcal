@@ -1,0 +1,21 @@
+{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.5",
+  "body": [
+    { "type": "TextBlock", "text": "Open Midore and sign in", "wrap": true, "isSubtle": true, "$when": "${!signedIn}" },
+    {
+      "type": "Container", "$when": "${signedIn}",
+      "items": [
+        { "type": "TextBlock", "text": "NOW", "size": "Small", "weight": "Bolder", "color": "Accent", "$when": "${now != null}" },
+        { "type": "TextBlock", "text": "${now.title}", "size": "Large", "weight": "Bolder", "wrap": true, "maxLines": 2, "$when": "${now != null}" },
+        { "type": "TextBlock", "text": "${now.left}", "isSubtle": true, "$when": "${now != null}" },
+        { "type": "TextBlock", "text": "Free right now", "size": "Large", "weight": "Bolder", "$when": "${now == null}" },
+        { "type": "TextBlock", "text": "NEXT", "size": "Small", "weight": "Bolder", "spacing": "Medium", "$when": "${next != null}" },
+        { "type": "TextBlock", "text": "${next.time}  ${next.title}", "wrap": false, "$when": "${next != null}" },
+        { "type": "TextBlock", "text": "${status}", "isSubtle": true, "size": "Small", "$when": "${status != ''}" }
+      ]
+    }
+  ],
+  "selectAction": { "type": "Action.OpenUrl", "url": "midore://open" }
+}

@@ -1,0 +1,27 @@
+{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.5",
+  "body": [
+    {
+      "type": "TextBlock", "text": "Open Midore and sign in", "wrap": true, "isSubtle": true,
+      "$when": "${!signedIn}"
+    },
+    {
+      "type": "Container", "$when": "${signedIn}",
+      "items": [
+        { "type": "TextBlock", "text": "${dayLabel}", "weight": "Bolder", "size": "Medium" },
+        { "type": "TextBlock", "text": "Nothing else today", "isSubtle": true, "$when": "${count(items) == 0}" },
+        {
+          "type": "ColumnSet", "$data": "${items}", "spacing": "Small",
+          "columns": [
+            { "type": "Column", "width": "auto", "items": [ { "type": "TextBlock", "text": "${time}", "isSubtle": true, "fontType": "Monospace" } ] },
+            { "type": "Column", "width": "stretch", "items": [ { "type": "TextBlock", "text": "${title}", "wrap": false, "strikethrough": "${done}" } ] }
+          ]
+        },
+        { "type": "TextBlock", "text": "${status}", "isSubtle": true, "size": "Small", "$when": "${status != ''}" }
+      ]
+    }
+  ],
+  "selectAction": { "type": "Action.OpenUrl", "url": "midore://open" }
+}
