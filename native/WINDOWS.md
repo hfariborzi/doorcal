@@ -163,13 +163,28 @@ download without widgets.
 
 ## 4. Microsoft Store
 
-1. Register at storedeveloper.microsoft.com (free for individuals; ID and selfie check).
-2. Partner Center > Apps and games > New product > MSIX or PWA app > reserve the name **Midore**.
-3. Product identity gives `Package/Identity/Name`, `Publisher` and `PublisherDisplayName`: put them in the
-   manifest.
-4. Upload the `.msixupload` / `.msix`. Microsoft signs Store packages, so no certificate is needed for the Store.
-5. Listing: description from `README.md`, privacy policy `https://midore.app/privacy`, category Productivity,
-   screenshots of the calendar, the tray menu and the widgets.
+Account registered and the name **Midore** reserved (2026-10-13). Product identity, for `Package.appxmanifest`:
+
+| Field | Value |
+|---|---|
+| `Package/Identity/Name` | `HadiFariborzi.Midore` |
+| `Package/Identity/Publisher` | `CN=0888E398-B982-458F-AA85-63483BA126D8` |
+| `Package/Properties/PublisherDisplayName` | `Hadi Fariborzi` |
+| Package family name | `HadiFariborzi.Midore_03de5skm017g0` |
+| Store ID | `9NS1QCV59755` |
+
+Local test builds can use the same identity, signed with a self-signed certificate whose subject is exactly the
+`Publisher` value above (install that certificate in Trusted People to sideload).
+
+Submission 1 is open in draft in Partner Center. The owner fills it in once a package exists:
+1. **Packages:** upload the `.msixupload` / `.msix` (x64, and arm64 if built). Microsoft signs Store packages, so
+   no certificate is needed for the Store.
+2. **Pricing and availability:** free, all markets.
+3. **Properties:** category Productivity; privacy policy `https://midore.app/privacy`; website `https://midore.app`.
+4. **Age ratings:** IARC questionnaire (no violence or mature content; users can chat with an AI assistant and
+   share their calendar).
+5. **Store listings:** description from `README.md`; screenshots of the calendar, the tray menu and the widgets.
+6. **Submit for certification.**
 
 Direct downloads outside the Store need a code-signing certificate (for example Azure Trusted Signing), set in
 `bundle.windows.signCommand` or `certificateThumbprint` in `tauri.conf.json`.
