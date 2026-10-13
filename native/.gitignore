@@ -1,0 +1,7 @@
+node_modules/
+src-tauri/target/
+src-tauri/gen/schemas/
+widgets/apple/build/
+widgets/apple/MidoreWidgetsMac.xcodeproj/
+plugins/widgets/.tauri/
+.DS_Store

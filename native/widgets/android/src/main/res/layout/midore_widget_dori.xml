@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/root" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/midore_widget_bg" android:orientation="vertical" android:padding="14dp">
+    <ImageView android:layout_width="64dp" android:layout_height="64dp" android:src="@drawable/midore_dori" android:contentDescription="Dori" />
+    <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ask Dori" android:textColor="@color/midore_ink" android:textSize="16sp" android:textStyle="bold" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Add a task or empty your head" android:textColor="@color/midore_muted" android:textSize="12sp" />
+</LinearLayout>

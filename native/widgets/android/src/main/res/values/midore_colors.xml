@@ -1,0 +1,7 @@
+<resources>
+    <color name="midore_board">#FCFCFA</color>
+    <color name="midore_ink">#1B1B1E</color>
+    <color name="midore_muted">#4A4455</color>
+    <color name="midore_vermilion">#E11D48</color>
+    <color name="midore_line">#E4E1E6</color>
+</resources>

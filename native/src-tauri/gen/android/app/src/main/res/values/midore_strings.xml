@@ -1,0 +1,7 @@
+<resources>
+    <string name="midore_widget_today">Your meetings and planned work for the rest of today.</string>
+    <string name="midore_widget_now">What\'s on now, until when, and what comes next.</string>
+    <string name="midore_widget_tasks">Open tasks, due ones first. Tap the circle to mark one done.</string>
+    <string name="midore_widget_dori">Open quick add: add a task or tell Dori what\'s on your mind.</string>
+    <string name="midore_widget_booking">Your booking link, one tap to copy.</string>
+</resources>

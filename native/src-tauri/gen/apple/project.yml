@@ -1,0 +1,132 @@
+name: midore
+options:
+  bundleIdPrefix: app.midore
+  deploymentTarget:
+    iOS: 17.0
+fileGroups: [../../src]
+configs:
+  debug: debug
+  release: release
+settingGroups:
+  app:
+    base:
+      PRODUCT_NAME: Midore
+      PRODUCT_BUNDLE_IDENTIFIER: app.midore
+      DEVELOPMENT_TEAM: 9437GLFKZ8
+targetTemplates:
+  app:
+    type: application
+    sources:
+      - path: Sources
+    scheme:
+      environmentVariables:
+        RUST_BACKTRACE: full
+        RUST_LOG: info
+    settings:
+      groups: [app]
+targets:
+  midore_iOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: Assets.xcassets
+      # Exclude built static libs: regenerating with xcodegen after a build
+      # otherwise turns the per-configuration libapp.a copies into colliding
+      # resources ("Multiple commands produce …/libapp.a"). They are linked
+      # via LIBRARY_SEARCH_PATHS, never bundled as resources.
+      - path: Externals
+        excludes: ["**/*.a"]
+      - path: midore_iOS
+      - path: assets
+        buildPhase: resources
+        type: folder
+      - path: LaunchScreen.storyboard
+    info:
+      path: midore_iOS/Info.plist
+      properties:
+        LSRequiresIPhoneOS: true
+        CFBundleURLTypes:
+          - CFBundleURLName: app.midore
+            CFBundleURLSchemes: [midore]
+        UILaunchStoryboardName: LaunchScreen
+        UIRequiredDeviceCapabilities: [arm64, metal]
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        CFBundleShortVersionString: 0.1.0
+        CFBundleVersion: "0.1.0"
+    entitlements:
+      path: midore_iOS/midore_iOS.entitlements
+      properties:
+        com.apple.security.application-groups: [group.app.midore]
+    scheme:
+      environmentVariables:
+        RUST_BACKTRACE: full
+        RUST_LOG: info
+    settings:
+      base:
+        ENABLE_BITCODE: false
+        ARCHS: [arm64]
+        VALID_ARCHS: arm64 
+        LIBRARY_SEARCH_PATHS[arch=x86_64]: $(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)
+        LIBRARY_SEARCH_PATHS[arch=arm64]: $(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)
+        ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: true
+        EXCLUDED_ARCHS[sdk=iphoneos*]: x86_64
+      groups: [app]
+    dependencies:
+      - target: MidoreWidgets_iOS
+        embed: true
+      - framework: libapp.a
+        embed: false
+      - sdk: CoreGraphics.framework
+      - sdk: Metal.framework
+      - sdk: MetalKit.framework
+      - sdk: QuartzCore.framework
+      - sdk: Security.framework
+      - sdk: UIKit.framework
+      - sdk: WebKit.framework
+    preBuildScripts:
+      - script: |
+          npm run -- tauri ios xcode-script -v --platform "${PLATFORM_DISPLAY_NAME:?}" --sdk-root "${SDKROOT:?}" --framework-search-paths "${FRAMEWORK_SEARCH_PATHS:?}" --header-search-paths "${HEADER_SEARCH_PATHS:?}" --gcc-preprocessor-definitions "${GCC_PREPROCESSOR_DEFINITIONS:-}" --configuration "${CONFIGURATION:?}" ${FORCE_COLOR} ${ARCHS:?}
+        name: Build Rust Code
+        basedOnDependencyAnalysis: false
+        outputFiles:
+          - $(SRCROOT)/Externals/x86_64/${CONFIGURATION}/libapp.a
+          - $(SRCROOT)/Externals/arm64/${CONFIGURATION}/libapp.a
+  MidoreWidgets_iOS:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ../../../widgets/apple/Shared
+      - path: ../../../widgets/apple/Widgets
+    info:
+      path: MidoreWidgets_iOS/Info.plist
+      properties:
+        CFBundleDisplayName: Midore
+        CFBundleShortVersionString: 0.1.0
+        CFBundleVersion: "0.1.0"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: MidoreWidgets_iOS/MidoreWidgets_iOS.entitlements
+      properties:
+        com.apple.security.application-groups: [group.app.midore]
+    settings:
+      base:
+        # Tauri rewrites every plain PRODUCT_BUNDLE_IDENTIFIER line to the app's id when it builds; the
+        # SDK-conditional form is left alone and takes precedence in Xcode.
+        PRODUCT_BUNDLE_IDENTIFIER: app.midore.widgets
+        "PRODUCT_BUNDLE_IDENTIFIER[sdk=*]": app.midore.widgets
+        PRODUCT_NAME: MidoreWidgets
+        DEVELOPMENT_TEAM: 9437GLFKZ8
+        SKIP_INSTALL: YES
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"

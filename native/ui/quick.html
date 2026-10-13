@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Quick add</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { background: var(--board); overflow: hidden; }
+    form { display: flex; flex-direction: column; height: 100vh; padding: 16px 18px 14px; gap: 10px; border: 1px solid var(--line); border-radius: 12px; }
+    .row { display: flex; align-items: center; gap: 10px; }
+    textarea { flex: 1; min-height: 64px; resize: none; border: 0; background: transparent; color: var(--ink); font: 500 18px/1.4 inherit; letter-spacing: -0.01em; }
+    textarea::placeholder { color: var(--faint); }
+    textarea:focus-visible { outline: none; }
+    .btn { height: 36px; padding: 0 14px; font-size: 14px; }
+    .hint { margin-left: auto; }
+    kbd { font: inherit; font-size: 12px; padding: 1px 5px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
+    #reply { max-height: 120px; overflow-y: auto; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--life) 14%, var(--surface)); box-shadow: inset 3px 0 0 var(--life); font-size: 14px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <form id="form" autocomplete="off">
+    <div class="row">
+      <svg class="mark" viewBox="0 0 5312 7339" aria-hidden="true"><path d="M1888 600C1888 268.629 2156.63 0 2488 0H2824C3155.37 0 3424 268.629 3424 600V936C3424 1267.37 3155.37 1536 2824 1536H2488C2156.63 1536 1888 1267.37 1888 936V600Z"/><path d="M0 3027C0 2474.72 447.715 2027 1000 2027H4312C4864.28 2027 5312 2474.72 5312 3027V6339C5312 6891.28 4864.28 7339 4312 7339H3424V7171C3424 6839.63 3155.37 6571 2824 6571H2488C2156.63 6571 1888 6839.63 1888 7171V7339H1000C447.715 7339 0 6891.28 0 6339V3027Z"/></svg>
+      <textarea id="text" placeholder="Add a task, or tell Dori what's on your mind" aria-label="Add a task or ask Dori" autofocus></textarea>
+    </div>
+    <p id="reply" hidden></p>
+    <p class="error" id="error" role="alert" hidden></p>
+    <div class="row">
+      <button class="btn" type="submit" id="add">Add task</button>
+      <button class="btn secondary" type="button" id="dori" hidden>Ask Dori</button>
+      <span class="faint hint"><kbd>Enter</kbd> add · <kbd id="mod">Ctrl</kbd>+<kbd>Enter</kbd> Dori · <kbd>Esc</kbd> close</span>
+    </div>
+  </form>
+  <script src="quick.js"></script>
+</body>
+</html>

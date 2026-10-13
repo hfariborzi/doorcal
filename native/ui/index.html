@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Midore</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    main { min-height: 100%; display: grid; place-items: center; padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom)); }
+    .card { width: 100%; max-width: 420px; padding: 36px 32px; border-radius: 18px; background: var(--board); box-shadow: 0 1px 0 var(--line), 0 30px 60px -36px rgb(24 24 27 / 0.45); text-align: center; }
+    .brand { justify-content: center; }
+    h1 { margin-top: 26px; font-size: 30px; line-height: 1.08; letter-spacing: -0.035em; font-weight: 800; }
+    h1 em { font-style: normal; color: var(--work); }
+    p { margin-top: 12px; }
+    .actions { margin-top: 28px; display: grid; gap: 10px; }
+    .spinner { width: 22px; height: 22px; margin: 28px auto 0; border-radius: 50%; border: 2.5px solid var(--line); border-top-color: var(--work); animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <div class="brand"><svg class="mark" viewBox="0 0 5312 7339" aria-hidden="true"><path d="M1888 600C1888 268.629 2156.63 0 2488 0H2824C3155.37 0 3424 268.629 3424 600V936C3424 1267.37 3155.37 1536 2824 1536H2488C2156.63 1536 1888 1267.37 1888 936V600Z"/><path d="M0 3027C0 2474.72 447.715 2027 1000 2027H4312C4864.28 2027 5312 2474.72 5312 3027V6339C5312 6891.28 4864.28 7339 4312 7339H3424V7171C3424 6839.63 3155.37 6571 2824 6571H2488C2156.63 6571 1888 6839.63 1888 7171V7339H1000C447.715 7339 0 6891.28 0 6339V3027Z"/></svg> midore</div>
+
+      <section id="loading">
+        <div class="spinner" role="status" aria-label="Opening Midore"></div>
+        <p class="muted">Opening your week…</p>
+      </section>
+
+      <section id="signed-out" hidden>
+        <h1>Your week, <em>planned</em> around what matters.</h1>
+        <p class="muted">Sign in on midore.app in your browser. You come straight back here.</p>
+        <div class="actions">
+          <button class="btn" id="sign-in">Sign in with your browser</button>
+        </div>
+        <p class="faint" id="server"></p>
+      </section>
+
+      <section id="waiting" hidden>
+        <h1>Finish signing in in your browser</h1>
+        <p class="muted">When you choose <b>Connect</b> there, Midore opens here with your calendar.</p>
+        <div class="actions">
+          <button class="btn secondary" id="again">Open the sign-in page again</button>
+        </div>
+      </section>
+
+      <section id="offline" hidden>
+        <h1>Can't reach Midore</h1>
+        <p class="muted" id="offline-text">Check your connection and try again.</p>
+        <div class="actions">
+          <button class="btn" id="retry">Try again</button>
+        </div>
+      </section>
+
+      <p class="error" id="error" role="alert" hidden></p>
+    </div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Midore",
+  "version": "0.1.0",
+  "identifier": "app.midore",
+  "build": {
+    "frontendDist": "../ui",
+    "beforeBundleCommand": "node scripts/before-bundle.mjs"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' data:; style-src 'self' 'unsafe-inline'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Productivity",
+    "shortDescription": "Your week, planned around what matters.",
+    "longDescription": "Midore brings your calendars, tasks and a planner together. Meetings stay where they are; Midore fits work, friends, workouts and rest into the time around them.",
+    "copyright": "\u00a9 2026 Hadi Fariborzi",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [],
+    "macOS": {
+      "minimumSystemVersion": "14.0",
+      "signingIdentity": "Developer ID Application: Hadi Fariborzi (9437GLFKZ8)",
+      "entitlements": "macos/Midore.entitlements",
+      "files": {
+        "PlugIns/MidoreWidgets.appex": "../widgets/apple/build/dd/Build/Products/Release/MidoreWidgets.appex"
+      }
+    },
+    "iOS": {
+      "minimumSystemVersion": "17.0",
+      "developmentTeam": "9437GLFKZ8"
+    },
+    "android": {
+      "minSdkVersion": 26
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "midore"
+        ]
+      },
+      "mobile": [
+        {
+          "scheme": [
+            "midore"
+          ],
+          "appLink": false
+        }
+      ]
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEUxMjVERkNENDIzM0YwMEIKUldRTDhETkN6ZDhsNGZ5eG1nN0tUMk82NjhGbjBubnBRZGMxeDVqeWo5ZXJ5eE9mTlc3MEowTWwK",
+      "endpoints": [
+        "https://github.com/hfariborzi/midore/releases/latest/download/latest.json"
+      ]
+    }
+  }
+}

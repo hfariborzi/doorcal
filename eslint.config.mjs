@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The desktop and phone apps have their own toolchain (Rust, Swift, Kotlin) and build output.
+    "native/**",
   ]),
 ]);
 

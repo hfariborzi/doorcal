@@ -1,0 +1,47 @@
+# Builds the Midore desktop app (native/) on Linux on every change to native/, and can be run by hand.
+# The Mac app is built and signed on the owner's Mac (scripts in native/); Windows is built on a Windows machine
+# (see native/WINDOWS.md). Release signing secrets are optional: without them the build is unsigned and skips the
+# updater artifacts, which is fine for testing.
+name: native
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["native/**", ".github/workflows/native.yml"]
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - uses: actions/checkout@v4
+      - name: System libraries for Tauri
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libssl-dev libxdo-dev build-essential curl wget file
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native/src-tauri -> target
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Build (deb, rpm, AppImage)
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then EXTRA='--config {"bundle":{"createUpdaterArtifacts":false}}'; fi
+          npx tauri build --bundles deb,rpm,appimage $EXTRA
+      - uses: actions/upload-artifact@v4
+        with:
+          name: midore-linux
+          path: |
+            native/src-tauri/target/release/bundle/deb/*.deb
+            native/src-tauri/target/release/bundle/rpm/*.rpm
+            native/src-tauri/target/release/bundle/appimage/*.AppImage
+          if-no-files-found: error

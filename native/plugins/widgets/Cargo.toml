@@ -1,0 +1,17 @@
+[package]
+name = "tauri-plugin-midore-widgets"
+version = "0.1.0"
+authors = ["Hadi Fariborzi"]
+description = "Shares the Midore session with the native widgets on each platform"
+edition = "2021"
+rust-version = "1.80"
+links = "tauri-plugin-midore-widgets"
+
+[dependencies]
+tauri = { version = "2" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
