@@ -119,7 +119,7 @@ export async function calendarsForAccounts(accounts: CalendarAccount[]): Promise
   );
 }
 
-export type EventsResult = { events: CalendarEvent[]; problems: { accountId: number; email: string; message: string }[] };
+export type EventsResult = { events: CalendarEvent[]; problems: { accountId: number; provider: CalendarAccount["provider"]; email: string; message: string; reconnect: boolean }[] };
 
 /** Calendars shown for an account in the dashboard: the user's choice, else conflicts + the booking calendar. */
 export function visibleCalendarIds(user: Pick<User, "calendarPrefs" | "writeAccountId" | "writeCalendarId">, account: CalendarAccount): Set<string> {
@@ -136,7 +136,7 @@ export async function eventsForAccounts(user: User, accounts: CalendarAccount[],
   await Promise.all(
     accounts.map(async (account) => {
       if (!isConnected(account)) {
-        out.problems.push({ accountId: account.id, email: account.email, message: "needs to be reconnected" });
+        out.problems.push({ accountId: account.id, provider: account.provider, email: account.email, message: "needs to be reconnected", reconnect: true });
         return;
       }
       try {
@@ -148,8 +148,10 @@ export async function eventsForAccounts(user: User, accounts: CalendarAccount[],
         logError(`events ${account.provider}#${account.id}`, err);
         out.problems.push({
           accountId: account.id,
+          provider: account.provider,
           email: account.email,
           message: err instanceof CalendarNotConnectedError ? "needs to be reconnected" : "could not be loaded right now",
+          reconnect: err instanceof CalendarNotConnectedError,
         });
       }
     }),

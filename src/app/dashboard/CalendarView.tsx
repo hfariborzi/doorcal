@@ -12,6 +12,7 @@ import { meetingLinkLabel } from "@/lib/locations";
 import { labelEvent, saveCalendarPrefs } from "./actions";
 import { markBlock, moveBlock, pinBlock, skipTaskOn, unpinTask, type BlockState } from "./dori-actions";
 import { GRAPHITE, toPalette } from "@/lib/palette";
+import { ProviderButton } from "@/components/ProviderButton";
 import board from "./board.module.css";
 import { DORI_CHANGED } from "./DoriPanel";
 import { CALENDAR_CONTROLS_ID } from "./TopBar";
@@ -42,7 +43,7 @@ function blockState(b: PlannedBlock): TaskState {
 }
 const PLAN_CAL = "doorcal-plan";
 
-type Problem = { accountId: number; email: string; message: string };
+type Problem = { accountId: number; provider: "google" | "microsoft"; email: string; message: string; reconnect: boolean };
 type Label = { categoryId: number | null; priority: Priority; source: LabelSource | null; location: EventLocationKind };
 type Labels = Record<string, Label>;
 
@@ -457,9 +458,17 @@ export function CalendarView() {
       <div className={`${board.board} relative flex min-h-0 flex-1 flex-col`}>
         {error && <p className="m-4 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
         {problems.length > 0 && (
-          <p className="m-4 rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning">
-            {problems.map((p) => `${p.email} ${p.message}`).join(". ")}.
-          </p>
+          <div className="m-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-ink">
+            <p className="min-w-0 flex-1">
+              {problems.map((p) => `${p.email} ${p.message}`).join(". ")}.{" "}
+              {problems.some((p) => p.reconnect) && <span className="text-muted">Its events are hidden until then. Allow all calendar permissions on the consent screen.</span>}
+            </p>
+            {problems
+              .filter((p) => p.reconnect)
+              .map((p) => (
+                <ProviderButton key={p.accountId} provider={p.provider} reconnect={p.accountId} label={`Reconnect ${p.email}`} compact />
+              ))}
+          </div>
         )}
 
         {strip}
