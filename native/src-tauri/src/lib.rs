@@ -62,7 +62,16 @@ fn create_main_window<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into())).on_navigation(move |url| allow_navigation(&handle, url));
     #[cfg(desktop)]
     let builder = builder.title("Midore").inner_size(1280.0, 820.0).min_inner_size(380.0, 520.0).center();
-    builder.build()?;
+    let window = builder.build()?;
+    // Phones show the window's own colour below the page (behind the home bar): match the app's canvas.
+    #[cfg(mobile)]
+    {
+        use tauri::window::Color;
+        let dark = matches!(window.theme(), Ok(tauri::Theme::Dark));
+        let _ = window.set_background_color(Some(if dark { Color(18, 16, 22, 255) } else { Color(251, 248, 252, 255) }));
+    }
+    #[cfg(desktop)]
+    let _ = window;
     Ok(())
 }
 
