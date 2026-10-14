@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- iPhone app icon: full bleed and opaque; iOS rounds the corners itself. -->
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f1eef3"/></linearGradient></defs>
+  <rect width="1024" height="1024" fill="url(#g)"/>
+  <g transform="translate(512 512) scale(0.078) translate(-2656 -3669.5)" fill="#E11D48"><path d="M1888 600C1888 268.629 2156.63 0 2488 0H2824C3155.37 0 3424 268.629 3424 600V936C3424 1267.37 3155.37 1536 2824 1536H2488C2156.63 1536 1888 1267.37 1888 936V600Z"/><path d="M0 3027C0 2474.72 447.715 2027 1000 2027H4312C4864.28 2027 5312 2474.72 5312 3027V6339C5312 6891.28 4864.28 7339 4312 7339H3424V7171C3424 6839.63 3155.37 6571 2824 6571H2488C2156.63 6571 1888 6839.63 1888 7171V7339H1000C447.715 7339 0 6891.28 0 6339V3027Z"/></g>
+</svg>
