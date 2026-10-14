@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { APP_NAME } from "@/lib/config";
 import { THEME_INIT_SCRIPT } from "@/components/ThemeToggle";
@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
   description: "Open-source scheduling that syncs with your Google or Microsoft calendar.",
 };
+
+// Pages run edge to edge on phones (and in the Midore phone apps); safe-area padding keeps them clear of the
+// status bar and home indicator.
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

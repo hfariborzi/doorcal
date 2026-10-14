@@ -266,7 +266,7 @@ export function DoriPanel() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`fixed bottom-4 z-40 grid h-[72px] w-[72px] place-items-center rounded-full border border-line bg-surface shadow-(--shadow-modal) transition hover:-translate-y-0.5 ${
+        className={`fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 grid h-[72px] w-[72px] place-items-center rounded-full border border-line bg-surface shadow-(--shadow-modal) transition hover:-translate-y-0.5 ${
           open ? "right-4 hidden md:right-[416px] md:grid" : "right-4 sm:right-6 sm:bottom-6"
         }`}
         aria-label={open ? "Close Dori" : "Open Dori, your assistant"}
@@ -278,7 +278,7 @@ export function DoriPanel() {
       </button>
 
       {open && (
-        <aside className="fixed inset-0 z-50 flex flex-col border-line bg-surface md:static md:z-auto md:w-[400px] md:shrink-0 md:border-l" aria-label="Dori">
+        <aside className="fixed inset-0 z-50 flex flex-col border-line bg-surface pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:static md:pt-0 md:pb-0 md:z-auto md:w-[400px] md:shrink-0 md:border-l" aria-label="Dori">
           <header className="flex items-center gap-3 border-b border-line px-4 py-3">
             <Dori mood={mood} size={44} live />
             <div className="min-w-0 flex-1">

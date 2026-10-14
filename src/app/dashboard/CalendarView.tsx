@@ -555,7 +555,7 @@ export function CalendarView() {
         ? `${range.start.toFormat("LLL d")} – ${last.toFormat("d, yyyy")}`
         : `${range.start.toFormat("LLL d")} – ${last.toFormat("LLL d, yyyy")}`
       : range.start.toFormat("cccc, LLL d, yyyy");
-  const shortTitle = view === "month" ? anchor.toFormat("LLLL yyyy") : view === "week" ? `${range.start.toFormat("LLL d")}–${last.toFormat(range.start.hasSame(last, "month") ? "d" : "LLL d")}` : range.start.toFormat("ccc, LLL d");
+  const shortTitle = view === "month" ? anchor.toFormat("LLL yyyy") : view === "week" ? `${range.start.toFormat("LLL d")}–${last.toFormat(range.start.hasSame(last, "month") ? "d" : "LLL d")}` : range.start.toFormat("ccc, LLL d");
 
   return (
     <div className="flex h-full flex-col">

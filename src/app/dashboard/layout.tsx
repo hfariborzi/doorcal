@@ -19,7 +19,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
   return (
     <DoriCharacterProvider value={user.doriPrefs?.character ?? "puppy"}>
       {/* One screen: the calendar is always here. Other pages open over it in the overlay; Dori docks beside it. */}
-      <div className="flex h-dvh flex-col overflow-hidden">
+      <div className="flex h-dvh flex-col overflow-hidden bg-surface pt-[env(safe-area-inset-top)]">
         <TopBar name={user.name} email={user.email} image={user.image} publicUrl={publicUrl} />
         {stale.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-vermilion/20 bg-vermilion-subtle px-4 py-2.5">

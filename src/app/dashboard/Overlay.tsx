@@ -50,7 +50,7 @@ export function Overlay({ children }: { children: React.ReactNode }) {
         role="dialog"
         aria-modal="true"
         aria-label={booking ? "Booking" : title}
-        className="animate-sheet flex h-full w-full max-w-4xl flex-col border-l border-line bg-canvas shadow-(--shadow-modal)"
+        className="animate-sheet flex h-full w-full max-w-4xl flex-col border-l border-line bg-canvas pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-(--shadow-modal)"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-line bg-surface px-3 py-2 sm:px-5">
