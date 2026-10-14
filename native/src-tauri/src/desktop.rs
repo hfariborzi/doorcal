@@ -2,13 +2,13 @@
 
 use std::collections::HashSet;
 use std::sync::Mutex;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use chrono::{DateTime, Local};
 use tauri::image::Image;
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
-use tauri::tray::TrayIconBuilder;
-use tauri::{App, AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::{App, AppHandle, Manager, PhysicalPosition, Rect, Runtime, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt as _};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
@@ -22,6 +22,15 @@ const REFRESH_EVERY: Duration = Duration::from_secs(60);
 /// How long before planned work starts the "up next" notification comes.
 const HEADS_UP_SECS: i64 = 120;
 
+/// The menu bar calendar's size, in points.
+const MINI_W: f64 = 340.0;
+const MINI_H: f64 = 520.0;
+
+/// When the menu bar calendar last hid because it lost focus. Clicking the icon to close it also takes focus
+/// away first, so a click right after that hide must not open it again.
+#[derive(Default)]
+struct MiniHidden(Mutex<Option<Instant>>);
+
 /// Notifications already shown, so each fires once.
 #[derive(Default)]
 struct Notified(Mutex<HashSet<String>>);
@@ -33,6 +42,7 @@ fn quick_shortcut() -> Shortcut {
 
 pub fn setup<R: Runtime>(app: &mut App<R>) -> tauri::Result<()> {
     app.manage(Notified::default());
+    app.manage(MiniHidden::default());
     let handle = app.handle().clone();
 
     // Closing the window keeps Midore running in the tray or menu bar.
@@ -73,8 +83,19 @@ pub fn setup<R: Runtime>(app: &mut App<R>) -> tauri::Result<()> {
         .icon_as_template(true)
         .tooltip("Midore")
         .menu(&menu)
-        .show_menu_on_left_click(true)
+        // Left click opens the calendar under the icon; right click (or Control-click) shows the menu.
+        .show_menu_on_left_click(false)
         .on_menu_event(|app, event| on_menu(app, event.id.as_ref()))
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, rect, .. } = event {
+                let app = tray.app_handle();
+                if session::token(app).is_some() {
+                    toggle_mini(app, rect);
+                } else {
+                    show_main(app);
+                }
+            }
+        })
         .build(app)?;
 
     let bg = handle.clone();
@@ -284,6 +305,72 @@ fn toggle_quick<R: Runtime>(app: &AppHandle<R>) {
             }
         });
     }
+}
+
+pub fn hide_mini<R: Runtime>(app: &AppHandle<R>) {
+    if let Some(w) = app.get_webview_window("mini") {
+        let _ = w.hide();
+    }
+}
+
+/// The menu bar calendar: a small panel under the icon with a month and the chosen day's events and planned
+/// work. It hides when it loses focus, like a menu.
+fn toggle_mini<R: Runtime>(app: &AppHandle<R>, icon: Rect) {
+    let just_hidden = app.state::<MiniHidden>().0.lock().unwrap().is_some_and(|t| t.elapsed() < Duration::from_millis(350));
+    let window = match app.get_webview_window("mini") {
+        Some(w) => {
+            if w.is_visible().unwrap_or(false) || just_hidden {
+                let _ = w.hide();
+                return;
+            }
+            w
+        }
+        None => {
+            let built = WebviewWindowBuilder::new(app, "mini", WebviewUrl::App("mini.html".into()))
+                .title("Midore")
+                .inner_size(MINI_W, MINI_H)
+                .resizable(false)
+                .decorations(false)
+                .always_on_top(true)
+                .skip_taskbar(true)
+                .visible_on_all_workspaces(true)
+                .visible(false)
+                .build();
+            let Ok(w) = built else { return };
+            let (w2, handle) = (w.clone(), app.clone());
+            w.on_window_event(move |event| {
+                if let WindowEvent::Focused(false) = event {
+                    let _ = w2.hide();
+                    *handle.state::<MiniHidden>().0.lock().unwrap() = Some(Instant::now());
+                }
+            });
+            w
+        }
+    };
+    place_under(app, &window, icon);
+    let _ = window.show();
+    let _ = window.set_focus();
+}
+
+/// Centre the panel under the menu bar icon, kept inside the screen.
+fn place_under<R: Runtime>(app: &AppHandle<R>, window: &tauri::WebviewWindow<R>, icon: Rect) {
+    let scale = window.scale_factor().unwrap_or(1.0);
+    let pos: PhysicalPosition<f64> = icon.position.to_physical(scale);
+    let size: tauri::PhysicalSize<f64> = icon.size.to_physical(scale);
+    let monitor = app.monitor_from_point(pos.x, pos.y).ok().flatten();
+    let scale = monitor.as_ref().map(|m| m.scale_factor()).unwrap_or(scale);
+    let (w, h) = (MINI_W * scale, MINI_H * scale);
+    let gap = 6.0 * scale;
+    let mut x = pos.x + size.width / 2.0 - w / 2.0;
+    // Windows and Linux trays sit at the bottom of the screen: open above the icon there.
+    let mut y = if cfg!(target_os = "macos") { pos.y + size.height + gap } else { pos.y - h - gap };
+    if let Some(m) = &monitor {
+        let (mx, my) = (m.position().x as f64, m.position().y as f64);
+        let (mw, mh) = (m.size().width as f64, m.size().height as f64);
+        x = x.clamp(mx + gap, mx + mw - w - gap);
+        y = y.clamp(my, my + mh - h);
+    }
+    let _ = window.set_position(PhysicalPosition::new(x, y));
 }
 
 /// Planned work: a heads-up just before it starts, and "how did it go?" when it ends.

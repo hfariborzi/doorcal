@@ -242,6 +242,53 @@ fn hide_quick(app: AppHandle) {
     }
 }
 
+/// The menu bar calendar: one day's events and planned work.
+#[tauri::command]
+async fn mini_day(app: AppHandle, date: Option<String>) -> Result<serde_json::Value, String> {
+    let token = session::token(&app).ok_or("Sign in first.")?;
+    match api::day(&token, date.as_deref()).await {
+        Err(api::ApiError::SignedOut) => {
+            sign_out_inner(&app);
+            Err(api::ApiError::SignedOut.to_string())
+        }
+        r => r.map_err(|e| e.to_string()),
+    }
+}
+
+#[tauri::command]
+async fn mark_done(app: AppHandle, task_id: i64, start: String, end: String) -> Result<(), String> {
+    let token = session::token(&app).ok_or("Sign in first.")?;
+    api::mark_done(&token, task_id, &start, &end).await.map_err(|e| e.to_string())?;
+    #[cfg(desktop)]
+    desktop::refresh_now(&app);
+    Ok(())
+}
+
+/// Meeting links from the menu bar calendar open in the browser.
+#[tauri::command]
+fn open_link(app: AppHandle, url: String) -> Result<(), String> {
+    let parsed = Url::parse(&url).map_err(|e| e.to_string())?;
+    if parsed.scheme() != "https" {
+        return Err("Only https links open from here.".into());
+    }
+    app.opener().open_url(parsed.as_str(), None::<&str>).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn close_mini(app: AppHandle) {
+    #[cfg(desktop)]
+    desktop::hide_mini(&app);
+    #[cfg(mobile)]
+    let _ = app;
+}
+
+#[tauri::command]
+fn open_main(app: AppHandle) {
+    #[cfg(desktop)]
+    desktop::hide_mini(&app);
+    show_main(&app);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
@@ -291,7 +338,7 @@ pub fn run() {
             desktop::setup(app)?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![status, sign_in, open_web, sign_out, quick_add, ask_dori, quick_info, hide_quick])
+        .invoke_handler(tauri::generate_handler![status, sign_in, open_web, sign_out, quick_add, ask_dori, quick_info, hide_quick, mini_day, mark_done, open_link, open_main, close_mini])
         .build(tauri::generate_context!())
         .expect("error while building Midore")
         .run(|_app, _event| {

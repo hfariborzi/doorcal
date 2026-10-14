@@ -8,14 +8,17 @@ import { blockState, planBlocks } from "@/lib/plan-view";
 export const maxDuration = 30;
 
 /**
- * Today (or the next few days) for the tray, the menu bar and the widgets: events and planned work in one list,
+ * Today (or the next few days, or another day with `date`) for the tray, the menu bar and the widgets: events and planned work in one list,
  * coloured with the Midore palette by category, plus what is happening now and what comes next.
  */
 export async function GET(req: Request) {
   return withDevice(req, "agenda", async (user) => {
     const url = new URL(req.url);
     const days = Math.min(7, Math.max(1, Number(url.searchParams.get("days")) || 1));
-    const start = DateTime.now().setZone(user.timezone).startOf("day");
+    // `date` (YYYY-MM-DD, the person's own timezone) picks another day for the menu bar calendar; default today.
+    const date = url.searchParams.get("date");
+    const picked = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? DateTime.fromISO(date, { zone: user.timezone }) : null;
+    const start = (picked?.isValid ? picked : DateTime.now().setZone(user.timezone)).startOf("day");
     const end = start.plus({ days });
     const [{ events, problems }, blocks] = await Promise.all([
       listAccounts(user.id).then((accounts) => eventsForAccounts(user, accounts, start.toJSDate(), end.toJSDate())),

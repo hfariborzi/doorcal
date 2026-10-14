@@ -162,3 +162,20 @@ pub async fn add_task(token: &str, title: &str) -> Result<(), ApiError> {
 pub async fn ask_dori(token: &str, text: &str) -> Result<DoriReply, ApiError> {
     read(client().post(format!("{}/api/v1/dori", base_url())).bearer_auth(token).json(&json!({ "text": text })).send().await).await
 }
+
+/// One day for the menu bar calendar (`date` as YYYY-MM-DD, or today), passed through to the page as JSON.
+pub async fn day(token: &str, date: Option<&str>) -> Result<serde_json::Value, ApiError> {
+    let mut url = reqwest::Url::parse(&format!("{}/api/v1/agenda", base_url())).map_err(|e| ApiError::Network(e.to_string()))?;
+    url.query_pairs_mut().append_pair("days", "1");
+    if let Some(d) = date {
+        url.query_pairs_mut().append_pair("date", d);
+    }
+    read(client().get(url).bearer_auth(token).send().await).await
+}
+
+/// Mark a planned block done (the tick in the menu bar calendar).
+pub async fn mark_done(token: &str, task_id: i64, start: &str, end: &str) -> Result<(), ApiError> {
+    let body = json!({ "taskId": task_id, "start": start, "end": end, "state": { "status": "done" } });
+    let _: serde_json::Value = read(client().post(format!("{}/api/v1/blocks/mark", base_url())).bearer_auth(token).json(&body).send().await).await?;
+    Ok(())
+}
