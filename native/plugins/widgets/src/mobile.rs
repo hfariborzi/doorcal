@@ -24,6 +24,11 @@ impl<R: Runtime> MidoreWidgets<R> {
         self.0.run_mobile_plugin::<serde_json::Value>("setSession", session).map(|_| ()).map_err(Into::into)
     }
 
+    /// Show what's on now as a Live Activity, or end it (None). iPhone only.
+    pub fn set_activity(&self, activity: Option<Activity>) -> crate::Result<()> {
+        self.0.run_mobile_plugin::<serde_json::Value>("setActivity", ActivityArgs { activity }).map(|_| ()).map_err(Into::into)
+    }
+
     /// Open the sign-in page in a browser sheet over the app. Blocks until the sheet closes on iOS; returns at
     /// once on Android. Call it off the main thread.
     pub fn authenticate(&self, url: String, scheme: String) -> crate::Result<Option<String>> {

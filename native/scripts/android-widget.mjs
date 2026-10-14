@@ -49,5 +49,37 @@ if (!manifest.includes('android:scheme="midore"')) {
         </activity>`,
   );
 }
+// Quick add from Share in any app, the icon's long-press shortcuts, and exact reminder times (a calendar app may
+// use USE_EXACT_ALARM; without it Android may deliver reminders a few minutes late).
+if (!manifest.includes("QuickAddActivity")) {
+  manifest = manifest.replace(
+    "    </application>",
+    `        <activity
+            android:name="app.midore.widgets.QuickAddActivity"
+            android:exported="true"
+            android:label="Add to Midore"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity="app.midore.quickadd"
+            android:windowSoftInputMode="stateVisible">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="app.midore.QUICK_ADD" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+    </application>`,
+  );
+}
+if (!manifest.includes("android.app.shortcuts")) {
+  manifest = manifest.replace("        </activity>", '            <meta-data android:name="android.app.shortcuts" android:resource="@xml/midore_shortcuts" />\n        </activity>');
+}
+if (!manifest.includes("USE_EXACT_ALARM")) {
+  manifest = manifest.replace("    <application", '    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />\n    <application');
+}
 writeFileSync(manifestPath, manifest);
-console.log("Android project: widgets and midore:// links in place.");
+console.log("Android project: widgets, quick add, shortcuts and midore:// links in place.");

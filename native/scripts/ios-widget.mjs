@@ -59,5 +59,51 @@ if (!yml.includes("MidoreWidgets_iOS")) {
   writeFileSync(file, yml);
 }
 
+// Live Activities: what's on now on the Lock Screen and in the Dynamic Island (started by the app).
+if (!yml.includes("NSSupportsLiveActivities")) {
+  yml = yml.replace("        LSRequiresIPhoneOS: true\n", "        LSRequiresIPhoneOS: true\n        NSSupportsLiveActivities: true\n");
+}
+
+// Share to Midore: a share extension that turns shared text or links into tasks.
+if (!yml.includes("MidoreShare_iOS")) {
+  yml = yml.replace("      - target: MidoreWidgets_iOS\n        embed: true\n", "      - target: MidoreWidgets_iOS\n        embed: true\n      - target: MidoreShare_iOS\n        embed: true\n");
+  yml += `
+  MidoreShare_iOS:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ../../../widgets/apple/Shared
+      - path: ../../../widgets/apple/Share
+    info:
+      path: MidoreShare_iOS/Info.plist
+      properties:
+        CFBundleDisplayName: Midore
+        CFBundleShortVersionString: 0.1.0
+        CFBundleVersion: "0.1.0"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+    entitlements:
+      path: MidoreShare_iOS/MidoreShare_iOS.entitlements
+      properties:
+        com.apple.security.application-groups: [${GROUP}]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.midore.share
+        "PRODUCT_BUNDLE_IDENTIFIER[sdk=*]": app.midore.share
+        PRODUCT_NAME: MidoreShare
+        DEVELOPMENT_TEAM: 9437GLFKZ8
+        SKIP_INSTALL: YES
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+`;
+}
+writeFileSync(file, yml);
+
 execFileSync("xcodegen", ["generate", "--quiet"], { cwd: dir, stdio: "inherit" });
-console.log("iOS project: widget extension and App Group in place.");
+console.log("iOS project: widgets, Live Activities, share extension and App Group in place.");

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		025DEA6868E2F3A659626330 /* MidoreShare_iOS.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E4FBBF50DEF245E542118A5B /* MidoreShare_iOS.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		0631233AAE4097BD9C20C875 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7B3AC3B13739058201671DC4 /* Security.framework */; };
 		0898219E25236C612373CA10 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E13ABD17CA0F4B89F4151B8F /* libapp.a */; };
 		116D83316B05DE79201A8F8A /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6643FB52C9E527CB2FB5465 /* Session.swift */; };
@@ -14,22 +15,36 @@
 		2C3566DEC411D9CF71BF1599 /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = 620456E5E88A808CC864C27C /* API.swift */; };
 		31FBCAFE8E7FC3A3D26E3B97 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 1B02D57E41E493BBFE9D8D4B /* assets */; };
 		381A2FCE97295972A17A732F /* MidoreWidgets_iOS.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 60C9525D54BAD5932E28A5D6 /* MidoreWidgets_iOS.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		39A0959F32091E63C5717EFE /* LiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC3C2F431422F85B7286D1A0 /* LiveActivity.swift */; };
 		4DCDD1F3C8D099EAB06BBFD3 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B0467804E03AFF2E6C71D62E /* Metal.framework */; };
+		555D7F4F12FA8C39CEDF4671 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62A2A966729397DFE03B36E3 /* ShareViewController.swift */; };
 		5B013FBEAF8875763BB77309 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15348D3CCC20350E0157EB11 /* CoreGraphics.framework */; };
 		5BA78ED6C6522EB6990303B2 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 49BA93434D2219F9A2A07F15 /* MetalKit.framework */; };
+		5D89CC080A5181E07EFAD628 /* ActivityModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA5FF3ECBBE27B3BE594C98E /* ActivityModel.swift */; };
+		5DAF61E127FF2BE9305E0BB4 /* ActivityModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA5FF3ECBBE27B3BE594C98E /* ActivityModel.swift */; };
 		71D6ECD1432D80FF118734BD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7119D7B5E6D223172039B3A5 /* Assets.xcassets */; };
 		742AB5E117347FBE818A7CBC /* MidoreWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = C67C0FDD0A9EF4B895D66AC0 /* MidoreWidgets.swift */; };
 		8FD9457BA1E0A31911D81D45 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38E8BE3AF8897364EFACAE67 /* WebKit.framework */; };
 		A38071FB2C9BFA87CE7565A3 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6A7FC6C3EC2B5BA0883F613 /* UIKit.framework */; };
 		A4D67D80732614F1ED54C381 /* Style.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F24DDD5FDC7E320D4C88D85 /* Style.swift */; };
+		AB5C747D850E52FB81683113 /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = 620456E5E88A808CC864C27C /* API.swift */; };
 		B5244C75A76EC1A13FB25680 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 02F649CBC9704E95E31DDCC3 /* Assets.xcassets */; };
 		B62A2E10A00D2D456A52430D /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = 3B96B28A4961C7A0FE3DF2BA /* main.mm */; };
+		CC7FA1D10EB81C9AF4930ACE /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6643FB52C9E527CB2FB5465 /* Session.swift */; };
+		F6EED26FF8CCC9BA7B00B011 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52195A60E97663D19BD8F0D5 /* Models.swift */; };
 		F7A6AB3CA6D7A7BAFCA99B43 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 176E3041CEB1EBE9EE2E9FAA /* LaunchScreen.storyboard */; };
 		F9F427E69FDF4D0E635482AD /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52195A60E97663D19BD8F0D5 /* Models.swift */; };
 		FF2531FC3534F436483DB673 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3128357FB694395E82CD54AA /* QuartzCore.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		0AA1DC4B293FDFDA76CBBEC3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D6194750550CAF7B8F218446 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D931795CE6E7D9509A546E6B;
+			remoteInfo = MidoreShare_iOS;
+		};
 		E5E022D19E74FF3B454ACBDC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = D6194750550CAF7B8F218446 /* Project object */;
@@ -47,6 +62,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				381A2FCE97295972A17A732F /* MidoreWidgets_iOS.appex in Embed Foundation Extensions */,
+				025DEA6868E2F3A659626330 /* MidoreShare_iOS.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -55,6 +71,7 @@
 
 /* Begin PBXFileReference section */
 		02F649CBC9704E95E31DDCC3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		08D475FC6685FBBA3DF9BC38 /* phone.rs */ = {isa = PBXFileReference; path = phone.rs; sourceTree = "<group>"; };
 		15348D3CCC20350E0157EB11 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		176E3041CEB1EBE9EE2E9FAA /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		1B02D57E41E493BBFE9D8D4B /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
@@ -68,6 +85,7 @@
 		52195A60E97663D19BD8F0D5 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		60C9525D54BAD5932E28A5D6 /* MidoreWidgets_iOS.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = MidoreWidgets_iOS.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		620456E5E88A808CC864C27C /* API.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = API.swift; sourceTree = "<group>"; };
+		62A2A966729397DFE03B36E3 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		6D2C251278C971BC2FB916A1 /* bindings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bindings.h; sourceTree = "<group>"; };
 		7119D7B5E6D223172039B3A5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		76F70CA8C87F0F7D5B5DBEAB /* midore_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = midore_iOS.entitlements; sourceTree = "<group>"; };
@@ -80,8 +98,11 @@
 		BCF367C903848CD1991A3D79 /* api.rs */ = {isa = PBXFileReference; path = api.rs; sourceTree = "<group>"; };
 		C67C0FDD0A9EF4B895D66AC0 /* MidoreWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MidoreWidgets.swift; sourceTree = "<group>"; };
 		C841CD4B36F3A09183E0B97E /* main.rs */ = {isa = PBXFileReference; path = main.rs; sourceTree = "<group>"; };
+		CA5FF3ECBBE27B3BE594C98E /* ActivityModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityModel.swift; sourceTree = "<group>"; };
 		CB564C143037F889437A635E /* Intents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intents.swift; sourceTree = "<group>"; };
 		E13ABD17CA0F4B89F4151B8F /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
+		E4FBBF50DEF245E542118A5B /* MidoreShare_iOS.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = MidoreShare_iOS.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		EC3C2F431422F85B7286D1A0 /* LiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivity.swift; sourceTree = "<group>"; };
 		F0AC10D6F7026BB6330C92EC /* session.rs */ = {isa = PBXFileReference; path = session.rs; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -112,6 +133,7 @@
 				176E3041CEB1EBE9EE2E9FAA /* LaunchScreen.storyboard */,
 				5074640A56FAC3004919DB30 /* Externals */,
 				9B66B1B827FDFE987F7E06F1 /* midore_iOS */,
+				B039A2998E2EC4DD12C39701 /* Share */,
 				A63F99AC5ADC09DED51F3B59 /* Shared */,
 				1733A688206288550161DA9A /* Sources */,
 				99A9F979C2C773F8BFB2F1F2 /* src */,
@@ -141,6 +163,7 @@
 			isa = PBXGroup;
 			children = (
 				1E0DA55A67434321181AC55D /* midore_iOS.app */,
+				E4FBBF50DEF245E542118A5B /* MidoreShare_iOS.appex */,
 				60C9525D54BAD5932E28A5D6 /* MidoreWidgets_iOS.appex */,
 			);
 			name = Products;
@@ -151,6 +174,7 @@
 			children = (
 				7119D7B5E6D223172039B3A5 /* Assets.xcassets */,
 				CB564C143037F889437A635E /* Intents.swift */,
+				EC3C2F431422F85B7286D1A0 /* LiveActivity.swift */,
 				C67C0FDD0A9EF4B895D66AC0 /* MidoreWidgets.swift */,
 				9F24DDD5FDC7E320D4C88D85 /* Style.swift */,
 			);
@@ -196,6 +220,7 @@
 				8D1A29B4D9893233F38E9812 /* desktop.rs */,
 				35F96D696B914DB4CA912DD9 /* lib.rs */,
 				C841CD4B36F3A09183E0B97E /* main.rs */,
+				08D475FC6685FBBA3DF9BC38 /* phone.rs */,
 				F0AC10D6F7026BB6330C92EC /* session.rs */,
 			);
 			name = src;
@@ -214,12 +239,36 @@
 		A63F99AC5ADC09DED51F3B59 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				CA5FF3ECBBE27B3BE594C98E /* ActivityModel.swift */,
 				620456E5E88A808CC864C27C /* API.swift */,
 				52195A60E97663D19BD8F0D5 /* Models.swift */,
 				B6643FB52C9E527CB2FB5465 /* Session.swift */,
 			);
 			name = Shared;
 			path = ../../../widgets/apple/Shared;
+			sourceTree = "<group>";
+		};
+		B039A2998E2EC4DD12C39701 /* Share */ = {
+			isa = PBXGroup;
+			children = (
+				62A2A966729397DFE03B36E3 /* ShareViewController.swift */,
+			);
+			name = Share;
+			path = ../../../widgets/apple/Share;
+			sourceTree = "<group>";
+		};
+		"TEMP_AD72D11A-3476-4DBC-8EAD-CED7966679C7" /* x86_64 */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = x86_64;
+			sourceTree = "<group>";
+		};
+		"TEMP_CB53B81B-A933-46AD-ADD4-C740B37572A0" /* arm64 */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = arm64;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -239,6 +288,7 @@
 			);
 			dependencies = (
 				9B049CE60EE1182790DC8440 /* PBXTargetDependency */,
+				550D92F240A612163CDE8C68 /* PBXTargetDependency */,
 			);
 			name = midore_iOS;
 			packageProductDependencies = (
@@ -265,6 +315,23 @@
 			productReference = 60C9525D54BAD5932E28A5D6 /* MidoreWidgets_iOS.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		D931795CE6E7D9509A546E6B /* MidoreShare_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F3E1C8CC6B18E379C157C790 /* Build configuration list for PBXNativeTarget "MidoreShare_iOS" */;
+			buildPhases = (
+				8435D6AAD874217D6947D3B3 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MidoreShare_iOS;
+			packageProductDependencies = (
+			);
+			productName = MidoreShare_iOS;
+			productReference = E4FBBF50DEF245E542118A5B /* MidoreShare_iOS.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -278,6 +345,9 @@
 						DevelopmentTeam = 9437GLFKZ8;
 					};
 					995D8FFE3798BA41252294F7 = {
+						DevelopmentTeam = 9437GLFKZ8;
+					};
+					D931795CE6E7D9509A546E6B = {
 						DevelopmentTeam = 9437GLFKZ8;
 					};
 				};
@@ -298,6 +368,7 @@
 			targets = (
 				0CD8B3E3295E6C208C61ECF0 /* midore_iOS */,
 				995D8FFE3798BA41252294F7 /* MidoreWidgets_iOS */,
+				D931795CE6E7D9509A546E6B /* MidoreShare_iOS */,
 			);
 		};
 /* End PBXProject section */
@@ -348,12 +419,26 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		8435D6AAD874217D6947D3B3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB5C747D850E52FB81683113 /* API.swift in Sources */,
+				5D89CC080A5181E07EFAD628 /* ActivityModel.swift in Sources */,
+				F6EED26FF8CCC9BA7B00B011 /* Models.swift in Sources */,
+				CC7FA1D10EB81C9AF4930ACE /* Session.swift in Sources */,
+				555D7F4F12FA8C39CEDF4671 /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CB9AA5A56A2F9033D94B9214 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				2C3566DEC411D9CF71BF1599 /* API.swift in Sources */,
+				5DAF61E127FF2BE9305E0BB4 /* ActivityModel.swift in Sources */,
 				282136818C9635D41B04F8C3 /* Intents.swift in Sources */,
+				39A0959F32091E63C5717EFE /* LiveActivity.swift in Sources */,
 				742AB5E117347FBE818A7CBC /* MidoreWidgets.swift in Sources */,
 				F9F427E69FDF4D0E635482AD /* Models.swift in Sources */,
 				116D83316B05DE79201A8F8A /* Session.swift in Sources */,
@@ -372,6 +457,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		550D92F240A612163CDE8C68 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D931795CE6E7D9509A546E6B /* MidoreShare_iOS */;
+			targetProxy = 0AA1DC4B293FDFDA76CBBEC3 /* PBXContainerItemProxy */;
+		};
 		9B049CE60EE1182790DC8440 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 995D8FFE3798BA41252294F7 /* MidoreWidgets_iOS */;
@@ -411,6 +501,50 @@
 				VALID_ARCHS = arm64;
 			};
 			name = debug;
+		};
+		083407449E9A6AA0764AF33C /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MidoreShare_iOS/MidoreShare_iOS.entitlements;
+				DEVELOPMENT_TEAM = 9437GLFKZ8;
+				INFOPLIST_FILE = MidoreShare_iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.midore.share;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=*]" = app.midore.share;
+				PRODUCT_NAME = MidoreShare;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = debug;
+		};
+		43E047FCFACA7F0D6BB32054 /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MidoreShare_iOS/MidoreShare_iOS.entitlements;
+				DEVELOPMENT_TEAM = 9437GLFKZ8;
+				INFOPLIST_FILE = MidoreShare_iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.midore.share;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=*]" = app.midore.share;
+				PRODUCT_NAME = MidoreShare;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = release;
 		};
 		638361A25E8E0A156A28AE64 /* release */ = {
 			isa = XCBuildConfiguration;
@@ -633,6 +767,15 @@
 			buildConfigurations = (
 				9EDE26900805E71875BC743D /* debug */,
 				638361A25E8E0A156A28AE64 /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+		F3E1C8CC6B18E379C157C790 /* Build configuration list for PBXNativeTarget "MidoreShare_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				083407449E9A6AA0764AF33C /* debug */,
+				43E047FCFACA7F0D6BB32054 /* release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = debug;

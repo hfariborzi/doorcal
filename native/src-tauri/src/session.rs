@@ -46,6 +46,7 @@ pub fn save<R: Runtime>(app: &AppHandle<R>, token: &str) {
 pub fn clear<R: Runtime>(app: &AppHandle<R>) {
     if let Ok(store) = app.store(STORE) {
         store.delete("token");
+        store.delete("lastAgenda");
         let _ = store.save();
     }
     let state = app.state::<AppState>();
@@ -74,4 +75,16 @@ pub fn take_pending<R: Runtime>(app: &AppHandle<R>) -> Option<String> {
     store.delete("pendingState");
     let _ = store.save();
     v
+}
+
+/// The last agenda from the server, shown by the app's own start page when Midore can't be reached.
+pub fn keep_agenda<R: Runtime>(app: &AppHandle<R>, agenda: &serde_json::Value) {
+    if let Ok(store) = app.store(STORE) {
+        store.set("lastAgenda", agenda.clone());
+        let _ = store.save();
+    }
+}
+
+pub fn cached_agenda<R: Runtime>(app: &AppHandle<R>) -> Option<serde_json::Value> {
+    app.store(STORE).ok()?.get("lastAgenda")
 }

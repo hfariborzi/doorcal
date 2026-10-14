@@ -179,3 +179,9 @@ pub async fn mark_done(token: &str, task_id: i64, start: &str, end: &str) -> Res
     let _: serde_json::Value = read(client().post(format!("{}/api/v1/blocks/mark", base_url())).bearer_auth(token).json(&body).send().await).await?;
     Ok(())
 }
+
+#[cfg_attr(desktop, allow(dead_code))]
+/// The agenda as the server sent it, for keeping an offline copy (`days` 1 to 7, from today).
+pub async fn agenda_json(token: &str, days: u8) -> Result<serde_json::Value, ApiError> {
+    read(client().get(format!("{}/api/v1/agenda?days={days}", base_url())).bearer_auth(token).send().await).await
+}

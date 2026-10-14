@@ -101,6 +101,11 @@ object MidoreApi {
 
     fun bookingUrl(ctx: Context): String? = call(ctx, "/api/v1/me").optString("bookingUrl").ifEmpty { null }
 
+    /** Quick add (share target, shortcut, Tasks widget). Midore plans it into the week. */
+    fun addTask(ctx: Context, title: String) {
+        call(ctx, "/api/v1/tasks", "POST", JSONObject().put("title", title))
+    }
+
     fun complete(ctx: Context, taskId: Long) {
         call(ctx, "/api/v1/tasks/$taskId/status", "POST", JSONObject().put("status", "done"))
     }

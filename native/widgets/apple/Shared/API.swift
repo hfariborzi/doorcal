@@ -48,6 +48,11 @@ enum MidoreAPI {
         try decoder.decode(Me.self, from: try await request("/api/v1/me"))
     }
 
+    /// Quick add (the share extension). Midore plans it into the week.
+    static func addTask(title: String) async throws {
+        _ = try await request("/api/v1/tasks", method: "POST", body: ["title": title])
+    }
+
     static func setStatus(task: Int, status: String) async throws {
         _ = try await request("/api/v1/tasks/\(task)/status", method: "POST", body: ["status": status])
     }

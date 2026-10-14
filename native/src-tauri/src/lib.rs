@@ -10,6 +10,8 @@ mod session;
 
 #[cfg(desktop)]
 mod desktop;
+#[cfg(mobile)]
+mod phone;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Runtime, Url, WebviewUrl, WebviewWindowBuilder};
@@ -96,6 +98,8 @@ async fn open_web_inner<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
 
 fn sign_out_inner<R: Runtime>(app: &AppHandle<R>) {
     session::clear(app);
+    #[cfg(mobile)]
+    phone::clear(app);
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.navigate(local_url("index.html"));
     }
@@ -150,6 +154,8 @@ fn handle_link<R: Runtime>(app: &AppHandle<R>, url: &Url) {
                 let _ = open_web_inner(&app).await;
                 #[cfg(desktop)]
                 desktop::refresh_now(&app);
+                #[cfg(mobile)]
+                phone::sync_now(&app);
             }
             Err(e) => {
                 let _ = app.emit("auth-error", e.to_string());
@@ -306,6 +312,12 @@ fn open_link(app: AppHandle, url: String) -> Result<(), String> {
     app.opener().open_url(parsed.as_str(), None::<&str>).map_err(|e| e.to_string())
 }
 
+/// The last agenda, for the start page to show when Midore can't be reached.
+#[tauri::command]
+fn cached_agenda(app: AppHandle) -> Option<serde_json::Value> {
+    session::cached_agenda(&app)
+}
+
 #[tauri::command]
 fn close_mini(app: AppHandle) {
     #[cfg(desktop)]
@@ -368,12 +380,19 @@ pub fn run() {
 
             #[cfg(desktop)]
             desktop::setup(app)?;
+            #[cfg(mobile)]
+            phone::start(&handle);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![status, sign_in, open_web, sign_out, quick_add, ask_dori, quick_info, hide_quick, mini_day, mark_done, open_link, open_main, close_mini])
+        .invoke_handler(tauri::generate_handler![status, sign_in, open_web, sign_out, quick_add, ask_dori, quick_info, hide_quick, mini_day, mark_done, open_link, open_main, close_mini, cached_agenda])
         .build(tauri::generate_context!())
         .expect("error while building Midore")
         .run(|_app, _event| {
+            // Back from the background: refresh reminders, the Live Activity and the offline copy.
+            #[cfg(mobile)]
+            if let tauri::RunEvent::Resumed = _event {
+                phone::sync_now(_app);
+            }
             // On macOS, keep running in the menu bar when the window closes.
             #[cfg(target_os = "macos")]
             if let tauri::RunEvent::ExitRequested { api, code, .. } = _event {

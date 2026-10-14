@@ -49,6 +49,12 @@ abstract class MidoreWidget : AppWidgetProvider() {
             return PendingIntent.getActivity(ctx, path.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         }
 
+        /** The quick-add dialog, over whatever is on screen. */
+        fun quickAdd(ctx: Context): PendingIntent {
+            val intent = Intent(ctx, QuickAddActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            return PendingIntent.getActivity(ctx, 41, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        }
+
         fun signedOutText(ctx: Context) = if (MidoreApi.signedIn(ctx)) "Can't reach Midore right now." else "Open Midore and sign in to see your day here."
     }
 }
@@ -124,7 +130,7 @@ class TasksWidget : MidoreWidget() {
             val complete = Intent(context, TasksWidget::class.java).setAction(COMPLETE)
             views.setPendingIntentTemplate(R.id.list, PendingIntent.getBroadcast(context, 7, complete, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE))
             views.setViewVisibility(R.id.add, View.VISIBLE)
-            views.setOnClickPendingIntent(R.id.add, openApp(context, "quick"))
+            views.setOnClickPendingIntent(R.id.add, quickAdd(context))
             views.setOnClickPendingIntent(R.id.title, openApp(context))
             mgr.updateAppWidget(id, views)
         }

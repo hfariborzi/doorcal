@@ -22,3 +22,22 @@ pub struct AuthReply {
     /// normal deep link.
     pub url: Option<String>,
 }
+
+/// What's on now, for the iPhone Live Activity (Lock Screen and Dynamic Island).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Activity {
+    pub title: String,
+    /// "event" or "task"
+    pub kind: String,
+    pub start: String,
+    pub end: String,
+    pub color: String,
+    pub next_title: Option<String>,
+    pub next_start: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ActivityArgs {
+    pub activity: Option<Activity>,
+}

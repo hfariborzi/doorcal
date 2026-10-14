@@ -135,6 +135,9 @@ async fn refresh<R: Runtime>(app: &AppHandle<R>) {
     match api::agenda(&token).await {
         Ok(agenda) => {
             notify(app, &agenda.items);
+            if let Ok(json) = serde_json::to_value(&agenda) {
+                session::keep_agenda(app, &json);
+            }
             *state.agenda.lock().unwrap() = Some(agenda.clone());
             update_tray(app, Some(&agenda));
         }

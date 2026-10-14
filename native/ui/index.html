@@ -14,6 +14,16 @@
     p { margin-top: 12px; }
     .actions { margin-top: 28px; display: grid; gap: 10px; }
     .spinner { width: 22px; height: 22px; margin: 28px auto 0; border-radius: 50%; border: 2.5px solid var(--line); border-top-color: var(--work); animation: spin 0.8s linear infinite; }
+    /* Offline: the plan from the last sync. */
+    .saved { margin-top: 22px; text-align: left; }
+    .saved h2 { font-size: 13px; font-weight: 700; color: var(--muted); margin: 14px 0 6px; }
+    .saved ol { list-style: none; padding: 0; display: grid; gap: 2px; }
+    .saved li { display: grid; grid-template-columns: 62px 1fr; gap: 10px; align-items: baseline; padding: 6px 0; font-size: 14px; }
+    .saved time { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .saved .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+    .saved .event .t { padding-left: 8px; box-shadow: inset 3px 0 0 var(--c); }
+    .saved .task .t { text-decoration: underline; text-decoration-color: var(--c); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+    .saved .done .t { text-decoration-line: line-through; color: var(--faint); }
     @keyframes spin { to { transform: rotate(360deg); } }
     @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
   </style>
@@ -48,6 +58,7 @@
       <section id="offline" hidden>
         <h1>Can't reach Midore</h1>
         <p class="muted" id="offline-text">Check your connection and try again.</p>
+        <div class="saved" id="saved" hidden></div>
         <div class="actions">
           <button class="btn" id="retry">Try again</button>
         </div>

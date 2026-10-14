@@ -27,6 +27,15 @@ class WidgetsPlugin: Plugin, ASWebAuthenticationPresentationContextProviding {
     webview.scrollView.contentInsetAdjustmentBehavior = .never
   }
 
+  /// What's on now as a Live Activity on the Lock Screen and in the Dynamic Island, or nothing.
+  @objc public func setActivity(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(ActivityArgs.self)
+    Task {
+      await LiveActivities.set(args.activity)
+      invoke.resolve()
+    }
+  }
+
   /// Sign-in in Apple's in-app browser sheet. It shares Safari's cookies, and closes by itself when the page
   /// sends the person to a `midore://` link, which comes back here.
   @objc public func authenticate(_ invoke: Invoke) throws {

@@ -4,4 +4,7 @@
     <string name="midore_widget_tasks">Open tasks, due ones first. Tap the circle to mark one done.</string>
     <string name="midore_widget_dori">Open quick add: add a task or tell Dori what\'s on your mind.</string>
     <string name="midore_widget_booking">Your booking link, one tap to copy.</string>
+    <string name="midore_shortcut_add">Add a task</string>
+    <string name="midore_shortcut_add_long">Add a task to Midore</string>
+    <string name="midore_shortcut_today">Today</string>
 </resources>

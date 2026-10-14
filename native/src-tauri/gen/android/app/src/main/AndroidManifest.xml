@@ -5,6 +5,7 @@
     <!-- AndroidTV support -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <application
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -43,6 +44,7 @@
                 
             </intent-filter>
             <!-- DEEP LINK PLUGIN. AUTO-GENERATED. DO NOT REMOVE. -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/midore_shortcuts" />
         </activity>
 
         <provider
@@ -95,5 +97,23 @@
         </receiver>
         <service android:name="app.midore.widgets.AgendaService" android:exported="false" android:permission="android.permission.BIND_REMOTEVIEWS" />
         <service android:name="app.midore.widgets.TasksService" android:exported="false" android:permission="android.permission.BIND_REMOTEVIEWS" />
+        <activity
+            android:name="app.midore.widgets.QuickAddActivity"
+            android:exported="true"
+            android:label="Add to Midore"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity="app.midore.quickadd"
+            android:windowSoftInputMode="stateVisible">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="app.midore.QUICK_ADD" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

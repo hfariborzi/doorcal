@@ -46,6 +46,7 @@ targets:
       path: midore_iOS/Info.plist
       properties:
         LSRequiresIPhoneOS: true
+        NSSupportsLiveActivities: true
         CFBundleURLTypes:
           - CFBundleURLName: app.midore
             CFBundleURLSchemes: [midore]
@@ -82,6 +83,8 @@ targets:
       groups: [app]
     dependencies:
       - target: MidoreWidgets_iOS
+        embed: true
+      - target: MidoreShare_iOS
         embed: true
       - framework: libapp.a
         embed: false
@@ -126,6 +129,40 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: app.midore.widgets
         "PRODUCT_BUNDLE_IDENTIFIER[sdk=*]": app.midore.widgets
         PRODUCT_NAME: MidoreWidgets
+        DEVELOPMENT_TEAM: 9437GLFKZ8
+        SKIP_INSTALL: YES
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+
+  MidoreShare_iOS:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ../../../widgets/apple/Shared
+      - path: ../../../widgets/apple/Share
+    info:
+      path: MidoreShare_iOS/Info.plist
+      properties:
+        CFBundleDisplayName: Midore
+        CFBundleShortVersionString: 0.1.0
+        CFBundleVersion: "0.1.0"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+    entitlements:
+      path: MidoreShare_iOS/MidoreShare_iOS.entitlements
+      properties:
+        com.apple.security.application-groups: [group.app.midore]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.midore.share
+        "PRODUCT_BUNDLE_IDENTIFIER[sdk=*]": app.midore.share
+        PRODUCT_NAME: MidoreShare
         DEVELOPMENT_TEAM: 9437GLFKZ8
         SKIP_INSTALL: YES
         SWIFT_VERSION: "5.0"

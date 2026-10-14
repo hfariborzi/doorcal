@@ -390,5 +390,8 @@ struct MidoreWidgetBundle: WidgetBundle {
         WeekWidget()
         AskDoriWidget()
         BookingWidget()
+        #if os(iOS)
+        MidoreLiveActivity()
+        #endif
     }
 }
