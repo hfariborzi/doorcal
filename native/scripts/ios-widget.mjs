@@ -103,6 +103,23 @@ if (!yml.includes("MidoreShare_iOS")) {
         TARGETED_DEVICE_FAMILY: "1,2"
 `;
 }
+// Simulator builds are unsigned (--no-sign), and the simulator reads entitlements from a section in the binary
+// that Xcode only adds when signing. Without it the app and its extensions don't share the App Group, and widgets
+// say "sign in" while the app is signed in. Add the section ourselves for simulator builds.
+const SIM_ENTS = (path) =>
+  `        "OTHER_LDFLAGS[sdk=iphonesimulator*]": $(inherited) -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker $(PROJECT_DIR)/${path}\n`;
+for (const [target, path] of [
+  ["midore_iOS", "midore_iOS/midore_iOS.entitlements"],
+  ["MidoreWidgets_iOS", "MidoreWidgets_iOS/MidoreWidgets_iOS.entitlements"],
+  ["MidoreShare_iOS", "MidoreShare_iOS/MidoreShare_iOS.entitlements"],
+]) {
+  if (yml.includes(`__entitlements -Xlinker $(PROJECT_DIR)/${path}`)) continue;
+  const at = yml.indexOf(`\n  ${target}:\n`);
+  const base = yml.indexOf("      base:\n", at);
+  if (at < 0 || base < 0) throw new Error(`no settings for ${target}`);
+  const insert = base + "      base:\n".length;
+  yml = yml.slice(0, insert) + SIM_ENTS(path) + yml.slice(insert);
+}
 writeFileSync(file, yml);
 
 execFileSync("xcodegen", ["generate", "--quiet"], { cwd: dir, stdio: "inherit" });

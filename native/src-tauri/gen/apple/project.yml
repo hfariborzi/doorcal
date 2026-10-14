@@ -73,6 +73,7 @@ targets:
         RUST_LOG: info
     settings:
       base:
+        "OTHER_LDFLAGS[sdk=iphonesimulator*]": $(inherited) -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker $(PROJECT_DIR)/midore_iOS/midore_iOS.entitlements
         ENABLE_BITCODE: false
         ARCHS: [arm64]
         VALID_ARCHS: arm64 
@@ -124,6 +125,7 @@ targets:
         com.apple.security.application-groups: [group.app.midore]
     settings:
       base:
+        "OTHER_LDFLAGS[sdk=iphonesimulator*]": $(inherited) -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker $(PROJECT_DIR)/MidoreWidgets_iOS/MidoreWidgets_iOS.entitlements
         # Tauri rewrites every plain PRODUCT_BUNDLE_IDENTIFIER line to the app's id when it builds; the
         # SDK-conditional form is left alone and takes precedence in Xcode.
         PRODUCT_BUNDLE_IDENTIFIER: app.midore.widgets
@@ -160,6 +162,7 @@ targets:
         com.apple.security.application-groups: [group.app.midore]
     settings:
       base:
+        "OTHER_LDFLAGS[sdk=iphonesimulator*]": $(inherited) -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker $(PROJECT_DIR)/MidoreShare_iOS/MidoreShare_iOS.entitlements
         PRODUCT_BUNDLE_IDENTIFIER: app.midore.share
         "PRODUCT_BUNDLE_IDENTIFIER[sdk=*]": app.midore.share
         PRODUCT_NAME: MidoreShare

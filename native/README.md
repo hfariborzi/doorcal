@@ -50,7 +50,7 @@ Needs Node 22 and Rust stable. `npm ci` first. Point at a local server with `MID
 |---|---|---|
 | Mac | `npx tauri build` | Needs Xcode and `brew install xcodegen`. Signs with the Developer ID certificate. Output in `src-tauri/target/release/bundle/{macos,dmg}`. |
 | Linux | `npx tauri build --bundles deb,rpm,appimage` | Built in CI (`.github/workflows/native.yml`). Linux has no widgets. |
-| iPhone | `npx tauri ios dev` / `npx tauri ios build` | Simulator works now. A real device needs an Apple Development certificate and the App Group `group.app.midore` registered for `app.midore` and `app.midore.widgets`. |
+| iPhone | `node scripts/ios-sim.mjs` (simulator: builds, adds entitlements, installs, launches) / `npx tauri ios build` | Simulator works now. A real device needs an Apple Development certificate and the App Group `group.app.midore` registered for `app.midore` and `app.midore.widgets`. |
 | Android | `npx tauri android dev` / `npx tauri android build` | Needs Android Studio, SDK and NDK (`ANDROID_HOME`, `NDK_HOME`). |
 | Windows | see `WINDOWS.md` | |
 
