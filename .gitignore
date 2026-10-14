@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
+# dependencies (any folder, including native/)
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -56,3 +56,27 @@ tsconfig.tsbuildinfo
 /.impeccable/tmp/
 /.impeccable/build/
 /.impeccable/questions/
+
+# Native apps (also in native/.gitignore): build output, caches, editor and machine files
+/native/src-tauri/target/
+/native/src-tauri/gen/schemas/
+/native/src-tauri/gen/apple/build/
+/native/src-tauri/gen/apple/Externals/
+/native/src-tauri/gen/android/app/build/
+/native/src-tauri/gen/android/build/
+/native/src-tauri/gen/android/.gradle/
+/native/widgets/apple/build/
+/native/widgets/apple/MidoreWidgetsMac.xcodeproj/
+/native/plugins/widgets/.tauri/
+xcuserdata/
+DerivedData/
+*.xcuserstate
+.idea/
+*.iml
+.gradle/
+local.properties
+*.keystore
+*.jks
+*.p8
+*.p12
+*.mobileprovision
