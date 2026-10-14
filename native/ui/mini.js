@@ -24,17 +24,16 @@ function renderMonth() {
   $("month").textContent = monthFmt.format(shown);
   const grid = $("grid");
   grid.replaceChildren();
-  // Weeks start on Monday, as on the web calendar.
-  const monday = new Date(2024, 0, 1);
+  // Weeks start on Sunday, as on the web calendar (7 January 2024 was a Sunday).
   for (let i = 0; i < 7; i++) {
     const wd = document.createElement("div");
     wd.className = "wd";
-    wd.textContent = weekdayFmt.format(new Date(monday.getFullYear(), 0, 1 + i));
+    wd.textContent = weekdayFmt.format(new Date(2024, 0, 7 + i));
     grid.append(wd);
   }
   const first = new Date(shown.getFullYear(), shown.getMonth(), 1);
   const start = new Date(first);
-  start.setDate(1 - ((first.getDay() + 6) % 7));
+  start.setDate(1 - first.getDay());
   const today = todayIso();
   for (let i = 0; i < 42; i++) {
     const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);

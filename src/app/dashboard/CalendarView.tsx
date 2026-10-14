@@ -64,7 +64,8 @@ const HOUR_PX = 60;
 // A tab left in the background this long comes back on today and the current time.
 const RESET_AFTER_HIDDEN_MS = 15 * 60_000;
 
-type View = "week" | "day";
+/** Phones get a month with coloured dots and the chosen day as a list; wider screens get the week grid. */
+type View = "week" | "day" | "month";
 
 function layoutDay(events: CalendarEvent[], dayStart: DateTime) {
   const dayEnd = dayStart.plus({ days: 1 });
@@ -134,7 +135,8 @@ export function CalendarView() {
   const tz = useSyncExternalStore(noopSubscribe, browserTz, () => "UTC");
   const narrow = useSyncExternalStore(noopSubscribe, isNarrow, () => false);
   const [viewChoice, setView] = useState<View | null>(null);
-  const view: View = viewChoice ?? (narrow ? "day" : "week");
+  const view: View = viewChoice ?? (narrow ? "month" : "week");
+  const views: View[] = narrow ? ["month", "day"] : ["week", "day"];
   const [anchor, setAnchor] = useState<DateTime>(() => DateTime.now().startOf("day"));
   const [result, setResult] = useState<{ rangeKey: string; events: CalendarEvent[]; problems: Problem[]; labels: Labels; categories: Category[]; booked?: string[]; error?: string } | null>(null);
   const [prefs, setPrefs] = useState<CalendarPrefs | null>(null); // null until the first load brings the saved ones
@@ -168,8 +170,10 @@ export function CalendarView() {
 
   const range = useMemo(() => {
     const a = anchor.setZone(tz, { keepLocalTime: true }).startOf("day");
-    const start = view === "week" ? a.minus({ days: a.weekday % 7 }) : a; // Sunday-first weeks
-    const days = view === "week" ? 7 : 1;
+    const first = a.startOf("month");
+    // Sunday-first weeks; a month shows the six weeks around it.
+    const start = view === "week" ? a.minus({ days: a.weekday % 7 }) : view === "month" ? first.minus({ days: first.weekday % 7 }) : a;
+    const days = view === "week" ? 7 : view === "month" ? 42 : 1;
     return {
       key: `${start.toISO()}|${days}`,
       start,
@@ -417,14 +421,141 @@ export function CalendarView() {
     </div>
   );
 
+  /** Phone calendar: the month with a dot per colour on each day, and the chosen day's events and work below. */
+  function monthView() {
+    const sel = anchor.setZone(tz, { keepLocalTime: true }).startOf("day");
+    const month = sel.startOf("month");
+    const items = [...shown, ...blockEvents];
+    const onDay = (d: DateTime) => {
+      const s = d.toMillis();
+      const e = d.plus({ days: 1 }).toMillis();
+      return items
+        .filter((x) => DateTime.fromISO(x.start, { zone: tz }).toMillis() < e && DateTime.fromISO(x.end, { zone: tz }).toMillis() > s)
+        .sort((a, b) => Number(b.allDay) - Number(a.allDay) || a.start.localeCompare(b.start));
+    };
+    const ink = (x: CalendarEvent) => (x.calendarId === PLAN_CAL ? x.color : (eventInk(x) ?? OTHER_COLOR));
+    // Drop the sixth week when the month ends before it.
+    const days = range.days.filter((d, i) => i < 35 || d.hasSame(month, "month"));
+    const list = onDay(sel);
+    const nowMs = now.toMillis();
+    return (
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="grid grid-cols-7 px-2 pt-2 pb-3">
+          {range.days.slice(0, 7).map((d) => (
+            <div key={d.weekday} className={`${board.dayName} pb-1 text-center`} data-weekend={d.weekday > 5 || undefined}>
+              {d.toFormat("ccccc")}
+            </div>
+          ))}
+          {days.map((d) => {
+            const isSel = d.hasSame(sel, "day");
+            const isToday = d.hasSame(now, "day");
+            const dots = [...new Set(onDay(d).map(ink))].slice(0, 4);
+            return (
+              <button
+                key={d.toISODate()}
+                onClick={() => setAnchor(d)}
+                aria-label={d.toFormat("cccc, LLLL d")}
+                aria-current={isSel ? "date" : undefined}
+                className={`flex h-12 flex-col items-center gap-1 pt-1 ${d.hasSame(month, "month") ? "" : "opacity-40"}`}
+              >
+                <span
+                  className={`grid h-7 w-7 place-items-center rounded-full text-sm tnum transition-colors ${
+                    isSel ? (isToday ? "bg-vermilion font-semibold text-white" : "bg-ink font-semibold text-board") : isToday ? "font-semibold text-vermilion ring-[1.5px] ring-vermilion" : "text-ink"
+                  }`}
+                >
+                  {d.day}
+                </span>
+                <span className="flex h-1.5 gap-[3px]" aria-hidden>
+                  {dots.map((c) => (
+                    <span key={c} className="h-1.5 w-1.5 rounded-full" style={{ background: c }} />
+                  ))}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="border-t border-line px-3 pt-3 pb-24">
+          <h3 className="px-1 pb-2 text-sm font-semibold text-ink">
+            {sel.hasSame(now, "day") ? `Today · ${sel.toFormat("cccc, LLLL d")}` : sel.toFormat("cccc, LLLL d")}
+          </h3>
+          {events === null ? (
+            <p className="flex items-center gap-2 px-1 py-6 text-sm text-muted"><Loader2 size={16} className="animate-spin" /> Loading your calendar…</p>
+          ) : list.length === 0 ? (
+            <p className="px-1 py-6 text-sm text-faint">{sel.hasSame(now, "day") ? "Nothing on today. Time is yours." : "Nothing on this day."}</p>
+          ) : (
+            <ul className="space-y-1">
+              {list.map((x) => {
+                const isPlan = x.calendarId === PLAN_CAL;
+                const blk = isPlan ? blockFor(x) : null;
+                const state = blk ? blockState(blk) : null;
+                const c = ink(x);
+                const s = DateTime.fromISO(x.start).setZone(tz);
+                const e = DateTime.fromISO(x.end).setZone(tz);
+                const live = !x.allDay && s.toMillis() <= nowMs && e.toMillis() > nowMs;
+                const doneish = state === "done" || state === "good_enough";
+                return (
+                  <li key={`${x.accountId}-${x.calendarId}-${x.id}`}>
+                    <button
+                      onClick={() => (isPlan ? setSelectedBlock(blk) : setSelected(x))}
+                      className="grid w-full grid-cols-[4.25rem_1fr] items-center gap-3 rounded-lg px-1 py-2 text-left active:bg-hover"
+                      style={live ? { background: `color-mix(in srgb, ${c} 12%, transparent)` } : undefined}
+                    >
+                      <span className="text-xs leading-tight text-muted tnum">
+                        {x.allDay ? "All day" : s.toFormat("h:mm a")}
+                        {!x.allDay && <span className="block text-faint">{e.toFormat("h:mm a")}</span>}
+                      </span>
+                      <span className="min-w-0">
+                        <span
+                          className={`block truncate text-[0.9375rem] ${isPlan ? "" : "font-medium"} ${doneish ? "text-faint line-through" : state === "missed" ? "text-muted" : "text-ink"}`}
+                          style={
+                            isPlan
+                              ? { textDecorationLine: doneish ? "line-through" : "underline", textDecorationColor: c, textDecorationThickness: 2, textUnderlineOffset: 4 }
+                              : { boxShadow: `inset 3px 0 0 ${c}`, paddingLeft: 10 }
+                          }
+                        >
+                          {x.title}
+                        </span>
+                        {(live || (state && state !== "open") || blk?.risk) && (
+                          <span className={`mt-0.5 block text-xs ${isPlan ? "" : "pl-[10px]"} ${live ? "font-semibold text-vermilion" : "text-faint"}`}>
+                            {live
+                              ? "Now"
+                              : state === "done"
+                                ? "Done"
+                                : state === "good_enough"
+                                  ? "Good enough"
+                                  : state === "partly"
+                                    ? `${blk!.progress}% done`
+                                    : state === "missed"
+                                      ? "Not done"
+                                      : blk?.risk === "late"
+                                        ? "Might be late"
+                                        : "No room before it's due"}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   const last = range.end.minus({ days: 1 });
+  const step = view === "week" ? { weeks: 1 } : view === "month" ? { months: 1 } : { days: 1 };
   const title =
-    view === "week"
+    view === "month"
+      ? anchor.toFormat("LLLL yyyy")
+      : view === "week"
       ? range.start.hasSame(last, "month")
         ? `${range.start.toFormat("LLL d")} – ${last.toFormat("d, yyyy")}`
         : `${range.start.toFormat("LLL d")} – ${last.toFormat("LLL d, yyyy")}`
       : range.start.toFormat("cccc, LLL d, yyyy");
-  const shortTitle = view === "week" ? `${range.start.toFormat("LLL d")}–${last.toFormat(range.start.hasSame(last, "month") ? "d" : "LLL d")}` : range.start.toFormat("ccc, LLL d");
+  const shortTitle = view === "month" ? anchor.toFormat("LLLL yyyy") : view === "week" ? `${range.start.toFormat("LLL d")}–${last.toFormat(range.start.hasSame(last, "month") ? "d" : "LLL d")}` : range.start.toFormat("ccc, LLL d");
 
   return (
     <div className="flex h-full flex-col">
@@ -434,15 +565,15 @@ export function CalendarView() {
             <button className="btn-secondary px-3 py-1" onClick={goToNow}>
               Today
             </button>
-            <button className="btn-ghost px-1.5 py-1" aria-label="Previous" onClick={() => setAnchor(anchor.minus(view === "week" ? { weeks: 1 } : { days: 1 }))}><ChevronLeft size={18} /></button>
-            <button className="btn-ghost px-1.5 py-1" aria-label="Next" onClick={() => setAnchor(anchor.plus(view === "week" ? { weeks: 1 } : { days: 1 }))}><ChevronRight size={18} /></button>
+            <button className="btn-ghost px-1.5 py-1" aria-label="Previous" onClick={() => setAnchor(anchor.minus(step))}><ChevronLeft size={18} /></button>
+            <button className="btn-ghost px-1.5 py-1" aria-label="Next" onClick={() => setAnchor(anchor.plus(step))}><ChevronRight size={18} /></button>
             <h2 className="ml-1 min-w-0 truncate text-base font-semibold tracking-[-0.015em] text-ink sm:text-lg">
               <span className="sm:hidden">{shortTitle}</span>
               <span className="hidden sm:inline">{title}</span>
             </h2>
             <div className="ml-auto flex items-center gap-1.5 md:ml-3">
               <div className="flex rounded-md border border-line bg-canvas p-0.5 text-sm">
-                {(["week", "day"] as View[]).map((v) => (
+                {views.map((v) => (
                   <button key={v} onClick={() => setView(v)} className={`rounded px-2.5 py-0.5 capitalize ${view === v ? "bg-surface font-medium text-ink shadow-(--shadow-card)" : "text-muted hover:text-ink"}`}>
                     {v}
                   </button>
@@ -472,6 +603,7 @@ export function CalendarView() {
         )}
 
         {strip}
+        {view === "month" ? monthView() : (<>
         <div className={`${board.head} pt-2 pb-1.5`}>
           <div className="w-11 shrink-0 sm:w-14" />
           {range.days.map((d) => {
@@ -620,6 +752,7 @@ export function CalendarView() {
             </div>
           )}
         </div>
+        </>)}
       </div>
 
 
