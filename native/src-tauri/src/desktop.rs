@@ -18,7 +18,11 @@ use crate::api::{self, Item};
 use crate::session::{self, AppState};
 
 const TRAY: &str = "main";
+/// The menu bar title and notifications update every minute from the last agenda; the agenda itself is fetched
+/// every 5 minutes (or right away after a change). Each fetch reads every connected calendar, so fetching every
+/// minute would use up Google's daily quota at a few hundred desktop users.
 const REFRESH_EVERY: Duration = Duration::from_secs(60);
+const FETCH_EVERY: Duration = Duration::from_secs(300);
 /// How long before planned work starts the "up next" notification comes.
 const HEADS_UP_SECS: i64 = 120;
 
@@ -101,8 +105,14 @@ pub fn setup<R: Runtime>(app: &mut App<R>) -> tauri::Result<()> {
     let bg = handle.clone();
     tauri::async_runtime::spawn(async move {
         let _ = bg.notification().request_permission();
+        let mut fetched: Option<std::time::Instant> = None;
         loop {
-            refresh(&bg).await;
+            if fetched.is_none_or(|t| t.elapsed() >= FETCH_EVERY) {
+                refresh(&bg).await;
+                fetched = Some(std::time::Instant::now());
+            } else {
+                tick(&bg);
+            }
             tokio::time::sleep(REFRESH_EVERY).await;
         }
     });
@@ -119,6 +129,18 @@ pub fn setup<R: Runtime>(app: &mut App<R>) -> tauri::Result<()> {
 pub fn refresh_now<R: Runtime>(app: &AppHandle<R>) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move { refresh(&app).await });
+}
+
+/// Between fetches: move the menu bar title and notifications on with the clock, from the last agenda.
+fn tick<R: Runtime>(app: &AppHandle<R>) {
+    if session::token(app).is_none() {
+        return;
+    }
+    let agenda = app.state::<AppState>().agenda.lock().unwrap().clone();
+    if let Some(agenda) = agenda {
+        notify(app, &agenda.items);
+        update_tray(app, Some(&agenda));
+    }
 }
 
 async fn refresh<R: Runtime>(app: &AppHandle<R>) {
@@ -166,24 +188,35 @@ fn short(title: &str, max: usize) -> String {
 }
 
 /// "Writing · 25m" in the menu bar while something is on, or "Next 2:00 pm" when nothing is.
+/// What's on now and what's next, from the agenda's items at this minute (the server's own now/next go stale
+/// between fetches).
+fn now_next(agenda: &api::Agenda) -> (Option<&Item>, Option<&Item>) {
+    let now = Local::now();
+    let timed = || agenda.items.iter().filter(|i| !i.all_day);
+    let current = timed().find(|i| matches!((parse(&i.start), parse(&i.end)), (Some(s), Some(e)) if s <= now && e > now));
+    let next = timed().find(|i| parse(&i.start).is_some_and(|s| s > now));
+    (current, next)
+}
+
 fn tray_title(agenda: &api::Agenda) -> Option<String> {
     let now = Local::now();
-    if let Some(cur) = &agenda.now {
+    let (current, next) = now_next(agenda);
+    if let Some(cur) = current {
         let left = parse(&cur.end).map(|e| (e - now).num_minutes()).unwrap_or(0);
         return Some(format!("{} · {}m", short(&cur.title, 22), left.max(1)));
     }
-    agenda.next.as_ref().map(|n| format!("Next {}", clock(&n.start)))
+    next.map(|n| format!("Next {}", clock(&n.start)))
 }
 
 fn now_line(agenda: &api::Agenda) -> String {
-    match &agenda.now {
+    match now_next(agenda).0 {
         Some(cur) => format!("Now: {} · until {}", short(&cur.title, 40), clock(&cur.end)),
         None => "Nothing on right now".to_string(),
     }
 }
 
 fn next_line(agenda: &api::Agenda) -> String {
-    match &agenda.next {
+    match now_next(agenda).1 {
         Some(n) => format!("Next: {} · {}", short(&n.title, 40), clock(&n.start)),
         None => "Nothing else today".to_string(),
     }
