@@ -20,8 +20,14 @@ One Tauri 2 app for Mac, Windows, Linux, iPhone and Android, plus native widgets
   - Windows: `%LOCALAPPDATA%\Midore\widgets\session.json`
   Widgets then call `/api/v1` themselves and refresh on their own schedule.
 
-On desktop the app also has a tray / menu bar item (now and next), Alt+Space for quick add and Dori, notifications
-when planned work starts and ends, open at login, and the updater. See `src-tauri/src/desktop.rs`.
+On desktop the app also has a tray / menu bar item (click for a small calendar, right-click for the menu),
+Alt+Space for quick add and Dori, notifications when planned work starts and ends, open at login, and the updater.
+See `src-tauri/src/desktop.rs`.
+
+On phones (`src-tauri/src/phone.rs`): reminders scheduled on the phone so they arrive with the app closed, the
+iPhone Live Activity (`widgets/apple/Widgets/LiveActivity.swift`, started by `plugins/widgets/ios`), Share to
+Midore (`widgets/apple/Share`, Android `QuickAddActivity`), Android icon shortcuts, sign-in in an in-app browser
+sheet, and an offline copy of the next two days on the start page.
 
 ## Layout
 
@@ -72,4 +78,5 @@ widget targets, App Group, `midore://` links and manifest entries.
 
 - Windows build and widgets (`WINDOWS.md`).
 - Mac notarization; App Store and Google Play listings; real-device iPhone signing.
-- Push notifications (widgets and the tray poll instead).
+- Server push (APNs/FCM): reminders are scheduled on the phone at each sync instead, and the Live Activity
+  updates when the app syncs.
