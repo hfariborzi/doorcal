@@ -555,7 +555,13 @@ export function CalendarView() {
         ? `${range.start.toFormat("LLL d")} – ${last.toFormat("d, yyyy")}`
         : `${range.start.toFormat("LLL d")} – ${last.toFormat("LLL d, yyyy")}`
       : range.start.toFormat("cccc, LLL d, yyyy");
-  const shortTitle = view === "month" ? anchor.toFormat("LLL yyyy") : view === "week" ? `${range.start.toFormat("LLL d")}–${last.toFormat(range.start.hasSame(last, "month") ? "d" : "LLL d")}` : range.start.toFormat("ccc, LLL d");
+  // Phone widths: "Oct" (with the year only for other years), "Oct 11–17", "Oct 14".
+  const shortTitle =
+    view === "month"
+      ? anchor.toFormat(anchor.hasSame(DateTime.now(), "year") ? "LLL" : "LLL yyyy")
+      : view === "week"
+        ? `${range.start.toFormat("LLL d")}–${last.toFormat(range.start.hasSame(last, "month") ? "d" : "LLL d")}`
+        : range.start.toFormat("LLL d");
 
   return (
     <div className="flex h-full flex-col">

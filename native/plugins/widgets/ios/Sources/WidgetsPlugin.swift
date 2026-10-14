@@ -21,6 +21,12 @@ class WidgetsPlugin: Plugin, ASWebAuthenticationPresentationContextProviding {
   static let appGroup = "group.app.midore"
   private var authSession: ASWebAuthenticationSession?
 
+  /// The page lays itself out edge to edge (viewport-fit=cover with safe-area padding). By default the web view
+  /// also insets it by the safe areas, which leaves an empty band at the bottom of the screen.
+  override func load(webview: WKWebView) {
+    webview.scrollView.contentInsetAdjustmentBehavior = .never
+  }
+
   /// Sign-in in Apple's in-app browser sheet. It shares Safari's cookies, and closes by itself when the page
   /// sends the person to a `midore://` link, which comes back here.
   @objc public func authenticate(_ invoke: Invoke) throws {
