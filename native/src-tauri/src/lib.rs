@@ -193,7 +193,30 @@ fn sign_in(app: AppHandle) -> Result<(), String> {
         .append_pair("platform", api::platform())
         .append_pair("state", &state)
         .append_pair("name", &format!("Midore for {}", api::platform_label()));
-    app.opener().open_url(url.as_str(), None::<&str>).map_err(|e| e.to_string())
+    #[cfg(desktop)]
+    return app.opener().open_url(url.as_str(), None::<&str>).map_err(|e| e.to_string());
+    // Phones: a browser sheet over the app, which closes by itself at the end (Google blocks sign-in inside the
+    // app's own web view).
+    #[cfg(mobile)]
+    {
+        use tauri_plugin_midore_widgets::MidoreWidgetsExt;
+        let handle = app.clone();
+        tauri::async_runtime::spawn_blocking(move || match handle.midore_widgets().authenticate(url.to_string(), "midore".into()) {
+            Ok(Some(link)) => {
+                if let Ok(link) = Url::parse(&link) {
+                    handle_link(&handle, &link);
+                }
+            }
+            Ok(None) => {} // Android: the link comes back as a deep link
+            Err(e) if e.to_string().contains("cancelled") => {
+                let _ = handle.emit("auth-cancelled", ());
+            }
+            Err(e) => {
+                let _ = handle.emit("auth-error", e.to_string());
+            }
+        });
+        Ok(())
+    }
 }
 
 #[tauri::command]

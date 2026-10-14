@@ -1,6 +1,6 @@
 //! Midore widgets bridge.
 //!
-//! The widgets (WidgetKit on macOS and iOS, Jetpack Glance on Android, the Widgets board provider on Windows) run
+//! The widgets (WidgetKit on macOS and iOS, home screen widgets on Android, the Widgets board provider on Windows) run
 //! outside the app and fetch their data from /api/v1 on their own. This plugin hands them the device token and the
 //! server address, and asks the system to refresh them:
 //! - macOS: a file in the App Group container `9437GLFKZ8.app.midore` (team-prefixed, works with Developer ID).
@@ -8,6 +8,9 @@
 //! - Android: SharedPreferences `midore_widgets`, then a refresh broadcast to the app's widget receivers.
 //! - Windows: `%LOCALAPPDATA%\Midore\widgets\session.json`, read by the widget provider in the MSIX package.
 //! - Linux: nothing (no common widget system).
+//!
+//! On phones it also opens sign-in in an in-app browser sheet (`authenticate`): Google refuses sign-in inside
+//! embedded web views, and the sheet returns to the app by itself.
 
 use tauri::{
     plugin::{Builder, TauriPlugin},

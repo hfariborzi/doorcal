@@ -31,5 +31,6 @@ kotlin {
 dependencies {
 
     implementation("androidx.core:core-ktx:1.9.0")
+    implementation("androidx.browser:browser:1.8.0")
     implementation(project(":tauri-android"))
 }

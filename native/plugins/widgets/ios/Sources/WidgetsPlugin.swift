@@ -1,3 +1,4 @@
+import AuthenticationServices
 import SwiftRs
 import Tauri
 import UIKit
@@ -11,8 +12,47 @@ class SessionArgs: Decodable {
   let baseUrl: String
 }
 
-class WidgetsPlugin: Plugin {
+class AuthArgs: Decodable {
+  let url: String
+  let scheme: String
+}
+
+class WidgetsPlugin: Plugin, ASWebAuthenticationPresentationContextProviding {
   static let appGroup = "group.app.midore"
+  private var authSession: ASWebAuthenticationSession?
+
+  /// Sign-in in Apple's in-app browser sheet. It shares Safari's cookies, and closes by itself when the page
+  /// sends the person to a `midore://` link, which comes back here.
+  @objc public func authenticate(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(AuthArgs.self)
+    guard let url = URL(string: args.url) else {
+      invoke.reject("Invalid sign-in address")
+      return
+    }
+    DispatchQueue.main.async {
+      let session = ASWebAuthenticationSession(url: url, callbackURLScheme: args.scheme) { callback, error in
+        self.authSession = nil
+        if let callback {
+          invoke.resolve(["url": callback.absoluteString])
+        } else if let error = error as? ASWebAuthenticationSessionError, error.code == .canceledLogin {
+          invoke.reject("cancelled")
+        } else {
+          invoke.reject(error?.localizedDescription ?? "Sign-in didn't finish.")
+        }
+      }
+      session.presentationContextProvider = self
+      session.prefersEphemeralWebBrowserSession = false
+      self.authSession = session
+      if !session.start() {
+        self.authSession = nil
+        invoke.reject("Couldn't open sign-in.")
+      }
+    }
+  }
+
+  func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+    return manager.viewController?.view.window ?? ASPresentationAnchor()
+  }
 
   @objc public func setSession(_ invoke: Invoke) throws {
     let args = try invoke.parseArgs(SessionArgs.self)

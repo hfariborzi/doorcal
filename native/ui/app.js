@@ -15,6 +15,13 @@ async function start() {
   error("");
   const status = await invoke("status");
   document.getElementById("server").textContent = status.server.replace(/^https?:\/\//, "");
+  // Phones sign in in a sheet over the app, not a separate browser.
+  if (status.platform === "ios" || status.platform === "android") {
+    document.getElementById("sign-in-text").textContent = "Sign in with the account you use for Midore.";
+    document.getElementById("sign-in").textContent = "Sign in";
+    document.getElementById("waiting-title").textContent = "Finishing sign-in…";
+    document.getElementById("waiting-text").textContent = "Choose Connect on the sign-in page and your calendar opens here.";
+  }
   if (!status.signedIn) return show("signed-out");
   show("loading");
   try {
@@ -40,6 +47,7 @@ async function signIn() {
 document.getElementById("sign-in").addEventListener("click", signIn);
 document.getElementById("again").addEventListener("click", signIn);
 document.getElementById("retry").addEventListener("click", start);
+listen("auth-cancelled", () => show("signed-out"));
 listen("auth-error", (e) => {
   show("signed-out");
   error(e.payload);

@@ -14,6 +14,8 @@ export async function POST(req: NextRequest) {
   const state = String(form.get("state") ?? "");
   if (!platform || !/^[\w-]{8,64}$/.test(state)) return NextResponse.redirect(new URL("/native/connect", req.url), 303);
   const code = await createCode("connect", user.id, platform, String(form.get("name") ?? ""));
+  // Phones sign in inside an in-app browser sheet, which closes as soon as it reaches the midore:// link.
+  if (platform === "ios" || platform === "android") return NextResponse.redirect(appLink(code, state), 303);
   const done = new URL("/native/connect/done", req.url);
   done.searchParams.set("link", appLink(code, state));
   return NextResponse.redirect(done, 303);

@@ -23,4 +23,10 @@ impl<R: Runtime> MidoreWidgets<R> {
     pub fn set_session(&self, session: Session) -> crate::Result<()> {
         self.0.run_mobile_plugin::<serde_json::Value>("setSession", session).map(|_| ()).map_err(Into::into)
     }
+
+    /// Open the sign-in page in a browser sheet over the app. Blocks until the sheet closes on iOS; returns at
+    /// once on Android. Call it off the main thread.
+    pub fn authenticate(&self, url: String, scheme: String) -> crate::Result<Option<String>> {
+        self.0.run_mobile_plugin::<AuthReply>("authenticate", AuthRequest { url, scheme }).map(|r| r.url).map_err(Into::into)
+    }
 }

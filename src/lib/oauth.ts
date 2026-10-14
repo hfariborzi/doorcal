@@ -38,7 +38,7 @@ type FlowState = {
 };
 
 /** Places a sign-in may return to instead of the dashboard: the page that links a Midore desktop or phone app. */
-const SAFE_NEXT = /^\/native\/connect(\?[\w=&%.-]*)?$/;
+const SAFE_NEXT = /^\/native\/connect(\?[\w=&%.+-]*)?$/;
 export function safeNext(next: string | null | undefined) {
   return next && SAFE_NEXT.test(next) ? next : undefined;
 }

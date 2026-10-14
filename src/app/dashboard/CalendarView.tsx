@@ -473,13 +473,14 @@ export function CalendarView() {
 
         {strip}
         <div className={`${board.head} pt-2 pb-1.5`}>
-          <div className="w-14 shrink-0" />
+          <div className="w-11 shrink-0 sm:w-14" />
           {range.days.map((d) => {
             const isToday = d.hasSame(now, "day");
             const weekend = d.weekday > 5;
             return (
-              <div key={d.toISODate()} className={`${board.dayCell} min-w-0 flex-1 px-2`} data-today={isToday || undefined}>
-                <div className="flex items-baseline gap-1.5" aria-label={isToday ? `Today, ${d.toFormat("cccc d")}` : d.toFormat("cccc d")}>
+              <div key={d.toISODate()} className={`${board.dayCell} min-w-0 flex-1 ${view === "week" ? "px-1 sm:px-2" : "px-2"}`} data-today={isToday || undefined}>
+                {/* A phone-width week has no room for "Mon 12" on one line: stack the name over the date. */}
+                <div className={view === "week" ? "flex flex-col leading-tight sm:flex-row sm:items-baseline sm:gap-1.5" : "flex items-baseline gap-1.5"} aria-label={isToday ? `Today, ${d.toFormat("cccc d")}` : d.toFormat("cccc d")}>
                   <span className={board.dayName} data-today={isToday || undefined} data-weekend={(weekend && !isToday) || undefined}>
                     {d.toFormat("ccc")}
                   </span>
@@ -507,10 +508,10 @@ export function CalendarView() {
 
         <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto">
           <div className="relative flex" style={{ height: 24 * HOUR_PX, "--hour": `${HOUR_PX}px` } as React.CSSProperties}>
-            <div className="w-14 shrink-0">
+            <div className="w-11 shrink-0 sm:w-14">
               {Array.from({ length: 24 }, (_, h) => (
                 <div key={h} className={`${board.hour} relative text-right`} style={{ height: HOUR_PX }}>
-                  {h > 0 && <span className="absolute -top-2 right-2">{DateTime.fromObject({ hour: h }).toFormat("h a")}</span>}
+                  {h > 0 && <span className="absolute -top-2 right-1.5 sm:right-2">{DateTime.fromObject({ hour: h }).toFormat("h a")}</span>}
                 </div>
               ))}
             </div>
