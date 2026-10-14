@@ -270,57 +270,163 @@ struct TasksWidget: Widget {
 
 // MARK: - This week
 
+/// The next seven days as a list you can read: each day's events and planned work with times and titles
+/// (events with a coloured edge, planned work underlined), what's already over left out. On the wide Mac size the
+/// days sit side by side.
 struct WeekView: View {
+    @Environment(\.widgetFamily) var family
     let entry: AgendaEntry
-    private let firstHour = 8.0, lastHour = 20.0
+
+    private enum Line: Hashable {
+        case day(Date, free: Bool)
+        case freeRun(Date, Date)
+        case item(AgendaItem)
+        case more(Int)
+    }
+
+    private var days: [(day: Date, items: [AgendaItem])] {
+        let cal = Calendar.current
+        let start = cal.startOfDay(for: entry.date)
+        return (0..<7).map { d in
+            let day = cal.date(byAdding: .day, value: d, to: start)!
+            let next = cal.date(byAdding: .day, value: 1, to: day)!
+            let items = entry.items
+                .filter { $0.start < next && $0.end > day && $0.end > entry.date }
+                .sorted { ($0.allDay ? 0 : 1, $0.start) < ($1.allDay ? 0 : 1, $1.start) }
+            return (day, items)
+        }
+    }
+
+    /// Fill the widget line by line, then say how much didn't fit.
+    private func lines(budget: Int) -> [Line] {
+        var out: [Line] = []
+        var hidden = 0
+        for (day, items) in days {
+            if out.count + 1 > budget { hidden += items.count; continue }
+            // Free days in a row share one line.
+            if items.isEmpty, case .day(let prev, true)? = out.last {
+                out[out.count - 1] = .freeRun(prev, day)
+                continue
+            }
+            if items.isEmpty, case .freeRun(let from, _)? = out.last {
+                out[out.count - 1] = .freeRun(from, day)
+                continue
+            }
+            out.append(.day(day, free: items.isEmpty))
+            for item in items {
+                if out.count + 1 > budget - 1 { hidden += 1 } else { out.append(.item(item)) }
+            }
+        }
+        if hidden > 0 { out.append(.more(hidden)) }
+        return out
+    }
+
+    private func dayName(_ day: Date) -> String {
+        let cal = Calendar.current
+        if cal.isDateInToday(day) { return "Today" }
+        if cal.isDateInTomorrow(day) { return "Tomorrow" }
+        return day.formatted(.dateTime.weekday(.wide).day())
+    }
 
     var body: some View {
         if let problem = entry.problem { SignedOutView(message: problem) } else {
-            let cal = Calendar.current
-            let start = cal.startOfDay(for: entry.date)
             VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text("THIS WEEK").font(.system(size: 11, weight: .heavy)).foregroundStyle(Color.vermilion)
+                HStack(alignment: .firstTextBaseline) {
+                    Text(family == .systemMedium ? "NEXT DAYS" : "THIS WEEK").font(.system(size: 11, weight: .heavy)).foregroundStyle(Color.vermilion)
+                    let all = days.flatMap(\.items)
+                    let planned = all.filter(\.isTask).count
+                    Text("\(all.count - planned) events · \(planned) planned")
+                        .font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
                     Spacer()
                     Image("Mark").resizable().scaledToFit().frame(width: 10, height: 14)
                 }
-                GeometryReader { geo in
-                    let colW = geo.size.width / 7
-                    let h = geo.size.height - 16
-                    ZStack(alignment: .topLeading) {
-                        ForEach(0..<7, id: \.self) { d in
-                            let day = cal.date(byAdding: .day, value: d, to: start)!
-                            Text(day.formatted(.dateTime.weekday(.abbreviated)))
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(d == 0 ? Color.vermilion : .secondary)
-                                .offset(x: CGFloat(d) * colW + 2)
-                            Rectangle().fill(.secondary.opacity(0.15)).frame(width: 0.5, height: h).offset(x: CGFloat(d) * colW, y: 14)
-                        }
-                        ForEach(entry.timed) { item in
-                            let d = cal.dateComponents([.day], from: start, to: cal.startOfDay(for: item.start)).day ?? 0
-                            let s = hours(item.start, cal), e = hours(item.end, cal)
-                            if d >= 0 && d < 7 && e > firstHour && s < lastHour {
-                                let y = (max(s, firstHour) - firstHour) / (lastHour - firstHour) * h
-                                let height = max(3, (min(e, lastHour) - max(s, firstHour)) / (lastHour - firstHour) * h)
-                                RoundedRectangle(cornerRadius: 2)
-                                    .fill(item.tint.opacity(item.isTask ? (item.state == "done" ? 1 : 0.35) : 0.18))
-                                    .overlay(alignment: item.isTask ? .bottom : .leading) {
-                                        if item.isTask { Rectangle().fill(item.tint).frame(height: 1.5) } else { Rectangle().fill(item.tint).frame(width: 2) }
-                                    }
-                                    .frame(width: colW - 4, height: height)
-                                    .offset(x: CGFloat(d) * colW + 2, y: 14 + y)
-                            }
-                        }
-                    }
-                }
+                if family == .systemExtraLarge { columns } else { list }
             }
             .widgetURL(URL(string: "midore://open"))
         }
     }
 
-    private func hours(_ date: Date, _ cal: Calendar) -> Double {
-        let c = cal.dateComponents([.hour, .minute], from: date)
-        return Double(c.hour ?? 0) + Double(c.minute ?? 0) / 60
+    private var list: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(lines(budget: family == .systemMedium ? 7 : 16), id: \.self) { line in
+                switch line {
+                case .day(let day, let free):
+                    HStack(spacing: 6) {
+                        Text(dayName(day)).font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Calendar.current.isDateInToday(day) ? Color.vermilion : .primary)
+                        if free { Text("Free").font(.system(size: 10)).foregroundStyle(.tertiary) }
+                    }
+                    .frame(height: 18, alignment: .bottom)
+                case .freeRun(let from, let to):
+                    HStack(spacing: 6) {
+                        Text("\(dayName(from)) – \(dayName(to))").font(.system(size: 11, weight: .bold))
+                        Text("Free").font(.system(size: 10)).foregroundStyle(.tertiary)
+                    }
+                    .frame(height: 18, alignment: .bottom)
+                case .item(let item):
+                    WeekRow(item: item, now: entry.date)
+                case .more(let n):
+                    Text("+\(n) more this week").font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary).padding(.top, 3)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var columns: some View {
+        HStack(alignment: .top, spacing: 8) {
+            ForEach(days, id: \.day) { col in
+                let day = col.day, items = col.items
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(day.formatted(.dateTime.weekday(.abbreviated).day()))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Calendar.current.isDateInToday(day) ? Color.vermilion : .primary)
+                    if items.isEmpty { Text("Free").font(.system(size: 10)).foregroundStyle(.tertiary) }
+                    ForEach(items.prefix(7)) { item in
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(item.title).font(.system(size: 10.5, weight: .semibold))
+                                .strikethrough(item.state == "done" || item.state == "good_enough", color: .secondary)
+                                .lineLimit(2)
+                            Text(item.allDay ? "All day" : Board.time(item.start)).font(.system(size: 9)).foregroundStyle(.secondary)
+                        }
+                        .padding(.leading, item.isTask ? 0 : 5)
+                        .padding(.bottom, item.isTask ? 3 : 0)
+                        .overlay(alignment: item.isTask ? .bottom : .leading) {
+                            if item.isTask { Rectangle().fill(item.tint).frame(height: 2) } else { Rectangle().fill(item.tint).frame(width: 2.5) }
+                        }
+                    }
+                    if items.count > 7 { Text("+\(items.count - 7) more").font(.system(size: 9, weight: .medium)).foregroundStyle(.secondary) }
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+}
+
+/// One line of the week list: time, then the title with its colour (edge for events, underline for planned work).
+private struct WeekRow: View {
+    let item: AgendaItem
+    let now: Date
+
+    var body: some View {
+        let done = item.state == "done" || item.state == "good_enough"
+        let live = !item.allDay && item.start <= now && item.end > now
+        HStack(spacing: 8) {
+            Text(item.allDay ? "All day" : Board.time(item.start))
+                .font(.system(size: 10, weight: live ? .bold : .regular).monospacedDigit())
+                .foregroundStyle(live ? Color.vermilion : .secondary)
+                .frame(width: 52, alignment: .leading)
+            if !item.isTask { RoundedRectangle(cornerRadius: 1).fill(item.tint).frame(width: 2.5, height: 12) }
+            Text(item.title)
+                .font(.system(size: 12, weight: item.isTask ? .regular : .medium))
+                .foregroundStyle(done ? .secondary : .primary)
+                .strikethrough(done, color: .secondary)
+                .underline(item.isTask && !done, color: item.tint)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .frame(height: 17)
     }
 }
 
@@ -330,11 +436,11 @@ struct WeekWidget: Widget {
             WeekView(entry: entry).containerBackground(Board.ground, for: .widget)
         }
         .configurationDisplayName("This week")
-        .description("The next seven days on the board: meetings printed, planned work in colour.")
+        .description("The days ahead, with every meeting and piece of planned work by name.")
         #if os(macOS)
-        .supportedFamilies([.systemLarge, .systemExtraLarge])
+        .supportedFamilies([.systemMedium, .systemLarge, .systemExtraLarge])
         #else
-        .supportedFamilies([.systemLarge])
+        .supportedFamilies([.systemMedium, .systemLarge])
         #endif
     }
 }
