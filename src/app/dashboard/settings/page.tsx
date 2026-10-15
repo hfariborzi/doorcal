@@ -9,6 +9,10 @@ import { ConnectedCalendars, DangerZone, ProfileForm } from "./SettingsForms";
 import { DoriSettings } from "./DoriSettings";
 import { DevicesSettings } from "./DevicesSettings";
 import { listDevices } from "@/lib/native";
+import { appleEnabled } from "@/lib/apple";
+import { and, eq } from "drizzle-orm";
+import { db, loginIdentities } from "@/db";
+import { SignInSettings } from "./SignInSettings";
 
 export const metadata = { title: "Settings" };
 // The "suggest categories" action waits on the AI provider; give it time.
@@ -19,7 +23,14 @@ export default async function SettingsPage(props: PageProps<"/dashboard/settings
   const sp = await props.searchParams;
   const accounts = await listAccounts(user.id);
   const groups = await calendarsForAccounts(accounts);
-  const [cats, rules, usage, defaults, devices] = await Promise.all([ensureCategories(user.id), listRules(user.id), aiConfigured() ? usageThisMonth(user.id) : { events: 0, requests: 0 }, ensureDefaults(user), listDevices(user.id)]);
+  const [cats, rules, usage, defaults, devices, [apple]] = await Promise.all([
+    ensureCategories(user.id),
+    listRules(user.id),
+    aiConfigured() ? usageThisMonth(user.id) : { events: 0, requests: 0 },
+    ensureDefaults(user),
+    listDevices(user.id),
+    db.select().from(loginIdentities).where(and(eq(loginIdentities.userId, user.id), eq(loginIdentities.provider, "apple"))).limit(1),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -43,6 +54,7 @@ export default async function SettingsPage(props: PageProps<"/dashboard/settings
         initialWrite={{ accountId: user.writeAccountId, calendarId: user.writeCalendarId }}
         flash={typeof sp.error === "string" ? { kind: "error", text: sp.error } : sp.connected === "1" ? { kind: "ok", text: "Calendar connected." } : null}
       />
+      <SignInSettings apple={appleEnabled()} linkedEmail={apple ? apple.email : null} privateEmail={!!apple?.privateEmail} flash={sp.linked === "apple" ? "Apple linked. You can now sign in with Apple." : null} />
       <DoriSettings available={aiConfigured()} enabled={!!user.doriConsentAt} nickname={user.doriPrefs?.nickname ?? ""} character={user.doriPrefs?.character ?? "puppy"} workHours={user.workHours} availabilityHours={defaults.schedule.weekly} />
       <CategoriesSettings categories={cats} rules={rules} />
       <AiSettings configured={aiConfigured()} providerName={AI_PROVIDER_NAME} enabled={!!user.aiConsentAt} usage={usage} hasCategories={cats.length > 0} />

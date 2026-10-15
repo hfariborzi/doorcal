@@ -2,7 +2,7 @@ import { and, asc, eq, gt, lt } from "drizzle-orm";
 import { db, users, schedules, eventTypes, bookings, type EventType, type User, type Schedule } from "@/db";
 import { computeSlots, DEFAULT_WEEKLY } from "./availability";
 import { hasTimePreference, isPreferredSlot } from "./preferences";
-import { busyForAccounts, listAccounts } from "./calendar";
+import { busyForAccounts, CalendarNotConnectedError, isConnected, listAccounts } from "./calendar";
 
 export async function getUserByUsername(username: string): Promise<User | null> {
   const [u] = await db.select().from(users).where(eq(users.username, username.toLowerCase())).limit(1);
@@ -109,6 +109,9 @@ export async function getSlots(opts: {
   const from = new Date(rangeStart.getTime() - pad);
   const to = new Date(rangeEnd.getTime() + pad);
   const accounts = await listAccounts(user.id);
+  // No calendar at all (for example a new Sign in with Apple account): nothing to check against, so don't offer
+  // times until one is connected.
+  if (!accounts.some(isConnected)) throw new CalendarNotConnectedError();
   const [busy, existing] = await Promise.all([
     busyForAccounts(accounts, from, to, schedule.timezone),
     confirmedBookingsInRange(user.id, from, to),

@@ -19,7 +19,7 @@ export const metadata = {
   description: `How ${APP_NAME} collects, uses, shares, protects and deletes your data, including Google user data.`,
 };
 
-const UPDATED = "October 11, 2026";
+const UPDATED = "October 14, 2026";
 
 export default function PrivacyPage() {
   return (
@@ -47,6 +47,18 @@ export default function PrivacyPage() {
           An OAuth refresh token that lets {APP_NAME} reach your calendar while you are not on the site, for example
           when someone books you. It is stored encrypted. You can connect several Google and Microsoft accounts; each
           has its own token.
+        </li>
+      </ul>
+      <h3>From hosts, through Sign in with Apple</h3>
+      <ul>
+        <li>
+          Apple&apos;s account ID for you, your email address (or the private relay address Apple creates if you
+          choose to hide your email) and, the first time only, your name. Apple gives {APP_NAME} no access to your
+          calendar; you connect a Google or Microsoft calendar separately.
+        </li>
+        <li>
+          A token Apple issues for {APP_NAME}, stored encrypted and used only to revoke {APP_NAME}&apos;s access at Apple
+          when you unlink Apple or delete your account.
         </li>
       </ul>
       <h3>From hosts, through Google Calendar</h3>

@@ -592,3 +592,25 @@ export type EventLabel = typeof eventLabels.$inferSelect;
 export type Schedule = typeof schedules.$inferSelect;
 export type EventType = typeof eventTypes.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
+
+// Sign-in methods that are not calendar accounts. Sign in with Apple identifies a person but gives no calendar,
+// so it lives here instead of calendar_accounts; the user connects a Google or Microsoft calendar afterwards.
+export type LoginProvider = "apple";
+export const loginIdentities = pgTable(
+  "login_identities",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").$type<LoginProvider>().notNull(),
+    subject: text("subject").notNull(), // Apple's stable user id (`sub`)
+    email: text("email").notNull().default(""), // may be an Apple private relay address
+    privateEmail: boolean("private_email").notNull().default(false),
+    // Encrypted. Kept only to revoke Midore's access at Apple when the account is deleted.
+    refreshToken: text("refresh_token"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("login_identities_provider_subject_idx").on(t.provider, t.subject), index("login_identities_user_idx").on(t.userId)],
+);
+export type LoginIdentity = typeof loginIdentities.$inferSelect;

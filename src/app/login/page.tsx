@@ -19,8 +19,8 @@ export default async function LoginPage(props: PageProps<"/login">) {
         <div className="my-auto w-full max-w-sm py-16 text-center">
           <h1 className="text-3xl font-semibold tracking-tight">Sign in</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted">
-            Use your Google or Microsoft account. You&apos;ll be asked to allow calendar access so we can see when
-            you&apos;re free and add the meetings people book.
+            Use your Google or Microsoft account, and allow calendar access so Midore can see when you&apos;re free
+            and add the meetings people book. With Apple, you connect a calendar right after signing in.
           </p>
           {typeof error === "string" && (
             <p className="mt-6 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>

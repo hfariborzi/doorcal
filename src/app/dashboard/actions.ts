@@ -6,7 +6,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
-import { db, users, schedules, eventTypes, bookings, calendarAccounts, categories, labelRules, eventLabels, projects, tasks, taskLinks, type CalendarPrefs, type Priority } from "@/db";
+import { db, users, schedules, eventTypes, bookings, calendarAccounts, categories, labelRules, eventLabels, projects, tasks, taskLinks, loginIdentities, type CalendarPrefs, type Priority } from "@/db";
+import { appleRevoke } from "@/lib/apple";
 import { aiConfigured, proposeCategories, toSample } from "@/lib/ai";
 import { eventsForAccounts } from "@/lib/calendar";
 import { CATEGORY_PALETTE, MAX_CATEGORIES, MAX_RULES, eventKey, labelKey, listCategories, listRules, storeLabels, titleHash } from "@/lib/labels";
@@ -352,6 +353,10 @@ export async function hostCancelBooking(uid: string, reason: string): Promise<Ac
 export async function deleteAccount() {
   const user = await requireUser();
   for (const account of await listAccounts(user.id)) await revokeAccess(account);
+  // Apple asks apps to revoke Sign in with Apple tokens when an account is deleted.
+  for (const id of await db.select().from(loginIdentities).where(eq(loginIdentities.userId, user.id))) {
+    if (id.provider === "apple" && id.refreshToken) await appleRevoke(decrypt(id.refreshToken));
+  }
   await db.delete(users).where(eq(users.id, user.id)); // cascades to accounts, schedules, event types, bookings
   (await cookies()).delete(SESSION_COOKIE);
   redirect("/");
@@ -748,5 +753,16 @@ export async function applyProposal(input: z.input<typeof applySchema>): Promise
 export async function revokeDeviceAction(id: number): Promise<ActionResult> {
   const user = await requireUser();
   await revokeDevice(user.id, id);
+  return {};
+}
+
+/** Stop signing in with Apple. Only when another way in remains (a Google or Microsoft account). */
+export async function unlinkAppleAction(): Promise<ActionResult> {
+  const user = await requireUser();
+  if ((await listAccounts(user.id)).length === 0) return { error: "Connect a Google or Microsoft account first, or you'd have no way to sign in." };
+  const rows = await db.select().from(loginIdentities).where(and(eq(loginIdentities.userId, user.id), eq(loginIdentities.provider, "apple")));
+  for (const row of rows) if (row.refreshToken) await appleRevoke(decrypt(row.refreshToken));
+  await db.delete(loginIdentities).where(and(eq(loginIdentities.userId, user.id), eq(loginIdentities.provider, "apple")));
+  revalidatePath("/dashboard/settings");
   return {};
 }

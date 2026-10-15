@@ -90,6 +90,22 @@ Skip this to offer Google sign-in only; the Microsoft button appears once both v
 > Organizations often require an admin to approve third-party apps. If sign-in says approval is needed, the
 > user's IT department has to allow the app once for the whole organization.
 
+### 1c. Sign in with Apple (optional)
+
+Apple identifies the person but gives no calendar, so Apple users connect a Google or Microsoft calendar right
+after signing in, and existing users can link Apple under **Settings → Sign-in methods**. The iPhone App Store
+expects Sign in with Apple whenever Google or Microsoft sign-in is offered (guideline 4.8).
+
+1. In [Apple Developer](https://developer.apple.com/account/resources) → **Identifiers**, open your app's App ID
+   and enable **Sign in with Apple**.
+2. **Identifiers → + → Services IDs**: create one (for example `app.example.signin`), enable **Sign in with
+   Apple**, **Configure**: primary App ID from step 1, domain `your-domain`, return URL
+   `https://your-domain/api/auth/apple/callback`.
+3. **Keys → +**: enable **Sign in with Apple** (configure it with the same primary App ID), download the `.p8`
+   (only once) and note the Key ID.
+4. Set `APPLE_TEAM_ID`, `APPLE_SERVICES_ID`, `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY` (the `.p8` contents). The
+   button appears once all four are set.
+
 ### 2. Deploy to Vercel
 
 1. Fork or push this repo to GitHub, then **Import** it at <https://vercel.com/new>.
@@ -102,6 +118,7 @@ Skip this to offer Google sign-in only; the Microsoft button appears once both v
    | `GOOGLE_CLIENT_ID` | from step 1 |
    | `GOOGLE_CLIENT_SECRET` | from step 1 |
    | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | optional, from step 1b |
+| `APPLE_TEAM_ID` / `APPLE_SERVICES_ID` / `APPLE_KEY_ID` / `APPLE_PRIVATE_KEY` | optional, from step 1c |
    | `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL` / `AI_PROVIDER_NAME` | optional, see "AI categorisation" below; also powers Dori |
    | `DORI_MODEL` | optional; model for Dori if different from `AI_MODEL` |
    | `DORI_VOICE` | optional; ElevenLabs voice for read-aloud (default `sarah`); voice needs OpenRouter as the AI provider |

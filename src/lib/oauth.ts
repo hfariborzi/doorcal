@@ -77,7 +77,7 @@ function allowList() {
  * With an allow-list configured, the address must be one the provider vouches for: a Microsoft tenant can put
  * any address in the email claim, so an unverified claim could otherwise impersonate an allowed domain.
  */
-function isAllowed(identity: ProviderIdentity) {
+function isAllowed(identity: Pick<ProviderIdentity, "email" | "emailVerified">) {
   const { emails, domains, open } = allowList();
   if (open) return true;
   if (!identity.emailVerified) return false;
@@ -85,7 +85,9 @@ function isAllowed(identity: ProviderIdentity) {
   return emails.includes(e) || domains.some((d) => e.endsWith(`@${d}`));
 }
 
-async function uniqueUsername(email: string) {
+export { isAllowed };
+
+export async function uniqueUsername(email: string) {
   const base =
     email
       .split("@")[0]
@@ -103,7 +105,7 @@ async function uniqueUsername(email: string) {
   return `${base}-${Date.now().toString(36)}`;
 }
 
-function validTimezone(tz: string) {
+export function validTimezone(tz: string) {
   try {
     new Intl.DateTimeFormat("en", { timeZone: tz });
     return !!tz;
